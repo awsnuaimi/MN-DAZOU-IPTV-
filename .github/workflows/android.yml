@@ -17,8 +17,11 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
+    - name: Fix Gradle Version
+      run: gradle wrapper --gradle-version 8.0
+
     - name: Build with Gradle
-      run: gradle assembleDebug
+      run: ./gradlew assembleDebug
 
     - name: Upload Finished APK
       uses: actions/upload-artifact@v4
