@@ -1,7 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">#000000</item> <!-- خلفية سوداء تناسب الأيقونة -->
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item> <!-- هنا نضع أيقونتك -->
-        <item name="postSplashScreenTheme">@style/Theme.AppCompat.NoActionBar</item>
+    <!-- ثيم أساسي نظيف وخالٍ من أخطاء الشاشة الترحيبية -->
+    <style name="Theme.MN_DAZOU" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">#2196F3</item>
+        <item name="colorPrimaryDark">#1976D2</item>
+        <item name="colorAccent">#FF4081</item>
     </style>
 </resources>
