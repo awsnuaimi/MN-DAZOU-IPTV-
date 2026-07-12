@@ -61,7 +61,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateList(list: List<StreamModel>) {
+        private fun updateList(list: List<StreamModel>) {
+        // تحديث المحول باستخدام النوع الصريح
+        val adapter = RecyclerViewAdapter(list) { stream -> 
+            playStream(stream) 
+        }
+        rv.adapter = adapter
+    }
+{
         val names = list.map { it.name }
         val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, names)
         // ملاحظة: لتبسيط الكود، استخدمنا ArrayAdapter، سأعلمك كيف تجعلها احترافية لاحقاً
