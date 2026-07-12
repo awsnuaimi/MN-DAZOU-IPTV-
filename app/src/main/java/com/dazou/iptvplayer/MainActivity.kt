@@ -3,7 +3,8 @@ package com.dazou.iptvplayer
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import com.dazou.iptvplayer.databinding.ActivityMainBinding // تأكد من استيراد Binding
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.dazou.iptvplayer.databinding.ActivityMainBinding
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 
@@ -12,17 +13,13 @@ class MainActivity : AppCompatActivity() {
     private var player: ExoPlayer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
-        override fun onCreate(savedInstanceState: Bundle?) {
-    val splashScreen = installSplashScreen() // أضف هذا السطر
-    super.onCreate(savedInstanceState)
-    ...
-}
         setContentView(binding.root)
 
         val prefs = getSharedPreferences("IPTV_Prefs", MODE_PRIVATE)
-        
+
         binding.btnConnect.setOnClickListener {
             val url = binding.etUrl.text.toString()
             if (url.isNotEmpty()) {
@@ -34,6 +31,7 @@ class MainActivity : AppCompatActivity() {
         binding.btnLogout.setOnClickListener {
             prefs.edit().remove("url").apply()
             player?.release()
+            player = null
             binding.playerContainer.visibility = View.GONE
             binding.loginLayout.visibility = View.VISIBLE
         }
@@ -48,5 +46,10 @@ class MainActivity : AppCompatActivity() {
         player?.setMediaItem(MediaItem.fromUri(url))
         player?.prepare()
         player?.playWhenReady = true
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        player?.release()
     }
 }
