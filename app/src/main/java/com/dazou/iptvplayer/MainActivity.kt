@@ -55,4 +55,23 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         player?.release()
     }
+}// داخل onCreate
+binding.radioGroup.setOnCheckedChangeListener { _, checkedId ->
+    val isXtream = (checkedId == R.id.rbXtream)
+    binding.etUser.visibility = if (isXtream) View.VISIBLE else View.GONE
+    binding.etPass.visibility = if (isXtream) View.VISIBLE else View.GONE
+    binding.etUrl.hint = if (isXtream) "رابط الخادم (http://host:port)" else "رابط M3U"
 }
+
+binding.btnConnect.setOnClickListener {
+    if (binding.rbXtream.isChecked) {
+        val host = binding.etUrl.text.toString()
+        val user = binding.etUser.text.toString()
+        val pass = binding.etPass.text.toString()
+        // هنا سنقوم لاحقاً باستدعاء API الخاص بـ Xtream
+        connectToXtream(host, user, pass)
+    } else {
+        setupPlayer(binding.etUrl.text.toString())
+    }
+}
+
