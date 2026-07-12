@@ -7,6 +7,7 @@
         android:allowBackup="true"
         android:icon="@android:mipmap/sym_def_app_icon"
         android:label="MN-DAZOU IPTVPLAYER"
+        android:usesCleartextTraffic="true"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
         
         <activity
