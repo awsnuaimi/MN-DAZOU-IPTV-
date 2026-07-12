@@ -25,7 +25,7 @@ jobs:
       run: gradle assembleDebug
 
     - name: Upload Finished APK
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: MN-DAZOU-IPTVPLAYER
         path: app/build/outputs/apk/debug/app-debug.apk
