@@ -7,6 +7,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      GRADLE_OPTS: "-Dorg.gradle.warning.mode=none"
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
@@ -17,11 +19,8 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Fix Gradle Version
-      run: gradle wrapper --gradle-version 8.0
-
     - name: Build with Gradle
-      run: ./gradlew assembleDebug
+      run: gradle assembleDebug --warning-mode=none
 
     - name: Upload Finished APK
       uses: actions/upload-artifact@v4
