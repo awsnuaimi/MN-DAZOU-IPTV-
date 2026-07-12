@@ -28,3 +28,9 @@
         
     </application>
 </manifest>
+<activity
+    android:name=".MainActivity"
+    android:exported="true"
+    android:theme="@style/Theme.App.Starting"> <!-- هذا الثيم سننشئه الآن -->
+    ...
+</activity>

@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#000000</item> <!-- خلفية سوداء تناسب الأيقونة -->
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item> <!-- هنا نضع أيقونتك -->
+        <item name="postSplashScreenTheme">@style/Theme.AppCompat.NoActionBar</item>
+    </style>
+</resources>

@@ -1,63 +1,52 @@
 package com.dazou.iptvplayer
 
-import android.content.Context
 import android.os.Bundle
-import android.widget.*
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import com.dazou.iptvplayer.databinding.ActivityMainBinding // تأكد من استيراد Binding
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
-import com.google.android.exoplayer2.ui.PlayerView
 
 class MainActivity : AppCompatActivity() {
+    private lateinit var binding: ActivityMainBinding
     private var player: ExoPlayer? = null
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        override fun onCreate(savedInstanceState: Bundle?) {
+    val splashScreen = installSplashScreen() // أضف هذا السطر
+    super.onCreate(savedInstanceState)
+    ...
+}
+        setContentView(binding.root)
+
+        val prefs = getSharedPreferences("IPTV_Prefs", MODE_PRIVATE)
         
-        val prefs = getSharedPreferences("IPTV_Prefs", Context.MODE_PRIVATE)
-        val savedUrl = prefs.getString("url", "")
-
-        if (savedUrl.isNullOrEmpty()) {
-            showLoginForm(prefs)
-        } else {
-            startPlayer(savedUrl)
-        }
-    }
-
-    private fun showLoginForm(prefs: android.content.SharedPreferences) {
-        val layout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(50, 50, 50, 50)
-        }
-
-        val urlInput = EditText(this).apply { hint = "أدخل رابط M3U أو بيانات Xtream" }
-        val loginButton = Button(this).apply { text = "تشغيل" }
-
-        layout.addView(urlInput)
-        layout.addView(loginButton)
-        setContentView(layout)
-
-        loginButton.setOnClickListener {
-            val url = urlInput.text.toString()
+        binding.btnConnect.setOnClickListener {
+            val url = binding.etUrl.text.toString()
             if (url.isNotEmpty()) {
                 prefs.edit().putString("url", url).apply()
-                startPlayer(url)
+                setupPlayer(url)
             }
+        }
+
+        binding.btnLogout.setOnClickListener {
+            prefs.edit().remove("url").apply()
+            player?.release()
+            binding.playerContainer.visibility = View.GONE
+            binding.loginLayout.visibility = View.VISIBLE
         }
     }
 
-    private fun startPlayer(url: String) {
-        val playerView = PlayerView(this)
-        setContentView(playerView)
+    private fun setupPlayer(url: String) {
+        binding.loginLayout.visibility = View.GONE
+        binding.playerContainer.visibility = View.VISIBLE
+        
         player = ExoPlayer.Builder(this).build()
-        playerView.player = player
+        binding.playerView.player = player
         player?.setMediaItem(MediaItem.fromUri(url))
         player?.prepare()
         player?.playWhenReady = true
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        player?.release()
     }
 }
