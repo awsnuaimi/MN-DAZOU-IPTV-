@@ -2,6 +2,7 @@ package com.dazou.iptvplayer
 
 import android.os.Bundle
 import android.view.View
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.dazou.iptvplayer.databinding.ActivityMainBinding
 import com.google.android.exoplayer2.ExoPlayer
@@ -23,11 +24,32 @@ class MainActivity : AppCompatActivity() {
             binding.etUrl.setText(savedUrl)
         }
 
+        // تغيير الحقول بناء على اختيار M3U أو Xtream
+        binding.radioGroup.setOnCheckedChangeListener { _, checkedId ->
+            val isXtream = (checkedId == R.id.rbXtream)
+            binding.etUser.visibility = if (isXtream) View.VISIBLE else View.GONE
+            binding.etPass.visibility = if (isXtream) View.VISIBLE else View.GONE
+            binding.etUrl.hint = if (isXtream) "رابط الخادم (مثال: http://host:port)" else "أدخل رابط M3U"
+        }
+
         binding.btnConnect.setOnClickListener {
-            val url = binding.etUrl.text.toString()
-            if (url.isNotEmpty()) {
-                prefs.edit().putString("url", url).apply()
-                setupPlayer(url)
+            if (binding.rbXtream.isChecked) {
+                val host = binding.etUrl.text.toString()
+                val user = binding.etUser.text.toString()
+                val pass = binding.etPass.text.toString()
+                
+                if (host.isNotEmpty() && user.isNotEmpty() && pass.isNotEmpty()) {
+                    // رسالة مؤقتة لتأكيد عمل الواجهة، سنقوم ببرمجة الاتصال لاحقاً
+                    Toast.makeText(this, "جاري تجهيز بيانات Xtream...", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "يرجى إدخال جميع البيانات", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                val url = binding.etUrl.text.toString()
+                if (url.isNotEmpty()) {
+                    prefs.edit().putString("url", url).apply()
+                    setupPlayer(url)
+                }
             }
         }
 
@@ -55,23 +77,4 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         player?.release()
     }
-}// داخل onCreate
-binding.radioGroup.setOnCheckedChangeListener { _, checkedId ->
-    val isXtream = (checkedId == R.id.rbXtream)
-    binding.etUser.visibility = if (isXtream) View.VISIBLE else View.GONE
-    binding.etPass.visibility = if (isXtream) View.VISIBLE else View.GONE
-    binding.etUrl.hint = if (isXtream) "رابط الخادم (http://host:port)" else "رابط M3U"
 }
-
-binding.btnConnect.setOnClickListener {
-    if (binding.rbXtream.isChecked) {
-        val host = binding.etUrl.text.toString()
-        val user = binding.etUser.text.toString()
-        val pass = binding.etPass.text.toString()
-        // هنا سنقوم لاحقاً باستدعاء API الخاص بـ Xtream
-        connectToXtream(host, user, pass)
-    } else {
-        setupPlayer(binding.etUrl.text.toString())
-    }
-}
-

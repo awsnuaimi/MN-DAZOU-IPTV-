@@ -13,6 +13,28 @@
         android:orientation="vertical"
         android:padding="30dp">
 
+        <RadioGroup
+            android:id="@+id/radioGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="15dp">
+            <RadioButton
+                android:id="@+id/rbM3u"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="رابط M3U"
+                android:textColor="#FFFFFF"
+                android:checked="true"/>
+            <RadioButton
+                android:id="@+id/rbXtream"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Xtream"
+                android:textColor="#FFFFFF"
+                android:layout_marginStart="20dp"/>
+        </RadioGroup>
+
         <EditText
             android:id="@+id/etUrl"
             android:layout_width="match_parent"
@@ -20,6 +42,24 @@
             android:hint="أدخل رابط IPTV الخاص بك"
             android:textColor="#FFFFFF"
             android:textColorHint="#888888" />
+
+        <EditText
+            android:id="@+id/etUser"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="اسم المستخدم"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#888888"
+            android:visibility="gone"/>
+
+        <EditText
+            android:id="@+id/etPass"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="كلمة السر"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#888888"
+            android:visibility="gone"/>
 
         <Button
             android:id="@+id/btnConnect"
@@ -49,26 +89,3 @@
             android:layout_margin="10dp"/>
     </FrameLayout>
 </RelativeLayout>
-<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="20dp"
-    android:background="#121212">
-
-    <RadioGroup
-        android:id="@+id/radioGroup"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-        <RadioButton android:id="@+id/rbM3u" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="رابط M3U" android:textColor="#FFF" android:checked="true"/>
-        <RadioButton android:id="@+id/rbXtream" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Xtream" android:textColor="#FFF"/>
-    </RadioGroup>
-
-    <EditText android:id="@+id/etUrl" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="الرابط / Host" android:textColor="#FFF" android:textColorHint="#888"/>
-    <EditText android:id="@+id/etUser" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="اسم المستخدم" android:textColor="#FFF" android:textColorHint="#888" android:visibility="gone"/>
-    <EditText android:id="@+id/etPass" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="كلمة السر" android:textColor="#FFF" android:textColorHint="#888" android:visibility="gone"/>
-
-    <Button android:id="@+id/btnConnect" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="تسجيل الدخول"/>
-</LinearLayout>
