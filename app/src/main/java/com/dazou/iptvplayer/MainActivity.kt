@@ -18,7 +18,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var player: ExoPlayer? = null
     
-    // متغيرات لحفظ بيانات السيرفر
     private var currentHost = ""
     private var currentUser = ""
     private var currentPass = ""
@@ -28,8 +27,6 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val prefs = getSharedPreferences("IPTV_Prefs", MODE_PRIVATE)
-        
         binding.radioGroup.setOnCheckedChangeListener { _, checkedId ->
             val isXtream = (checkedId == R.id.rbXtream)
             binding.etUser.visibility = if (isXtream) View.VISIBLE else View.GONE
@@ -52,18 +49,27 @@ class MainActivity : AppCompatActivity() {
                 }
             } else {
                 val url = binding.etUrl.text.toString()
-                if (url.isNotEmpty()) {
-                    setupPlayer(url)
-                }
+                if (url.isNotEmpty()) setupPlayer(url)
             }
         }
 
+        // العودة من قائمة القنوات إلى قائمة الباقات
+        binding.btnBackToCategories.setOnClickListener {
+            binding.channelsLayout.visibility = View.GONE
+            binding.categoriesLayout.visibility = View.VISIBLE
+        }
+
+        // إغلاق المشغل والعودة للقنوات
         binding.btnLogout.setOnClickListener {
             player?.release()
             player = null
             binding.playerContainer.visibility = View.GONE
-            binding.categoriesLayout.visibility = View.GONE
-            binding.loginLayout.visibility = View.VISIBLE
+            
+            if (binding.rbXtream.isChecked) {
+                binding.channelsLayout.visibility = View.VISIBLE
+            } else {
+                binding.loginLayout.visibility = View.VISIBLE
+            }
         }
     }
 
@@ -86,16 +92,15 @@ class MainActivity : AppCompatActivity() {
                     if (response.isSuccessful && response.body()?.userInfo != null) {
                         val status = response.body()?.userInfo?.status
                         if (status == "Active" || status == "active") {
-                            // الدخول نجح، نحفظ البيانات ونطلب الباقات
                             currentHost = baseUrl
                             currentUser = user
                             currentPass = pass
                             fetchCategories()
                         } else {
-                            Toast.makeText(this@MainActivity, "عذراً، هذا الحساب منتهي أو متوقف", Toast.LENGTH_LONG).show()
+                            Toast.makeText(this@MainActivity, "الحساب متوقف", Toast.LENGTH_LONG).show()
                         }
                     } else {
-                        Toast.makeText(this@MainActivity, "بيانات الدخول غير صحيحة", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@MainActivity, "بيانات غير صحيحة", Toast.LENGTH_LONG).show()
                     }
                 }
 
@@ -114,13 +119,8 @@ class MainActivity : AppCompatActivity() {
     private fun fetchCategories() {
         binding.loginLayout.visibility = View.GONE
         binding.categoriesLayout.visibility = View.VISIBLE
-        Toast.makeText(this, "جاري جلب الباقات...", Toast.LENGTH_SHORT).show()
         
-        val retrofit = Retrofit.Builder()
-            .baseUrl(currentHost)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-
+        val retrofit = Retrofit.Builder().baseUrl(currentHost).addConverterFactory(GsonConverterFactory.create()).build()
         val apiService = retrofit.create(XtreamApiService::class.java)
         
         apiService.getLiveCategories(currentUser, currentPass).enqueue(object : Callback<List<XtreamCategory>> {
@@ -128,20 +128,47 @@ class MainActivity : AppCompatActivity() {
                 if (response.isSuccessful && response.body() != null) {
                     val categories = response.body()!!
                     val categoryNames = categories.map { it.categoryName }
-                    
                     val adapter = ArrayAdapter(this@MainActivity, R.layout.item_category, R.id.tvCategoryName, categoryNames)
                     binding.categoriesList.adapter = adapter
                     
                     binding.categoriesList.setOnItemClickListener { _, _, position, _ ->
-                        val selectedCategory = categories[position]
-                        Toast.makeText(this@MainActivity, "اخترت: ${selectedCategory.categoryName}", Toast.LENGTH_SHORT).show()
-                        // هنا سنبرمج جلب قنوات الباقة لاحقاً
+                        fetchStreams(categories[position].categoryId)
                     }
                 }
             }
+            override fun onFailure(call: Call<List<XtreamCategory>>, t: Throwable) {}
+        })
+    }
 
-            override fun onFailure(call: Call<List<XtreamCategory>>, t: Throwable) {
-                Toast.makeText(this@MainActivity, "خطأ في جلب الباقات", Toast.LENGTH_SHORT).show()
+    // دالة جلب القنوات (الجديدة)
+    private fun fetchStreams(categoryId: String) {
+        binding.categoriesLayout.visibility = View.GONE
+        binding.channelsLayout.visibility = View.VISIBLE
+        Toast.makeText(this, "جاري تحميل القنوات...", Toast.LENGTH_SHORT).show()
+        
+        val retrofit = Retrofit.Builder().baseUrl(currentHost).addConverterFactory(GsonConverterFactory.create()).build()
+        val apiService = retrofit.create(XtreamApiService::class.java)
+        
+        apiService.getLiveStreams(currentUser, currentPass, categoryId = categoryId).enqueue(object : Callback<List<XtreamStream>> {
+            override fun onResponse(call: Call<List<XtreamStream>>, response: Response<List<XtreamStream>>) {
+                if (response.isSuccessful && response.body() != null) {
+                    val streams = response.body()!!
+                    val streamNames = streams.map { it.name }
+                    val adapter = ArrayAdapter(this@MainActivity, R.layout.item_category, R.id.tvCategoryName, streamNames)
+                    binding.channelsList.adapter = adapter
+                    
+                    binding.channelsList.setOnItemClickListener { _, _, position, _ ->
+                        val selectedStream = streams[position]
+                        // بناء رابط البث الخاص بالقناة المختارة
+                        val streamUrl = "${currentHost}${currentUser}/${currentPass}/${selectedStream.streamId}"
+                        setupPlayer(streamUrl)
+                    }
+                }
+            }
+            override fun onFailure(call: Call<List<XtreamStream>>, t: Throwable) {
+                Toast.makeText(this@MainActivity, "خطأ في تحميل القنوات", Toast.LENGTH_SHORT).show()
+                binding.channelsLayout.visibility = View.GONE
+                binding.categoriesLayout.visibility = View.VISIBLE
             }
         })
     }
@@ -149,6 +176,7 @@ class MainActivity : AppCompatActivity() {
     private fun setupPlayer(url: String) {
         binding.loginLayout.visibility = View.GONE
         binding.categoriesLayout.visibility = View.GONE
+        binding.channelsLayout.visibility = View.GONE
         binding.playerContainer.visibility = View.VISIBLE
         
         player = ExoPlayer.Builder(this).build()
