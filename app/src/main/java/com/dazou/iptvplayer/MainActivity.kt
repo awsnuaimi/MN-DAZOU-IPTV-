@@ -1,5 +1,6 @@
 package com.dazou.iptvplayer
 
+import android.content.Context
 import android.os.Bundle
 import android.view.View
 import android.widget.ArrayAdapter
@@ -27,6 +28,18 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // التحقق من وجود بيانات محفوظة للدخول التلقائي
+        val prefs = getSharedPreferences("IPTV_Prefs", Context.MODE_PRIVATE)
+        val savedHost = prefs.getString("xtream_host", "")
+        val savedUser = prefs.getString("xtream_user", "")
+        val savedPass = prefs.getString("xtream_pass", "")
+
+        if (!savedHost.isNullOrEmpty() && !savedUser.isNullOrEmpty() && !savedPass.isNullOrEmpty()) {
+            binding.loginLayout.visibility = View.GONE
+            Toast.makeText(this, "جاري الدخول التلقائي...", Toast.LENGTH_SHORT).show()
+            connectToXtream(savedHost, savedUser, savedPass)
+        }
+
         binding.radioGroup.setOnCheckedChangeListener { _, checkedId ->
             val isXtream = (checkedId == R.id.rbXtream)
             binding.etUser.visibility = if (isXtream) View.VISIBLE else View.GONE
@@ -53,23 +66,26 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // العودة من قائمة القنوات إلى قائمة الباقات
+        // أزرار الشاشة الرئيسية
+        binding.btnLiveTv.setOnClickListener { fetchCategories("live") }
+        binding.btnMovies.setOnClickListener { Toast.makeText(this, "سيتم برمجة الأفلام في التحديث القادم!", Toast.LENGTH_SHORT).show() }
+        binding.btnSeries.setOnClickListener { Toast.makeText(this, "سيتم برمجة المسلسلات في التحديث القادم!", Toast.LENGTH_SHORT).show() }
+        
+        binding.btnLogoutHome.setOnClickListener { logout() }
+        binding.btnBackToHome.setOnClickListener { 
+            binding.categoriesLayout.visibility = View.GONE
+            binding.homeLayout.visibility = View.VISIBLE
+        }
         binding.btnBackToCategories.setOnClickListener {
             binding.channelsLayout.visibility = View.GONE
             binding.categoriesLayout.visibility = View.VISIBLE
         }
 
-        // إغلاق المشغل والعودة للقنوات
-        binding.btnLogout.setOnClickListener {
+        binding.btnLogoutPlayer.setOnClickListener {
             player?.release()
             player = null
             binding.playerContainer.visibility = View.GONE
-            
-            if (binding.rbXtream.isChecked) {
-                binding.channelsLayout.visibility = View.VISIBLE
-            } else {
-                binding.loginLayout.visibility = View.VISIBLE
-            }
+            binding.channelsLayout.visibility = View.VISIBLE
         }
     }
 
@@ -77,11 +93,7 @@ class MainActivity : AppCompatActivity() {
         val baseUrl = if (host.endsWith("/")) host else "$host/"
 
         try {
-            val retrofit = Retrofit.Builder()
-                .baseUrl(baseUrl)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-
+            val retrofit = Retrofit.Builder().baseUrl(baseUrl).addConverterFactory(GsonConverterFactory.create()).build()
             val apiService = retrofit.create(XtreamApiService::class.java)
 
             apiService.authenticate(user, pass).enqueue(object : Callback<XtreamAuthResponse> {
@@ -95,12 +107,25 @@ class MainActivity : AppCompatActivity() {
                             currentHost = baseUrl
                             currentUser = user
                             currentPass = pass
-                            fetchCategories()
+                            
+                            // حفظ البيانات للدخول التلقائي القادم
+                            val prefs = getSharedPreferences("IPTV_Prefs", Context.MODE_PRIVATE)
+                            prefs.edit()
+                                .putString("xtream_host", host)
+                                .putString("xtream_user", user)
+                                .putString("xtream_pass", pass)
+                                .apply()
+
+                            // إظهار الشاشة الرئيسية
+                            binding.loginLayout.visibility = View.GONE
+                            binding.homeLayout.visibility = View.VISIBLE
                         } else {
                             Toast.makeText(this@MainActivity, "الحساب متوقف", Toast.LENGTH_LONG).show()
+                            logout()
                         }
                     } else {
                         Toast.makeText(this@MainActivity, "بيانات غير صحيحة", Toast.LENGTH_LONG).show()
+                        logout()
                     }
                 }
 
@@ -108,17 +133,20 @@ class MainActivity : AppCompatActivity() {
                     binding.btnConnect.text = "اتصال"
                     binding.btnConnect.isEnabled = true
                     Toast.makeText(this@MainActivity, "فشل الاتصال", Toast.LENGTH_LONG).show()
+                    logout()
                 }
             })
         } catch (e: Exception) {
             binding.btnConnect.text = "اتصال"
             binding.btnConnect.isEnabled = true
+            logout()
         }
     }
 
-    private fun fetchCategories() {
-        binding.loginLayout.visibility = View.GONE
+    private fun fetchCategories(type: String) {
+        binding.homeLayout.visibility = View.GONE
         binding.categoriesLayout.visibility = View.VISIBLE
+        binding.tvCategoryTitle.text = "باقات البث المباشر"
         
         val retrofit = Retrofit.Builder().baseUrl(currentHost).addConverterFactory(GsonConverterFactory.create()).build()
         val apiService = retrofit.create(XtreamApiService::class.java)
@@ -140,7 +168,6 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    // دالة جلب القنوات (الجديدة)
     private fun fetchStreams(categoryId: String) {
         binding.categoriesLayout.visibility = View.GONE
         binding.channelsLayout.visibility = View.VISIBLE
@@ -159,7 +186,6 @@ class MainActivity : AppCompatActivity() {
                     
                     binding.channelsList.setOnItemClickListener { _, _, position, _ ->
                         val selectedStream = streams[position]
-                        // بناء رابط البث الخاص بالقناة المختارة
                         val streamUrl = "${currentHost}${currentUser}/${currentPass}/${selectedStream.streamId}"
                         setupPlayer(streamUrl)
                     }
@@ -174,8 +200,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupPlayer(url: String) {
-        binding.loginLayout.visibility = View.GONE
-        binding.categoriesLayout.visibility = View.GONE
         binding.channelsLayout.visibility = View.GONE
         binding.playerContainer.visibility = View.VISIBLE
         
@@ -184,6 +208,20 @@ class MainActivity : AppCompatActivity() {
         player?.setMediaItem(MediaItem.fromUri(url))
         player?.prepare()
         player?.playWhenReady = true
+    }
+
+    private fun logout() {
+        val prefs = getSharedPreferences("IPTV_Prefs", Context.MODE_PRIVATE)
+        prefs.edit().clear().apply() // مسح البيانات المحفوظة
+        
+        binding.homeLayout.visibility = View.GONE
+        binding.categoriesLayout.visibility = View.GONE
+        binding.channelsLayout.visibility = View.GONE
+        binding.playerContainer.visibility = View.GONE
+        binding.loginLayout.visibility = View.VISIBLE
+        
+        player?.release()
+        player = null
     }
 
     override fun onDestroy() {

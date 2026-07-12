@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     android:background="#121212">
 
-    <!-- واجهة الدخول -->
+    <!-- 1. واجهة الدخول -->
     <LinearLayout
         android:id="@+id/loginLayout"
         android:layout_width="match_parent"
@@ -13,12 +13,7 @@
         android:orientation="vertical"
         android:padding="30dp">
 
-        <RadioGroup
-            android:id="@+id/radioGroup"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="15dp">
+        <RadioGroup android:id="@+id/radioGroup" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="15dp">
             <RadioButton android:id="@+id/rbM3u" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="رابط M3U" android:textColor="#FFFFFF" android:checked="true"/>
             <RadioButton android:id="@+id/rbXtream" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Xtream" android:textColor="#FFFFFF" android:layout_marginStart="20dp"/>
         </RadioGroup>
@@ -30,7 +25,26 @@
         <Button android:id="@+id/btnConnect" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="اتصال" android:layout_marginTop="20dp"/>
     </LinearLayout>
 
-    <!-- واجهة الأقسام -->
+    <!-- 2. الشاشة الرئيسية (الجديدة) -->
+    <LinearLayout
+        android:id="@+id/homeLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="20dp"
+        android:visibility="gone">
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="مرحباً بك في MN-DAZOU" android:textColor="#FFFFFF" android:textSize="24sp" android:textStyle="bold" android:layout_marginBottom="40dp"/>
+
+        <Button android:id="@+id/btnLiveTv" android:layout_width="match_parent" android:layout_height="80dp" android:text="📺 البث المباشر" android:textSize="20sp" android:layout_marginBottom="15dp"/>
+        <Button android:id="@+id/btnMovies" android:layout_width="match_parent" android:layout_height="80dp" android:text="🎬 الأفلام" android:textSize="20sp" android:layout_marginBottom="15dp"/>
+        <Button android:id="@+id/btnSeries" android:layout_width="match_parent" android:layout_height="80dp" android:text="🍿 المسلسلات" android:textSize="20sp" android:layout_marginBottom="30dp"/>
+        
+        <Button android:id="@+id/btnLogoutHome" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="تسجيل الخروج" android:backgroundTint="#D32F2F"/>
+    </LinearLayout>
+
+    <!-- 3. واجهة الأقسام -->
     <LinearLayout
         android:id="@+id/categoriesLayout"
         android:layout_width="match_parent"
@@ -38,11 +52,12 @@
         android:orientation="vertical"
         android:visibility="gone">
         
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="باقات القنوات" android:textColor="#FFFFFF" android:textSize="22sp" android:textStyle="bold" android:padding="15dp" android:background="#1E1E1E" android:gravity="center"/>
+        <Button android:id="@+id/btnBackToHome" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="رجوع للرئيسية" android:backgroundTint="#333333"/>
+        <TextView android:id="@+id/tvCategoryTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="باقات القنوات" android:textColor="#FFFFFF" android:textSize="22sp" android:textStyle="bold" android:padding="15dp" android:background="#1E1E1E" android:gravity="center"/>
         <ListView android:id="@+id/categoriesList" android:layout_width="match_parent" android:layout_height="match_parent" android:divider="#333333" android:dividerHeight="1dp"/>
     </LinearLayout>
 
-    <!-- واجهة القنوات (الجديدة) -->
+    <!-- 4. واجهة القنوات -->
     <LinearLayout
         android:id="@+id/channelsLayout"
         android:layout_width="match_parent"
@@ -54,7 +69,7 @@
         <ListView android:id="@+id/channelsList" android:layout_width="match_parent" android:layout_height="match_parent" android:divider="#333333" android:dividerHeight="1dp"/>
     </LinearLayout>
 
-    <!-- واجهة المشغل -->
+    <!-- 5. واجهة المشغل -->
     <FrameLayout
         android:id="@+id/playerContainer"
         android:layout_width="match_parent"
@@ -68,7 +83,7 @@
             android:layout_height="match_parent" />
 
         <Button
-            android:id="@+id/btnLogout"
+            android:id="@+id/btnLogoutPlayer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="إغلاق المشغل"
