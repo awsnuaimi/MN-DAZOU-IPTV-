@@ -2,6 +2,7 @@ package com.dazou.iptvplayer
 
 import android.os.Bundle
 import android.view.View
+import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.dazou.iptvplayer.databinding.ActivityMainBinding
@@ -16,6 +17,11 @@ import retrofit2.converter.gson.GsonConverterFactory
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var player: ExoPlayer? = null
+    
+    // متغيرات لحفظ بيانات السيرفر
+    private var currentHost = ""
+    private var currentUser = ""
+    private var currentPass = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,12 +29,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         val prefs = getSharedPreferences("IPTV_Prefs", MODE_PRIVATE)
-        val savedUrl = prefs.getString("url", "")
-
-        if (!savedUrl.isNullOrEmpty()) {
-            binding.etUrl.setText(savedUrl)
-        }
-
+        
         binding.radioGroup.setOnCheckedChangeListener { _, checkedId ->
             val isXtream = (checkedId == R.id.rbXtream)
             binding.etUser.visibility = if (isXtream) View.VISIBLE else View.GONE
@@ -52,23 +53,21 @@ class MainActivity : AppCompatActivity() {
             } else {
                 val url = binding.etUrl.text.toString()
                 if (url.isNotEmpty()) {
-                    prefs.edit().putString("url", url).apply()
                     setupPlayer(url)
                 }
             }
         }
 
         binding.btnLogout.setOnClickListener {
-            prefs.edit().remove("url").apply()
             player?.release()
             player = null
             binding.playerContainer.visibility = View.GONE
+            binding.categoriesLayout.visibility = View.GONE
             binding.loginLayout.visibility = View.VISIBLE
         }
     }
 
     private fun connectToXtream(host: String, user: String, pass: String) {
-        // ترتيب الرابط لتجنب الأخطاء
         val baseUrl = if (host.endsWith("/")) host else "$host/"
 
         try {
@@ -87,31 +86,69 @@ class MainActivity : AppCompatActivity() {
                     if (response.isSuccessful && response.body()?.userInfo != null) {
                         val status = response.body()?.userInfo?.status
                         if (status == "Active" || status == "active") {
-                            // نجاح الاتصال!
-                            Toast.makeText(this@MainActivity, "تم الدخول بنجاح! حسابك مفعل \uD83D\uDFE2", Toast.LENGTH_LONG).show()
+                            // الدخول نجح، نحفظ البيانات ونطلب الباقات
+                            currentHost = baseUrl
+                            currentUser = user
+                            currentPass = pass
+                            fetchCategories()
                         } else {
-                            Toast.makeText(this@MainActivity, "عذراً، هذا الحساب منتهي أو متوقف \uD83D\uDD34", Toast.LENGTH_LONG).show()
+                            Toast.makeText(this@MainActivity, "عذراً، هذا الحساب منتهي أو متوقف", Toast.LENGTH_LONG).show()
                         }
                     } else {
-                        Toast.makeText(this@MainActivity, "بيانات الدخول غير صحيحة \uD83D\uDD12", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@MainActivity, "بيانات الدخول غير صحيحة", Toast.LENGTH_LONG).show()
                     }
                 }
 
                 override fun onFailure(call: Call<XtreamAuthResponse>, t: Throwable) {
                     binding.btnConnect.text = "اتصال"
                     binding.btnConnect.isEnabled = true
-                    Toast.makeText(this@MainActivity, "فشل الاتصال: تأكد من الرابط والإنترنت", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@MainActivity, "فشل الاتصال", Toast.LENGTH_LONG).show()
                 }
             })
         } catch (e: Exception) {
             binding.btnConnect.text = "اتصال"
             binding.btnConnect.isEnabled = true
-            Toast.makeText(this, "صيغة الرابط غير صحيحة", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun fetchCategories() {
+        binding.loginLayout.visibility = View.GONE
+        binding.categoriesLayout.visibility = View.VISIBLE
+        Toast.makeText(this, "جاري جلب الباقات...", Toast.LENGTH_SHORT).show()
+        
+        val retrofit = Retrofit.Builder()
+            .baseUrl(currentHost)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+        val apiService = retrofit.create(XtreamApiService::class.java)
+        
+        apiService.getLiveCategories(currentUser, currentPass).enqueue(object : Callback<List<XtreamCategory>> {
+            override fun onResponse(call: Call<List<XtreamCategory>>, response: Response<List<XtreamCategory>>) {
+                if (response.isSuccessful && response.body() != null) {
+                    val categories = response.body()!!
+                    val categoryNames = categories.map { it.categoryName }
+                    
+                    val adapter = ArrayAdapter(this@MainActivity, R.layout.item_category, R.id.tvCategoryName, categoryNames)
+                    binding.categoriesList.adapter = adapter
+                    
+                    binding.categoriesList.setOnItemClickListener { _, _, position, _ ->
+                        val selectedCategory = categories[position]
+                        Toast.makeText(this@MainActivity, "اخترت: ${selectedCategory.categoryName}", Toast.LENGTH_SHORT).show()
+                        // هنا سنبرمج جلب قنوات الباقة لاحقاً
+                    }
+                }
+            }
+
+            override fun onFailure(call: Call<List<XtreamCategory>>, t: Throwable) {
+                Toast.makeText(this@MainActivity, "خطأ في جلب الباقات", Toast.LENGTH_SHORT).show()
+            }
+        })
     }
 
     private fun setupPlayer(url: String) {
         binding.loginLayout.visibility = View.GONE
+        binding.categoriesLayout.visibility = View.GONE
         binding.playerContainer.visibility = View.VISIBLE
         
         player = ExoPlayer.Builder(this).build()

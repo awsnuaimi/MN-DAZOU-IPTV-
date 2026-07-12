@@ -69,6 +69,33 @@
             android:layout_marginTop="20dp"/>
     </LinearLayout>
 
+    <!-- واجهة الأقسام (الجديدة) -->
+    <LinearLayout
+        android:id="@+id/categoriesLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:visibility="gone">
+        
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="باقات القنوات"
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:padding="15dp"
+            android:background="#1E1E1E"
+            android:gravity="center"/>
+
+        <ListView
+            android:id="@+id/categoriesList"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:divider="#333333"
+            android:dividerHeight="1dp"/>
+    </LinearLayout>
+
     <!-- واجهة المشغل -->
     <FrameLayout
         android:id="@+id/playerContainer"
