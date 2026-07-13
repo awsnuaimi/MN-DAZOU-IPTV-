@@ -8,9 +8,9 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.exoplayer2.ExoPlayer
-import com.google.android.exoplayer2.MediaItem
-import com.google.android.exoplayer2.ui.PlayerView
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 
 class MainActivity : AppCompatActivity() {
 
@@ -25,7 +25,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // إنشاء الواجهة
         val root = LinearLayout(this)
         root.orientation = LinearLayout.VERTICAL
 
@@ -35,7 +34,6 @@ class MainActivity : AppCompatActivity() {
         )
         root.addView(playerView)
 
-        // زر إعدادات Xtream
         val btnSettings = Button(this).apply {
             text = "⚙️ إعدادات Xtream"
             layoutParams = LinearLayout.LayoutParams(
@@ -45,7 +43,6 @@ class MainActivity : AppCompatActivity() {
         }
         root.addView(btnSettings)
 
-        // أزرار التصنيف
         val btnLayout = LinearLayout(this)
         btnLayout.orientation = LinearLayout.HORIZONTAL
 
@@ -79,7 +76,6 @@ class MainActivity : AppCompatActivity() {
 
         setContentView(root)
 
-        // إعداد ExoPlayer
         initializePlayer()
     }
 
@@ -224,7 +220,6 @@ class MainActivity : AppCompatActivity() {
                 val series = seriesList[pos]
                 tv.text = "📺 ${series.name}"
                 tv.setOnClickListener {
-                    // لما يضغط المستخدم على مسلسل، نحمل الحلقات
                     server?.let { s ->
                         XtreamAPI.getSeriesInfo(s, series.seriesId) { episodes ->
                             showEpisodesDialog(series.name, episodes)

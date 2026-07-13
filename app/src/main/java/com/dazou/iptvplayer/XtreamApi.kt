@@ -22,7 +22,7 @@ data class XtreamCategory(
 data class XtreamChannel(
     val streamId: Int,
     val name: String,
-    val streamType: String, // live, movie
+    val streamType: String,
     val streamIcon: String,
     val epgChannelId: String,
     val added: String,
@@ -165,7 +165,6 @@ object XtreamAPI {
         return "${server.url}/series/${server.username}/${server.password}/$episodeId.$extension"
     }
     
-    // دوال مساعدة
     private fun fetchJson(urlString: String): String {
         val url = URL(urlString)
         val conn = url.openConnection() as HttpURLConnection
@@ -262,7 +261,7 @@ object XtreamAPI {
         val episodes = mutableListOf<XtreamEpisode>()
         try {
             val jsonObj = org.json.JSONObject(json)
-            val episodesArray = jsonObj.getJSONObject("episodes").getJSONArray("1") // Season 1
+            val episodesArray = jsonObj.getJSONObject("episodes").getJSONArray("1")
             for (i in 0 until episodesArray.length()) {
                 val obj = episodesArray.getJSONObject(i)
                 episodes.add(XtreamEpisode(
@@ -275,7 +274,6 @@ object XtreamAPI {
                 ))
             }
         } catch (e: Exception) {
-            // لو في مواسم متعددة، نتعامل معها لاحقاً
         }
         return episodes
     }
