@@ -234,8 +234,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun createCategoryAdapter(cats: List<XtreamCategory>, onClick: (XtreamCategory) -> Unit): RecyclerView.Adapter<RecyclerView.ViewHolder> {
         val t = themes[currentTheme]!!
-        val padH = dimen(R.dimen.category_padding_h); val padV = dimen(R.dimen.category_padding_v)
-        val iconSize = dimenSp(R.dimen.category_icon_size); val textSize = dimenSp(R.dimen.category_text_size); val arrowSize = dimenSp(R.dimen.category_arrow_size)
+        // تعريف المتغيرات مرة واحدة فقط (val)
+        val padH = dimen(R.dimen.category_padding_h)
+        val padV = dimen(R.dimen.category_padding_v)
+        val iconSize = dimenSp(R.dimen.category_icon_size)
+        val textSize = dimenSp(R.dimen.category_text_size)
+        val arrowSize = dimenSp(R.dimen.category_arrow_size)
         return object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             override fun onCreateViewHolder(p: ViewGroup, vt: Int): RecyclerView.ViewHolder {
                 val l = LinearLayout(p.context).apply { orientation = LinearLayout.HORIZONTAL; setPadding(padH, padV, padH, padV); gravity = Gravity.CENTER_VERTICAL; setBackgroundColor(t.card) }
@@ -251,8 +255,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun createChannelAdapter(names: List<String>, onClick: (String) -> Unit): RecyclerView.Adapter<RecyclerView.ViewHolder> {
         val t = themes[currentTheme]!!
-        val padH = dimen(R.dimen.item_padding_h); val padV = dimen(R.dimen.item_padding_v)
-        val textSize = dimenSp(R.dimen.item_text_size); val favSize = dimenSp(R.dimen.item_fav_icon_size)
+        // تعريف المتغيرات مرة واحدة فقط (val)
+        val padH = dimen(R.dimen.item_padding_h)
+        val padV = dimen(R.dimen.item_padding_v)
+        val textSize = dimenSp(R.dimen.item_text_size)
+        val favSize = dimenSp(R.dimen.item_fav_icon_size)
         return object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             override fun onCreateViewHolder(p: ViewGroup, vt: Int): RecyclerView.ViewHolder {
                 val l = LinearLayout(p.context).apply { orientation = LinearLayout.HORIZONTAL; setPadding(padH, padV, padH, padV); gravity = Gravity.CENTER_VERTICAL; setBackgroundColor(t.card) }
