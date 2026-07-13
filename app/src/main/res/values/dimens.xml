@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Header -->
+    <dimen name="header_padding_top">14dp</dimen>
+    <dimen name="header_padding_bottom">8dp</dimen>
+    <dimen name="header_text_size">16sp</dimen>
+    <dimen name="header_icon_size">12sp</dimen>
+
+    <!-- Player -->
+    <dimen name="player_height">380dp</dimen>
+
+    <!-- Tabs -->
+    <dimen name="tab_padding">4dp</dimen>
+    <dimen name="tab_text_size">11sp</dimen>
+
+    <!-- Category Items -->
+    <dimen name="category_padding_h">16dp</dimen>
+    <dimen name="category_padding_v">14dp</dimen>
+    <dimen name="category_icon_size">20sp</dimen>
+    <dimen name="category_text_size">13sp</dimen>
+    <dimen name="category_arrow_size">16sp</dimen>
+
+    <!-- Channel/Movie Items -->
+    <dimen name="item_padding_h">16dp</dimen>
+    <dimen name="item_padding_v">12dp</dimen>
+    <dimen name="item_text_size">13sp</dimen>
+    <dimen name="item_fav_icon_size">16sp</dimen>
+
+    <!-- Search -->
+    <dimen name="search_text_size">12sp</dimen>
+    <dimen name="search_padding_h">8dp</dimen>
+    <dimen name="search_padding_v">4dp</dimen>
+
+    <!-- Login Dialog -->
+    <dimen name="dialog_title_size">16sp</dimen>
+    <dimen name="dialog_input_size">13sp</dimen>
+    <dimen name="dialog_input_padding">18dp</dimen>
+    <dimen name="dialog_label_size">12sp</dimen>
+</resources>
