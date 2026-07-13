@@ -37,3 +37,6 @@
     <dimen name="dialog_input_padding">30dp</dimen>
     <dimen name="dialog_label_size">16sp</dimen>
 </resources>
+<dimen name="player_control_padding">12dp</dimen>
+<dimen name="player_control_text_size">20sp</dimen>
+<dimen name="player_info_text_size">16sp</dimen>
