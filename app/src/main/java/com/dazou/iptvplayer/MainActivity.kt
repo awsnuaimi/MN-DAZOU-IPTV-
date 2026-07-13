@@ -1,75 +1,60 @@
-package com.example.iptvapp // تأكد أن هذا السطر يطابق اسم الباكيج عندك
+package com.dazou.iptvplayer
 
 import android.graphics.Color
 import android.os.Bundle
-import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.exoplayer2.ExoPlayer
-import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.ui.PlayerView
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var recyclerView: RecyclerView
-    private lateinit var playerView: PlayerView
-    private var player: ExoPlayer? = null
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // استخدام تنسيق بسيط جداً لضمان ظهور النص باللون الأسود
-        val rootLayout = android.widget.LinearLayout(this)
-        rootLayout.orientation = android.widget.LinearLayout.VERTICAL
-        
-        playerView = PlayerView(this)
-        playerView.layoutParams = android.widget.LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, 500
-        )
-        
-        recyclerView = RecyclerView(this)
-        recyclerView.layoutParams = android.widget.LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
-        )
-        
-        rootLayout.addView(playerView)
-        rootLayout.addView(recyclerView)
-        setContentView(rootLayout)
 
-        recyclerView.layoutManager = LinearLayoutManager(this)
+        // إنشاء الواجهة برمجياً (بدون الحاجة لملفات XML التالفة)
+        val root = LinearLayout(this)
+        root.orientation = LinearLayout.VERTICAL
+
+        val playerView = PlayerView(this)
+        playerView.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 600)
+        root.addView(playerView)
+
+        val btnLayout = LinearLayout(this)
+        btnLayout.orientation = LinearLayout.HORIZONTAL
         
-        // هنا نقوم بتعريف الـ Adapter مباشرة وبداخله قمنا بتلوين النص بالأسود
-        recyclerView.adapter = object : RecyclerView.Adapter<ChannelViewHolder>() {
-            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChannelViewHolder {
+        val btnLive = Button(this); btnLive.text = "مباشر"; btnLive.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        val btnMovies = Button(this); btnMovies.text = "أفلام"; btnMovies.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        val btnSeries = Button(this); btnSeries.text = "مسلسلات"; btnSeries.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        
+        btnLayout.addView(btnLive)
+        btnLayout.addView(btnMovies)
+        btnLayout.addView(btnSeries)
+        root.addView(btnLayout)
+
+        val rv = RecyclerView(this)
+        rv.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
+        rv.layoutManager = LinearLayoutManager(this)
+        root.addView(rv)
+
+        setContentView(root)
+
+        // تلوين النص بالأسود ليظهر بوضوح
+        rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
                 val tv = TextView(parent.context)
+                tv.setPadding(40, 40, 40, 40)
                 tv.textSize = 18f
-                tv.setPadding(20, 20, 20, 20)
-                tv.setTextColor(Color.BLACK) // هنا حل مشكلة اللون الأبيض
-                return ChannelViewHolder(tv)
+                tv.setTextColor(Color.BLACK)
+                return object : RecyclerView.ViewHolder(tv) {}
             }
-
-            override fun onBindViewHolder(holder: ChannelViewHolder, position: Int) {
-                holder.textView.text = "قناة رقم $position" // استبدلها بقائمة قنواتك الفعلية
-                holder.textView.setOnClickListener {
-                    playVideo("رابط_القناة_هنا") // ضع الرابط هنا
-                }
+            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, pos: Int) {
+                (holder.itemView as TextView).text = "قناة ${pos + 1}"
             }
-
             override fun getItemCount() = 20
         }
     }
-
-    private fun playVideo(url: String) {
-        player?.release()
-        player = ExoPlayer.Builder(this).build()
-        playerView.player = player
-        player?.setMediaItem(MediaItem.fromUri(url))
-        player?.prepare()
-        player?.play()
-    }
-
-    class ChannelViewHolder(val textView: TextView) : RecyclerView.ViewHolder(textView)
 }
