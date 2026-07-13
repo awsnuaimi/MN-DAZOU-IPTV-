@@ -10,7 +10,6 @@ import android.graphics.Typeface
 import android.media.AudioManager
 import android.net.Uri
 import android.os.*
-import android.provider.MediaStore
 import android.util.Rational
 import android.view.*
 import android.view.animation.AlphaAnimation
@@ -237,9 +236,7 @@ class MainActivity : AppCompatActivity() {
         return if(h>0) String.format("%d:%02d:%02d",h,m,s) else String.format("%02d:%02d",m,s)
     }
 
-    private fun toggleRecording() {
-        if(isRecording) stopRecording() else startRecording()
-    }
+    private fun toggleRecording() { if(isRecording) stopRecording() else startRecording() }
 
     private fun startRecording() {
         if(currentStreamUrl == null) { Toast.makeText(this,"لا يوجد بث للتسجيل",Toast.LENGTH_SHORT).show(); return }
@@ -247,12 +244,9 @@ class MainActivity : AppCompatActivity() {
             val dir = File(getExternalFilesDir(Environment.DIRECTORY_MOVIES), "Recordings")
             dir.mkdirs()
             recordingFile = File(dir, "MN-DAZOU_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())}.ts")
-            isRecording = true
-            btnRecord.text = "⏹️"
-            btnRecord.setTextColor(Color.RED)
+            isRecording = true; btnRecord.text = "⏹️"; btnRecord.setTextColor(Color.RED)
             tvRecording.visibility = View.VISIBLE
             Toast.makeText(this,"🔴 بدأ التسجيل",Toast.LENGTH_SHORT).show()
-
             recordingThread = thread {
                 try {
                     val input = URL(currentStreamUrl).openStream()
@@ -272,15 +266,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun stopRecording() {
-        isRecording = false
-        btnRecord.text = "🔴"
-        btnRecord.setTextColor(Color.WHITE)
-        tvRecording.visibility = View.GONE
-        recordingThread?.interrupt()
+        isRecording = false; btnRecord.text = "🔴"; btnRecord.setTextColor(Color.WHITE)
+        tvRecording.visibility = View.GONE; recordingThread?.interrupt()
         recordingFile?.let {
             val intent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
-            intent.data = Uri.fromFile(it)
-            sendBroadcast(intent)
+            intent.data = Uri.fromFile(it); sendBroadcast(intent)
             Toast.makeText(this,"✅ تم حفظ التسجيل: ${it.name}",Toast.LENGTH_LONG).show()
         }
     }
@@ -288,92 +278,53 @@ class MainActivity : AppCompatActivity() {
     private fun shareCurrentStream() {
         currentStreamName?.let { name ->
             val shareText = "شاهد معي على MN-DAZOU IPTV:\n📺 $name\n🔗 ${currentStreamUrl ?: ""}"
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, shareText)
-                putExtra(Intent.EXTRA_SUBJECT, name)
-            }
+            val intent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, shareText); putExtra(Intent.EXTRA_SUBJECT, name) }
             startActivity(Intent.createChooser(intent, "مشاركة عبر"))
         } ?: Toast.makeText(this,"لا يوجد محتوى للمشاركة",Toast.LENGTH_SHORT).show()
     }
 
     private fun saveAccounts() {
         val json = JSONArray()
-        accounts.forEach {
-            val obj = JSONObject()
-            obj.put("url", it.url); obj.put("username", it.username); obj.put("password", it.password)
-            json.put(obj)
-        }
+        accounts.forEach { val obj = JSONObject(); obj.put("url", it.url); obj.put("username", it.username); obj.put("password", it.password); json.put(obj) }
         prefs.edit().putString("accounts", json.toString()).apply()
     }
 
     private fun loadAccounts() {
-        val jsonStr = prefs.getString("accounts", "[]") ?: "[]"
-        val json = JSONArray(jsonStr)
-        for(i in 0 until json.length()) {
-            val obj = json.getJSONObject(i)
-            accounts.add(XtreamServer(obj.getString("url"), obj.getString("username"), obj.getString("password")))
-        }
+        val jsonStr = prefs.getString("accounts", "[]") ?: "[]"; val json = JSONArray(jsonStr)
+        for(i in 0 until json.length()) { val obj = json.getJSONObject(i); accounts.add(XtreamServer(obj.getString("url"), obj.getString("username"), obj.getString("password"))) }
     }
 
     private fun showAccountsDialog() {
         if(accounts.isEmpty()) { showLoginDialog(); return }
         val names = accounts.mapIndexed { i, a -> "👤 حساب ${i+1}: ${a.username}@${a.url.removePrefix("http://").removePrefix("https://").substringBefore(":")}" }.toTypedArray()
         val items = names + arrayOf("➕ إضافة حساب", "🗑️ حذف كل الحسابات", "📊 إحصائيات المشاهدة")
-        AlertDialog.Builder(this)
-            .setTitle("👤 إدارة الحسابات (${accounts.size})")
-            .setItems(items) { _, which ->
-                when {
-                    which < accounts.size -> { currentAccountIndex = which; server = accounts[which]; prefs.edit().putInt("current_account", which).apply(); switchTab("home"); Toast.makeText(this,"✅ تم التبديل",Toast.LENGTH_SHORT).show() }
-                    which == accounts.size -> showLoginDialog()
-                    which == accounts.size + 1 -> { accounts.clear(); saveAccounts(); server = null; Toast.makeText(this,"🗑️ تم الحذف",Toast.LENGTH_SHORT).show(); showLoginDialog() }
-                    which == accounts.size + 2 -> showWatchStats()
-                }
-            }.show()
+        AlertDialog.Builder(this).setTitle("👤 إدارة الحسابات (${accounts.size})").setItems(items) { _, which ->
+            when {
+                which < accounts.size -> { currentAccountIndex = which; server = accounts[which]; prefs.edit().putInt("current_account", which).apply(); switchTab("home"); Toast.makeText(this,"✅ تم التبديل",Toast.LENGTH_SHORT).show() }
+                which == accounts.size -> showLoginDialog()
+                which == accounts.size + 1 -> { accounts.clear(); saveAccounts(); server = null; Toast.makeText(this,"🗑️ تم الحذف",Toast.LENGTH_SHORT).show(); showLoginDialog() }
+                which == accounts.size + 2 -> showWatchStats()
+            }
+        }.show()
     }
 
     private fun saveWatchTime(duration: Long) {
         val today = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date())
-        val totalToday = prefs.getLong("watch_$today", 0) + duration
-        prefs.edit().putLong("watch_$today", totalToday).apply()
-
-        currentStreamName?.let { name ->
-            val key = "channel_count_$name"
-            prefs.edit().putInt(key, prefs.getInt(key, 0) + 1).apply()
-        }
+        prefs.edit().putLong("watch_$today", prefs.getLong("watch_$today", 0) + duration).apply()
+        currentStreamName?.let { name -> prefs.edit().putInt("channel_count_$name", prefs.getInt("channel_count_$name", 0) + 1).apply() }
     }
 
     private fun showWatchStats() {
         val today = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date())
         val todayWatch = prefs.getLong("watch_$today", 0)
-        val hours = todayWatch / (1000 * 60 * 60)
-        val minutes = (todayWatch % (1000 * 60 * 60)) / (1000 * 60)
-
-        val allPrefs = prefs.all
+        val hours = todayWatch / (1000 * 60 * 60); val minutes = (todayWatch % (1000 * 60 * 60)) / (1000 * 60)
         val channelCounts = mutableMapOf<String, Int>()
-        allPrefs.forEach { (key, value) ->
-            if(key.startsWith("channel_count_") && value is Int) {
-                channelCounts[key.removePrefix("channel_count_")] = value
-            }
-        }
+        prefs.all.forEach { (key, value) -> if(key.startsWith("channel_count_") && value is Int) channelCounts[key.removePrefix("channel_count_")] = value }
         val topChannels = channelCounts.entries.sortedByDescending { it.value }.take(5)
-
         val message = StringBuilder()
-        message.appendLine("📊 إحصائيات اليوم:")
-        message.appendLine("⏱️ وقت المشاهدة: ${hours}h ${minutes}m")
-        message.appendLine()
-        if(topChannels.isNotEmpty()) {
-            message.appendLine("📺 الأكثر مشاهدة:")
-            topChannels.forEachIndexed { i, (name, count) ->
-                message.appendLine("${i+1}. $name ($count مرة)")
-            }
-        }
-
-        AlertDialog.Builder(this)
-            .setTitle("📊 إحصائيات المشاهدة")
-            .setMessage(message.toString())
-            .setPositiveButton("حسناً", null)
-            .show()
+        message.appendLine("📊 إحصائيات اليوم:"); message.appendLine("⏱️ وقت المشاهدة: ${hours}h ${minutes}m"); message.appendLine()
+        if(topChannels.isNotEmpty()) { message.appendLine("📺 الأكثر مشاهدة:"); topChannels.forEachIndexed { i, (name, count) -> message.appendLine("${i+1}. $name ($count مرة)") } }
+        AlertDialog.Builder(this).setTitle("📊 إحصائيات المشاهدة").setMessage(message.toString()).setPositiveButton("حسناً", null).show()
     }
 
     private fun showPlayerControls() {
@@ -431,11 +382,8 @@ class MainActivity : AppCompatActivity() {
         val g=epgData.groupBy{it.channelId}; val n=g.keys.toTypedArray()
         if(n.isEmpty()){Toast.makeText(this,"لا بيانات",Toast.LENGTH_SHORT).show();return}
         AlertDialog.Builder(this).setTitle("📺 دليل البرامج").setItems(n){_,i->
-            val channelName = n[i]
-            val p=g[channelName]?:emptyList()
-            AlertDialog.Builder(this).setTitle(channelName)
-                .setItems(p.map{"🕐 ${it.startTime}-${it.endTime}: ${it.title}"}.toTypedArray(),null)
-                .setPositiveButton("إغلاق",null).show()
+            val channelName = n[i]; val p=g[channelName]?:emptyList()
+            AlertDialog.Builder(this).setTitle(channelName).setItems(p.map{"🕐 ${it.startTime}-${it.endTime}: ${it.title}"}.toTypedArray(),null).setPositiveButton("إغلاق",null).show()
         }.setPositiveButton("إغلاق",null).show() 
     }
 
@@ -477,20 +425,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showRecordings() {
-        val dir = File(getExternalFilesDir(Environment.DIRECTORY_MOVIES), "Recordings")
-        dir.mkdirs()
+        val dir = File(getExternalFilesDir(Environment.DIRECTORY_MOVIES), "Recordings"); dir.mkdirs()
         val files = dir.listFiles()?.filter{it.isFile && it.name.endsWith(".ts")}?.sortedByDescending{it.lastModified()} ?: emptyList()
         if(files.isEmpty()) { Toast.makeText(this,"لا توجد تسجيلات",Toast.LENGTH_SHORT).show(); return }
-        AlertDialog.Builder(this)
-            .setTitle("📁 التسجيلات (${files.size})")
-            .setItems(files.map{it.name}.toTypedArray()){_, i ->
-                val intent = Intent(Intent.ACTION_VIEW)
-                intent.setDataAndType(Uri.fromFile(files[i]), "video/*")
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                try { startActivity(intent) } catch(e:Exception) { Toast.makeText(this,"لا يوجد مشغل فيديو",Toast.LENGTH_SHORT).show() }
-            }
-            .setPositiveButton("إغلاق", null)
-            .show()
+        AlertDialog.Builder(this).setTitle("📁 التسجيلات (${files.size})").setItems(files.map{it.name}.toTypedArray()){_, i ->
+            val intent = Intent(Intent.ACTION_VIEW); intent.setDataAndType(Uri.fromFile(files[i]), "video/*"); intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            try { startActivity(intent) } catch(e:Exception) { Toast.makeText(this,"لا يوجد مشغل فيديو",Toast.LENGTH_SHORT).show() }
+        }.setPositiveButton("إغلاق", null).show()
     }
 
     private fun showFavorites() { val t=themes[currentTheme]!!; rv.adapter=object:RecyclerView.Adapter<RecyclerView.ViewHolder>(){override fun onCreateViewHolder(p:ViewGroup,vt:Int):RecyclerView.ViewHolder{val c=CardView(p.context).apply{layoutParams=ViewGroup.MarginLayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT).apply{setMargins(15,6,15,6)};radius=12f;setCardBackgroundColor(t.card);cardElevation=3f};val l=LinearLayout(p.context).apply{orientation=LinearLayout.HORIZONTAL;setPadding(20,15,20,15);gravity=Gravity.CENTER_VERTICAL};l.addView(ImageView(p.context).apply{layoutParams=LinearLayout.LayoutParams(45,45);setBackgroundColor(t.activeTab)});l.addView(TextView(p.context).apply{setPadding(15,0,0,0);textSize=15f;setTextColor(t.textWhite);setTypeface(null,Typeface.BOLD);layoutParams=LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1f)});l.addView(Button(p.context).apply{text="❌";setBackgroundColor(Color.TRANSPARENT)});c.addView(l);return object:RecyclerView.ViewHolder(c){}};override fun onBindViewHolder(h:RecyclerView.ViewHolder,p:Int){val l=(h.itemView as CardView).getChildAt(0) as LinearLayout;val f=favorites[p];(l.getChildAt(1) as TextView).text="⭐ ${f.name}";h.itemView.setOnClickListener{playFavoriteItem(f)};l.getChildAt(2).setOnClickListener{removeFavorite(f);showFavorites()};if(f.icon.isNotEmpty())loadImage(f.icon){b->(l.getChildAt(0) as ImageView).setImageBitmap(b?:Bitmap.createBitmap(45,45,Bitmap.Config.ARGB_8888))}};override fun getItemCount()=favorites.size} }
@@ -530,13 +471,40 @@ class MainActivity : AppCompatActivity() {
     private fun showLoading(){progressBar.visibility=View.VISIBLE}
     private fun hideLoading(){progressBar.visibility=View.GONE}
 
-    private fun updateLiveList(){val t=themes[currentTheme]!!;rv.adapter=createContentAdapter(liveChannels.map{Pair(it.name,it.streamIcon)},"📺",t){name,icon->val idx=liveChannels.indexOfFirst{it.name==name};currentStreamIndex=idx;currentStreamType="live";val ch=liveChannels[idx];val u=XtreamAPI.getStreamUrl(server!!,ch.streamId,ch.containerExtension);addToHistory("live",ch.streamId,ch.name,icon);playStream(u,ch.name)}}
-    private fun updateMoviesList(){val t=themes[currentTheme]!!;rv.adapter=createContentAdapter(vodMovies.map{Pair(it.name,it.streamIcon)},"🎬",t){name,icon->val idx=vodMovies.indexOfFirst{it.name==name};currentStreamIndex=idx;currentStreamType="movie";val m=vodMovies[idx];val u=XtreamAPI.getMovieUrl(server!!,m.streamId,m.containerExtension);addToHistory("movie",m.streamId,m.name,icon);playStream(u,m.name)}}
-    private fun updateSeriesList(){val t=themes[currentTheme]!!;rv.adapter=createContentAdapter(seriesList.map{Pair(it.name,it.cover)},"📺",t){name,_->val s=seriesList.find{it.name==name}!!;XtreamAPI.getSeriesInfo(server!!,s.seriesId){showEpisodesDialog(s.name,it)}}}
+    private fun updateLiveList(){val t=themes[currentTheme]!!;rv.adapter=createContentAdapter(liveChannels.map{Pair(it.name,it.streamIcon)},"📺",t){itemName,imgUrl->val idx=liveChannels.indexOfFirst{it.name==itemName};currentStreamIndex=idx;currentStreamType="live";val ch=liveChannels[idx];val u=XtreamAPI.getStreamUrl(server!!,ch.streamId,ch.containerExtension);addToHistory("live",ch.streamId,ch.name,imgUrl);playStream(u,ch.name)}}
+    private fun updateMoviesList(){val t=themes[currentTheme]!!;rv.adapter=createContentAdapter(vodMovies.map{Pair(it.name,it.streamIcon)},"🎬",t){itemName,imgUrl->val idx=vodMovies.indexOfFirst{it.name==itemName};currentStreamIndex=idx;currentStreamType="movie";val m=vodMovies[idx];val u=XtreamAPI.getMovieUrl(server!!,m.streamId,m.containerExtension);addToHistory("movie",m.streamId,m.name,imgUrl);playStream(u,m.name)}}
+    private fun updateSeriesList(){val t=themes[currentTheme]!!;rv.adapter=createContentAdapter(seriesList.map{Pair(it.name,it.cover)},"📺",t){itemName,_->val s=seriesList.find{it.name==itemName}!!;XtreamAPI.getSeriesInfo(server!!,s.seriesId){showEpisodesDialog(s.name,it)}}}
 
-    private fun createContentAdapter(items:List<Pair<String,String>>,icon:String,theme:ThemeColors,onClick:(String,String)->Unit):RecyclerView.Adapter<RecyclerView.ViewHolder>{return object:RecyclerView.Adapter<RecyclerView.ViewHolder>(){override fun onCreateViewHolder(p:ViewGroup,vt:Int):RecyclerView.ViewHolder{val c=CardView(p.context).apply{layoutParams=ViewGroup.MarginLayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT).apply{setMargins(15,5,15,5)};radius=10f;setCardBackgroundColor(theme.card);cardElevation=2f};val l=LinearLayout(p.context).apply{orientation=LinearLayout.HORIZONTAL;setPadding(15,12,15,12);gravity=Gravity.CENTER_VERTICAL};val iv=ImageView(p.context).apply{layoutParams=LinearLayout.LayoutParams(55,55);setBackgroundColor(theme.activeTab)};l.addView(iv);l.addView(TextView(p.context).apply{setPadding(12,0,0,0);textSize=15f;setTextColor(theme.textWhite);setTypeface(null,Typeface.BOLD);layoutParams=LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1f)});l.addView(Button(p.context).apply{text="⭐";setBackgroundColor(Color.TRANSPARENT)});c.addView(l);return object:RecyclerView.ViewHolder(c){}}
-        override fun onBindViewHolder(h:RecyclerView.ViewHolder,p:Int){val l=(h.itemView as CardView).getChildAt(0) as LinearLayout;val iv=l.getChildAt(0) as ImageView;val tv=l.getChildAt(1) as TextView;val (name,imgUrl)=items[p];tv.text="$icon $name";h.itemView.setOnClickListener{onClick(name,imgUrl)};l.getChildAt(2).setOnClickListener{val type=if(currentStreamType=="live")"live" else "movie";val id=if(type=="live")liveChannels[p].streamId else vodMovies[p].streamId;addToFavorites(type,id,name,imgUrl)};if(imgUrl.isNotEmpty())loadImage(imgUrl){b->iv.setImageBitmap(b?:Bitmap.createBitmap(55,55,Bitmap.Config.ARGB_8888))}}
-        override fun getItemCount()=items.size}}
+    private fun createContentAdapter(items:List<Pair<String,String>>,icon:String,theme:ThemeColors,onClick:(String,String)->Unit):RecyclerView.Adapter<RecyclerView.ViewHolder>{
+        return object:RecyclerView.Adapter<RecyclerView.ViewHolder>(){
+            override fun onCreateViewHolder(p:ViewGroup,vt:Int):RecyclerView.ViewHolder{
+                val c=CardView(p.context).apply{layoutParams=ViewGroup.MarginLayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT).apply{setMargins(15,5,15,5)};radius=10f;setCardBackgroundColor(theme.card);cardElevation=2f}
+                val l=LinearLayout(p.context).apply{orientation=LinearLayout.HORIZONTAL;setPadding(15,12,15,12);gravity=Gravity.CENTER_VERTICAL}
+                val iv=ImageView(p.context).apply{layoutParams=LinearLayout.LayoutParams(55,55);setBackgroundColor(theme.activeTab)}
+                l.addView(iv)
+                l.addView(TextView(p.context).apply{setPadding(12,0,0,0);textSize=15f;setTextColor(theme.textWhite);setTypeface(null,Typeface.BOLD);layoutParams=LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1f)})
+                l.addView(Button(p.context).apply{text="⭐";setBackgroundColor(Color.TRANSPARENT)})
+                c.addView(l)
+                return object:RecyclerView.ViewHolder(c){}
+            }
+            override fun onBindViewHolder(h:RecyclerView.ViewHolder,p:Int){
+                val l=(h.itemView as CardView).getChildAt(0) as LinearLayout
+                val iv=l.getChildAt(0) as ImageView
+                val tv=l.getChildAt(1) as TextView
+                val itemName = items[p].first
+                val imgUrl = items[p].second
+                tv.text="$icon $itemName"
+                h.itemView.setOnClickListener{onClick(itemName,imgUrl)}
+                l.getChildAt(2).setOnClickListener{
+                    val type=if(currentStreamType=="live")"live" else "movie"
+                    val id=if(type=="live")liveChannels.getOrNull(p)?.streamId ?: 0 else vodMovies.getOrNull(p)?.streamId ?: 0
+                    addToFavorites(type,id,itemName,imgUrl)
+                }
+                if(imgUrl.isNotEmpty())loadImage(imgUrl){b->iv.setImageBitmap(b?:Bitmap.createBitmap(55,55,Bitmap.Config.ARGB_8888))}
+            }
+            override fun getItemCount()=items.size
+        }
+    }
 
     private fun showEpisodesDialog(name:String,episodes:List<XtreamEpisode>){AlertDialog.Builder(this).setTitle(name).setItems(episodes.map{"🎭 حلقة ${it.episodeNum}: ${it.title}"}.toTypedArray()){_,i->val e=episodes[i];playStream(XtreamAPI.getSeriesEpisodeUrl(server!!,e.id,e.containerExtension),"$name - حلقة ${e.episodeNum}")}.setNegativeButton("إغلاق",null).show()}
 
