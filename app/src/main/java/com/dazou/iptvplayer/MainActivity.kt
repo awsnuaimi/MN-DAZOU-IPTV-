@@ -2,6 +2,7 @@ package com.dazou.iptvplayer
 
 import android.app.*
 import android.content.*
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
@@ -13,6 +14,7 @@ import android.view.*
 import android.view.animation.AlphaAnimation
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.media3.common.MediaItem
@@ -122,6 +124,7 @@ class MainActivity : AppCompatActivity() {
                 setBackgroundColor(theme.bg)
             }
 
+            // Header
             val headerLayout = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL; setPadding(20, 45, 20, 20)
                 setBackgroundColor(theme.bottomBar); gravity = Gravity.CENTER_VERTICAL
@@ -134,12 +137,14 @@ class MainActivity : AppCompatActivity() {
             headerLayout.addView(Button(this).apply{text="⚙️"; textSize=16f; setBackgroundColor(Color.TRANSPARENT); setTextColor(theme.textGray); setOnClickListener{showSettingsDialog()}})
             root.addView(headerLayout)
 
+            // Search
             searchLayout = LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; setPadding(15,10,15,10); setBackgroundColor(theme.bottomBar); gravity=Gravity.CENTER_VERTICAL; visibility=View.GONE }
             etSearch = EditText(this).apply { hint="🔍 بحث..."; setHintTextColor(theme.textGray); setTextColor(theme.textWhite); setBackgroundColor(theme.card); setPadding(25,15,25,15); layoutParams=LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1f) }
             searchLayout.addView(etSearch)
             searchLayout.addView(Button(this).apply{text="بحث"; setBackgroundColor(theme.accent); setTextColor(Color.BLACK); setOnClickListener{performSearch()}})
             root.addView(searchLayout)
 
+            // Player
             val playerCard = FrameLayout(this).apply {
                 layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 420)
                 setBackgroundColor(Color.BLACK)
@@ -155,6 +160,7 @@ class MainActivity : AppCompatActivity() {
             playerCard.addView(tvRecording)
             root.addView(playerCard)
 
+            // Nav controls
             val navLayout = LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; setPadding(15,10,15,10); setBackgroundColor(Color.parseColor("#DD000000")); gravity=Gravity.CENTER; visibility=View.GONE }
             btnPrevChannel = Button(this).apply { text="⏪"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.WHITE); textSize=22f; setOnClickListener{playPreviousChannel()} }
             btnPlayPause = Button(this).apply { text="▶️"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.WHITE); textSize=22f; setOnClickListener{togglePlayPause()} }
@@ -162,6 +168,7 @@ class MainActivity : AppCompatActivity() {
             btnRecord = Button(this).apply { text="🔴"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.WHITE); textSize=18f; setOnClickListener{toggleRecording()} }
             navLayout.addView(btnPrevChannel); navLayout.addView(btnPlayPause); navLayout.addView(btnNextChannel); navLayout.addView(btnRecord); root.addView(navLayout)
 
+            // Tool controls
             playerControlsLayout = LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; setPadding(10,8,10,8); setBackgroundColor(Color.parseColor("#DD000000")); gravity=Gravity.CENTER_VERTICAL; visibility=View.GONE }
             btnShare = Button(this).apply { text="📤"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.WHITE); textSize=16f; setOnClickListener{shareCurrentStream()} }
             btnQuality = Button(this).apply { text="HD"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.WHITE); textSize=14f; setOnClickListener{showQualityDialog()} }
@@ -170,6 +177,7 @@ class MainActivity : AppCompatActivity() {
             btnFullscreen = Button(this).apply { text="⛶"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.WHITE); textSize=18f; setOnClickListener{toggleFullscreen()} }
             playerControlsLayout.addView(btnShare); playerControlsLayout.addView(btnQuality); playerControlsLayout.addView(btnAspectRatio); playerControlsLayout.addView(btnDownload); playerControlsLayout.addView(btnFullscreen); root.addView(playerControlsLayout)
 
+            // Seek bar
             val seekLayout = LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; setPadding(10,5,10,5); setBackgroundColor(Color.parseColor("#DD000000")); gravity=Gravity.CENTER_VERTICAL; visibility=View.GONE }
             tvCurrentTime = TextView(this).apply { text="00:00"; setTextColor(Color.WHITE); textSize=12f }
             seekBar = SeekBar(this).apply { layoutParams=LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1f); setOnSeekBarChangeListener(object:SeekBar.OnSeekBarChangeListener{override fun onProgressChanged(s:SeekBar?,p:Int,f:Boolean){if(f)player.seekTo(p.toLong())} override fun onStartTrackingTouch(s:SeekBar?){} override fun onStopTrackingTouch(s:SeekBar?){}}) }
@@ -178,8 +186,10 @@ class MainActivity : AppCompatActivity() {
 
             progressBar = ProgressBar(this).apply { visibility=View.GONE; layoutParams=LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,6) }; root.addView(progressBar)
 
+            // List
             rv = RecyclerView(this).apply { layoutParams=LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,0,1f); layoutManager=LinearLayoutManager(this@MainActivity); setBackgroundColor(theme.bg) }; root.addView(rv)
 
+            // Bottom bar
             val bottomBar = LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; setPadding(3,10,3,18); setBackgroundColor(theme.bottomBar); gravity=Gravity.CENTER }
             btnHome = createBottomButton("🏠","رئيسية",theme){switchTab("home")}
             btnLive = createBottomButton("📺","مباشر",theme){switchTab("live")}
@@ -193,6 +203,7 @@ class MainActivity : AppCompatActivity() {
 
             setContentView(root)
 
+            // Player setup
             player = ExoPlayer.Builder(this).build()
             playerView.player = player
             playerView.useController = false
@@ -348,7 +359,17 @@ class MainActivity : AppCompatActivity() {
     private fun toggleFullscreen() { if(playerView.layoutParams.height==420){playerView.layoutParams.height=ViewGroup.LayoutParams.MATCH_PARENT;Toast.makeText(this,"⛶ ملء الشاشة",Toast.LENGTH_SHORT).show()}else{playerView.layoutParams.height=420;Toast.makeText(this,"📱 وضع عادي",Toast.LENGTH_SHORT).show()};playerView.requestLayout() }
     private fun showQualityDialog() { AlertDialog.Builder(this).setTitle("🎯 جودة الفيديو").setItems(arrayOf("Auto","4K","1080p","720p","480p")){_,_->Toast.makeText(this,"⚙️ تلقائي",Toast.LENGTH_SHORT).show()}.show() }
     private fun downloadCurrentStream() { currentStreamUrl?.let{url->try{downloadId=downloadManager.enqueue(DownloadManager.Request(Uri.parse(url)).setTitle("MN-DAZOU IPTV").setDescription(currentStreamName?:"فيديو").setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED).setDestinationInExternalPublicDir(Environment.DIRECTORY_MOVIES,"MN-DAZOU_${System.currentTimeMillis()}.mp4"));Toast.makeText(this,"⬇️ جاري التحميل",Toast.LENGTH_SHORT).show()}catch(e:Exception){Toast.makeText(this,"❌ فشل",Toast.LENGTH_SHORT).show()}}?:Toast.makeText(this,"لا يوجد فيديو",Toast.LENGTH_SHORT).show() }
-    private fun registerDownloadReceiver() { registerReceiver(object:BroadcastReceiver(){override fun onReceive(c:Context?,i:Intent?){if(i?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID,-1)==downloadId)Toast.makeText(this@MainActivity,"✅ تم التحميل",Toast.LENGTH_SHORT).show()}},IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)) }
+
+    // ✅ FIX: Android 14+ Receiver Flag
+    private fun registerDownloadReceiver() {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(c: Context?, i: Intent?) {
+                if (i?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1) == downloadId)
+                    Toast.makeText(this@MainActivity, "✅ تم التحميل", Toast.LENGTH_SHORT).show()
+            }
+        }
+        ContextCompat.registerReceiver(this, receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), ContextCompat.RECEIVER_EXPORTED)
+    }
 
     private fun playNextChannel() { val channels=when(currentStreamType){"live"->liveChannels;"movie"->vodMovies;else->emptyList()}; if(channels.isEmpty()||currentStreamIndex<0)return; playChannelAtIndex((currentStreamIndex+1)%channels.size) }
     private fun playPreviousChannel() { val channels=when(currentStreamType){"live"->liveChannels;"movie"->vodMovies;else->emptyList()}; if(channels.isEmpty()||currentStreamIndex<0)return; playChannelAtIndex(if(currentStreamIndex-1<0)channels.size-1 else currentStreamIndex-1) }
