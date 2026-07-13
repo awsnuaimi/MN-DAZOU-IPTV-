@@ -21,6 +21,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import org.json.JSONArray
 import org.json.JSONObject
+import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
 
@@ -135,11 +136,9 @@ class MainActivity : AppCompatActivity() {
 
         loadFavorites(); loadHistory()
 
-        // ✅ فحص الاتصال أولاً
         val savedUrl = prefs.getString("server_url", "")
         if (!savedUrl.isNullOrEmpty()) {
             server = XtreamServer(savedUrl!!, prefs.getString("server_username", "")!!, prefs.getString("server_password", "")!!)
-            // اختبار الاتصال
             testConnection()
         } else {
             showLoginDialog()
@@ -178,7 +177,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ✅ عرض خطأ الاتصال مع خيارات
     private fun showConnectionError(message: String) {
         tvTitle.text = "❌ خطأ في الاتصال"
         rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -186,21 +184,9 @@ class MainActivity : AppCompatActivity() {
                 val l = LinearLayout(parent.context).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(30), dp(30), dp(30), dp(30)); gravity = Gravity.CENTER }
                 l.addView(TextView(parent.context).apply { text = message; textSize = sp(16f); setTextColor(Color.parseColor("#FF6B6B")); gravity = Gravity.CENTER; setTypeface(null, Typeface.BOLD) })
                 l.addView(TextView(parent.context).apply { text = "تأكد من:\n- صحة رابط السيرفر\n- اتصال الانترنت\n- صلاحية الحساب"; textSize = sp(13f); setTextColor(Color.parseColor("#AAAAAA")); gravity = Gravity.CENTER; setPadding(0, dp(15), 0, dp(15)) })
-                val btnRetry = Button(parent.context).apply {
-                    text = "🔄 إعادة المحاولة"
-                    setBackgroundColor(Color.parseColor("#2D2D5E"))
-                    setTextColor(Color.WHITE)
-                    textSize = sp(14f)
-                    setOnClickListener { testConnection() }
-                }
+                val btnRetry = Button(parent.context).apply { text = "🔄 إعادة المحاولة"; setBackgroundColor(Color.parseColor("#2D2D5E")); setTextColor(Color.WHITE); textSize = sp(14f); setOnClickListener { testConnection() } }
                 l.addView(btnRetry)
-                val btnNewAccount = Button(parent.context).apply {
-                    text = "⚙️ إدخال حساب جديد"
-                    setBackgroundColor(Color.parseColor("#FF6B6B"))
-                    setTextColor(Color.WHITE)
-                    textSize = sp(14f)
-                    setOnClickListener { showLoginDialog() }
-                }
+                val btnNewAccount = Button(parent.context).apply { text = "⚙️ إدخال حساب جديد"; setBackgroundColor(Color.parseColor("#FF6B6B")); setTextColor(Color.WHITE); textSize = sp(14f); setOnClickListener { showLoginDialog() } }
                 l.addView(btnNewAccount)
                 return object : RecyclerView.ViewHolder(l) {}
             }
@@ -290,19 +276,19 @@ class MainActivity : AppCompatActivity() {
     // ===== LIVE =====
     private fun loadLiveCategories() { server?.let { srv -> showLoading(); XtreamAPI.getLiveCategories(srv) { cats -> hideLoading(); if (cats.isNotEmpty()) { liveCategories.clear(); liveCategories.addAll(cats); showLiveCategories() } else { loadLiveStreams(null) } } } ?: run { Toast.makeText(this, "الرجاء تسجيل الدخول", Toast.LENGTH_SHORT).show(); showLoginDialog() } }
     private fun showLiveCategories() { isShowingCategories = true; tvTitle.text = "📺 المجموعات (${liveCategories.size})"; rv.adapter = createCategoryAdapter(liveCategories) { cat -> selectedCategoryId = cat.categoryId; isShowingCategories = false; btnBack.visibility = View.VISIBLE; tvTitle.text = "📺 ${cat.categoryName}"; loadLiveStreams(cat.categoryId) } }
-    private fun loadLiveStreams(catId: String?) { server?.let { srv -> showLoading(); XtreamAPI.getLiveStreams(srv, catId) { channels -> hideLoading(); if (channels.isNotEmpty()) { liveChannels.clear(); liveChannels.addAll(channels); updateLiveList() } else { Toast.makeText(this, "لا توجد قنوات في هذا القسم", Toast.LENGTH_SHORT).show(); rv.adapter = null } } } }
+    private fun loadLiveStreams(catId: String?) { server?.let { srv -> showLoading(); XtreamAPI.getLiveStreams(srv, catId) { channels -> hideLoading(); if (channels.isNotEmpty()) { liveChannels.clear(); liveChannels.addAll(channels); updateLiveList() } else { Toast.makeText(this, "لا توجد قنوات", Toast.LENGTH_SHORT).show(); rv.adapter = null } } } }
     private fun updateLiveList() { tvTitle.text = "${tvTitle.text} (${liveChannels.size})"; rv.adapter = createChannelAdapter(liveChannels.map { it.name }) { name -> val ch = liveChannels.find { it.name == name }!!; val url = XtreamAPI.getStreamUrl(server!!, ch.streamId, ch.containerExtension); addToHistory("live", ch.streamId, ch.name); playStream(url, ch.name) } }
 
     // ===== VOD =====
     private fun loadVodCategories() { server?.let { srv -> showLoading(); XtreamAPI.getVodCategories(srv) { cats -> hideLoading(); if (cats.isNotEmpty()) { vodCategories.clear(); vodCategories.addAll(cats); showVodCategories() } else { loadMovies(null) } } } ?: run { Toast.makeText(this, "الرجاء تسجيل الدخول", Toast.LENGTH_SHORT).show(); showLoginDialog() } }
     private fun showVodCategories() { isShowingCategories = true; tvTitle.text = "🎬 المجموعات (${vodCategories.size})"; rv.adapter = createCategoryAdapter(vodCategories) { cat -> selectedCategoryId = cat.categoryId; isShowingCategories = false; btnBack.visibility = View.VISIBLE; tvTitle.text = "🎬 ${cat.categoryName}"; loadMovies(cat.categoryId) } }
-    private fun loadMovies(catId: String?) { server?.let { srv -> showLoading(); XtreamAPI.getVodStreams(srv, catId) { movies -> hideLoading(); if (movies.isNotEmpty()) { vodMovies.clear(); vodMovies.addAll(movies); updateMoviesList() } else { Toast.makeText(this, "لا توجد أفلام في هذا القسم", Toast.LENGTH_SHORT).show(); rv.adapter = null } } } }
+    private fun loadMovies(catId: String?) { server?.let { srv -> showLoading(); XtreamAPI.getVodStreams(srv, catId) { movies -> hideLoading(); if (movies.isNotEmpty()) { vodMovies.clear(); vodMovies.addAll(movies); updateMoviesList() } else { Toast.makeText(this, "لا توجد أفلام", Toast.LENGTH_SHORT).show(); rv.adapter = null } } } }
     private fun updateMoviesList() { tvTitle.text = "${tvTitle.text} (${vodMovies.size})"; rv.adapter = createChannelAdapter(vodMovies.map { it.name }) { name -> val m = vodMovies.find { it.name == name }!!; val url = XtreamAPI.getMovieUrl(server!!, m.streamId, m.containerExtension); addToHistory("movie", m.streamId, m.name); playStream(url, m.name) } }
 
     // ===== SERIES =====
     private fun loadSeriesCategories() { server?.let { srv -> showLoading(); XtreamAPI.getLiveCategories(srv) { cats -> hideLoading(); if (cats.isNotEmpty()) { seriesCategories.clear(); seriesCategories.addAll(cats); showSeriesCategories() } else { loadSeriesList(null) } } } ?: run { Toast.makeText(this, "الرجاء تسجيل الدخول", Toast.LENGTH_SHORT).show(); showLoginDialog() } }
     private fun showSeriesCategories() { isShowingCategories = true; tvTitle.text = "🎭 المجموعات (${seriesCategories.size})"; rv.adapter = createCategoryAdapter(seriesCategories) { cat -> selectedCategoryId = cat.categoryId; isShowingCategories = false; btnBack.visibility = View.VISIBLE; tvTitle.text = "🎭 ${cat.categoryName}"; loadSeriesList(cat.categoryId) } }
-    private fun loadSeriesList(catId: String?) { server?.let { srv -> showLoading(); XtreamAPI.getSeries(srv, catId) { series -> hideLoading(); if (series.isNotEmpty()) { seriesList.clear(); seriesList.addAll(series); updateSeriesList() } else { Toast.makeText(this, "لا توجد مسلسلات في هذا القسم", Toast.LENGTH_SHORT).show(); rv.adapter = null } } } }
+    private fun loadSeriesList(catId: String?) { server?.let { srv -> showLoading(); XtreamAPI.getSeries(srv, catId) { series -> hideLoading(); if (series.isNotEmpty()) { seriesList.clear(); seriesList.addAll(series); updateSeriesList() } else { Toast.makeText(this, "لا توجد مسلسلات", Toast.LENGTH_SHORT).show(); rv.adapter = null } } } }
     private fun updateSeriesList() { tvTitle.text = "${tvTitle.text} (${seriesList.size})"; rv.adapter = createChannelAdapter(seriesList.map { it.name }) { name -> val s = seriesList.find { it.name == name }!!; XtreamAPI.getSeriesInfo(server!!, s.seriesId) { episodes -> showEpisodesDialog(s.name, episodes) } } }
 
     // ===== ADAPTERS =====
