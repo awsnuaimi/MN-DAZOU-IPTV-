@@ -232,52 +232,73 @@ class MainActivity : AppCompatActivity() {
 
     private fun refreshCurrentTab() { switchTab(currentCategory) }
 
+    // ---------- الدوال التي تم تعديلها بأسماء متغيرات فريدة ----------
     private fun createCategoryAdapter(cats: List<XtreamCategory>, onClick: (XtreamCategory) -> Unit): RecyclerView.Adapter<RecyclerView.ViewHolder> {
         val t = themes[currentTheme]!!
-        // تعريف المتغيرات مرة واحدة فقط (val)
-        val padH = dimen(R.dimen.category_padding_h)
-        val padV = dimen(R.dimen.category_padding_v)
-        val iconSize = dimenSp(R.dimen.category_icon_size)
-        val textSize = dimenSp(R.dimen.category_text_size)
-        val arrowSize = dimenSp(R.dimen.category_arrow_size)
+        // استخدام أسماء فريدة تماماً
+        val catPadH = dimen(R.dimen.category_padding_h)
+        val catPadV = dimen(R.dimen.category_padding_v)
+        val catIconSize = dimenSp(R.dimen.category_icon_size)
+        val catTextSize = dimenSp(R.dimen.category_text_size)
+        val catArrowSize = dimenSp(R.dimen.category_arrow_size)
         return object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             override fun onCreateViewHolder(p: ViewGroup, vt: Int): RecyclerView.ViewHolder {
-                val l = LinearLayout(p.context).apply { orientation = LinearLayout.HORIZONTAL; setPadding(padH, padV, padH, padV); gravity = Gravity.CENTER_VERTICAL; setBackgroundColor(t.card) }
-                l.addView(TextView(p.context).apply { text = "📁"; textSize = iconSize })
-                l.addView(TextView(p.context).apply { setPadding(12, 0, 0, 0); textSize = textSize; setTextColor(t.textWhite); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) })
-                l.addView(TextView(p.context).apply { text = "→"; textSize = arrowSize; setTextColor(t.accent) })
+                val l = LinearLayout(p.context).apply {
+                    orientation = LinearLayout.HORIZONTAL; setPadding(catPadH, catPadV, catPadH, catPadV)
+                    gravity = Gravity.CENTER_VERTICAL; setBackgroundColor(t.card)
+                }
+                l.addView(TextView(p.context).apply { text = "📁"; textSize = catIconSize })
+                l.addView(TextView(p.context).apply { setPadding(12, 0, 0, 0); textSize = catTextSize; setTextColor(t.textWhite); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) })
+                l.addView(TextView(p.context).apply { text = "→"; textSize = catArrowSize; setTextColor(t.accent) })
                 return object : RecyclerView.ViewHolder(l) {}
             }
-            override fun onBindViewHolder(h: RecyclerView.ViewHolder, pos: Int) { val l = (h.itemView as LinearLayout); (l.getChildAt(1) as TextView).text = cats[pos].categoryName; l.setOnClickListener { onClick(cats[pos]) } }
+            override fun onBindViewHolder(h: RecyclerView.ViewHolder, pos: Int) {
+                val l = (h.itemView as LinearLayout)
+                (l.getChildAt(1) as TextView).text = cats[pos].categoryName
+                l.setOnClickListener { onClick(cats[pos]) }
+            }
             override fun getItemCount() = cats.size
         }
     }
 
     private fun createChannelAdapter(names: List<String>, onClick: (String) -> Unit): RecyclerView.Adapter<RecyclerView.ViewHolder> {
         val t = themes[currentTheme]!!
-        // تعريف المتغيرات مرة واحدة فقط (val)
-        val padH = dimen(R.dimen.item_padding_h)
-        val padV = dimen(R.dimen.item_padding_v)
-        val textSize = dimenSp(R.dimen.item_text_size)
-        val favSize = dimenSp(R.dimen.item_fav_icon_size)
+        // استخدام أسماء فريدة تماماً
+        val chPadH = dimen(R.dimen.item_padding_h)
+        val chPadV = dimen(R.dimen.item_padding_v)
+        val chTextSize = dimenSp(R.dimen.item_text_size)
+        val chFavSize = dimenSp(R.dimen.item_fav_icon_size)
         return object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             override fun onCreateViewHolder(p: ViewGroup, vt: Int): RecyclerView.ViewHolder {
-                val l = LinearLayout(p.context).apply { orientation = LinearLayout.HORIZONTAL; setPadding(padH, padV, padH, padV); gravity = Gravity.CENTER_VERTICAL; setBackgroundColor(t.card) }
-                l.addView(TextView(p.context).apply { textSize = textSize; setTextColor(t.textWhite); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) })
-                l.addView(Button(p.context).apply { text = "⭐"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.parseColor("#FFD93D")); textSize = favSize })
+                val l = LinearLayout(p.context).apply {
+                    orientation = LinearLayout.HORIZONTAL; setPadding(chPadH, chPadV, chPadH, chPadV)
+                    gravity = Gravity.CENTER_VERTICAL; setBackgroundColor(t.card)
+                }
+                l.addView(TextView(p.context).apply { textSize = chTextSize; setTextColor(t.textWhite); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) })
+                l.addView(Button(p.context).apply { text = "⭐"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.parseColor("#FFD93D")); textSize = chFavSize })
                 return object : RecyclerView.ViewHolder(l) {}
             }
             override fun onBindViewHolder(h: RecyclerView.ViewHolder, pos: Int) {
-                val l = (h.itemView as LinearLayout); val name = names[pos]; (l.getChildAt(0) as TextView).text = name; l.setOnClickListener { onClick(name) }
-                l.getChildAt(1).setOnClickListener { val type = if (currentCategory == "movies") "movie" else "live"; val id = if (type == "live") liveChannels.getOrNull(pos)?.streamId ?: 0 else vodMovies.getOrNull(pos)?.streamId ?: 0; addToFavorites(type, id, name) }
+                val l = (h.itemView as LinearLayout)
+                val name = names[pos]
+                (l.getChildAt(0) as TextView).text = name
+                l.setOnClickListener { onClick(name) }
+                l.getChildAt(1).setOnClickListener {
+                    val type = if (currentCategory == "movies") "movie" else "live"
+                    val id = if (type == "live") liveChannels.getOrNull(pos)?.streamId ?: 0 else vodMovies.getOrNull(pos)?.streamId ?: 0
+                    addToFavorites(type, id, name)
+                }
             }
             override fun getItemCount() = names.size
         }
     }
+    // ------------------------------------------------------------
 
     private fun showEpisodesDialog(name: String, episodes: List<XtreamEpisode>) {
         if (episodes.isEmpty()) { Toast.makeText(this, "لا حلقات", Toast.LENGTH_SHORT).show(); return }
-        AlertDialog.Builder(this).setTitle(name).setItems(episodes.map { "🎭 حلقة ${it.episodeNum}: ${it.title}" }.toTypedArray()) { _, i -> val e = episodes[i]; playStream(XtreamAPI.getSeriesEpisodeUrl(server!!, e.id, e.containerExtension), "$name - حلقة ${e.episodeNum}") }.setNegativeButton("إغلاق", null).show()
+        AlertDialog.Builder(this).setTitle(name).setItems(episodes.map { "🎭 حلقة ${it.episodeNum}: ${it.title}" }.toTypedArray()) { _, i ->
+            val e = episodes[i]; playStream(XtreamAPI.getSeriesEpisodeUrl(server!!, e.id, e.containerExtension), "$name - حلقة ${e.episodeNum}")
+        }.setNegativeButton("إغلاق", null).show()
     }
 
     private fun playStream(url: String, name: String) {
