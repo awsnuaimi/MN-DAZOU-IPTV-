@@ -217,11 +217,7 @@ class MainActivity : AppCompatActivity() {
                 isPlayerPlaying=isPlaying; btnPlayPause.text=if(isPlaying)"⏸️" else "▶️"
                 showPlayerControls()
                 if(isPlaying) watchStartTime = System.currentTimeMillis()
-                else if(watchStartTime > 0) {
-                    val watchDuration = System.currentTimeMillis() - watchStartTime
-                    saveWatchTime(watchDuration)
-                    watchStartTime = 0
-                }
+                else if(watchStartTime > 0) { val watchDuration = System.currentTimeMillis() - watchStartTime; saveWatchTime(watchDuration); watchStartTime = 0 }
             }
             override fun onPlaybackStateChanged(state: Int) {
                 if(state==Player.STATE_READY){ seekBar.max=player.duration.toInt(); tvTotalTime.text=formatTime(player.duration) }
@@ -241,11 +237,9 @@ class MainActivity : AppCompatActivity() {
     private fun startRecording() {
         if(currentStreamUrl == null) { Toast.makeText(this,"لا يوجد بث للتسجيل",Toast.LENGTH_SHORT).show(); return }
         try {
-            val dir = File(getExternalFilesDir(Environment.DIRECTORY_MOVIES), "Recordings")
-            dir.mkdirs()
+            val dir = File(getExternalFilesDir(Environment.DIRECTORY_MOVIES), "Recordings"); dir.mkdirs()
             recordingFile = File(dir, "MN-DAZOU_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())}.ts")
-            isRecording = true; btnRecord.text = "⏹️"; btnRecord.setTextColor(Color.RED)
-            tvRecording.visibility = View.VISIBLE
+            isRecording = true; btnRecord.text = "⏹️"; btnRecord.setTextColor(Color.RED); tvRecording.visibility = View.VISIBLE
             Toast.makeText(this,"🔴 بدأ التسجيل",Toast.LENGTH_SHORT).show()
             recordingThread = thread {
                 try {
@@ -253,52 +247,33 @@ class MainActivity : AppCompatActivity() {
                     val output = FileOutputStream(recordingFile)
                     val buffer = ByteArray(4096)
                     var bytesRead = input.read(buffer)
-                    while(isRecording && bytesRead != -1) {
-                        output.write(buffer, 0, bytesRead)
-                        bytesRead = input.read(buffer)
-                    }
+                    while(isRecording && bytesRead != -1) { output.write(buffer, 0, bytesRead); bytesRead = input.read(buffer) }
                     output.close(); input.close()
-                } catch(e: Exception) {
-                    runOnUiThread { Toast.makeText(this@MainActivity,"❌ خطأ في التسجيل",Toast.LENGTH_SHORT).show(); stopRecording() }
-                }
+                } catch(e: Exception) { runOnUiThread { Toast.makeText(this@MainActivity,"❌ خطأ في التسجيل",Toast.LENGTH_SHORT).show(); stopRecording() } }
             }
         } catch(e: Exception) { Toast.makeText(this,"❌ فشل بدء التسجيل",Toast.LENGTH_SHORT).show() }
     }
 
     private fun stopRecording() {
-        isRecording = false; btnRecord.text = "🔴"; btnRecord.setTextColor(Color.WHITE)
-        tvRecording.visibility = View.GONE; recordingThread?.interrupt()
-        recordingFile?.let {
-            val intent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
-            intent.data = Uri.fromFile(it); sendBroadcast(intent)
-            Toast.makeText(this,"✅ تم حفظ التسجيل: ${it.name}",Toast.LENGTH_LONG).show()
-        }
+        isRecording = false; btnRecord.text = "🔴"; btnRecord.setTextColor(Color.WHITE); tvRecording.visibility = View.GONE
+        recordingThread?.interrupt()
+        recordingFile?.let { val intent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE); intent.data = Uri.fromFile(it); sendBroadcast(intent); Toast.makeText(this,"✅ تم حفظ التسجيل: ${it.name}",Toast.LENGTH_LONG).show() }
     }
 
     private fun shareCurrentStream() {
         currentStreamName?.let { name ->
             val shareText = "شاهد معي على MN-DAZOU IPTV:\n📺 $name\n🔗 ${currentStreamUrl ?: ""}"
-            val intent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, shareText); putExtra(Intent.EXTRA_SUBJECT, name) }
-            startActivity(Intent.createChooser(intent, "مشاركة عبر"))
+            startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, shareText); putExtra(Intent.EXTRA_SUBJECT, name) }, "مشاركة عبر"))
         } ?: Toast.makeText(this,"لا يوجد محتوى للمشاركة",Toast.LENGTH_SHORT).show()
     }
 
-    private fun saveAccounts() {
-        val json = JSONArray()
-        accounts.forEach { val obj = JSONObject(); obj.put("url", it.url); obj.put("username", it.username); obj.put("password", it.password); json.put(obj) }
-        prefs.edit().putString("accounts", json.toString()).apply()
-    }
-
-    private fun loadAccounts() {
-        val jsonStr = prefs.getString("accounts", "[]") ?: "[]"; val json = JSONArray(jsonStr)
-        for(i in 0 until json.length()) { val obj = json.getJSONObject(i); accounts.add(XtreamServer(obj.getString("url"), obj.getString("username"), obj.getString("password"))) }
-    }
+    private fun saveAccounts() { val json = JSONArray(); accounts.forEach { val obj = JSONObject(); obj.put("url", it.url); obj.put("username", it.username); obj.put("password", it.password); json.put(obj) }; prefs.edit().putString("accounts", json.toString()).apply() }
+    private fun loadAccounts() { val s = prefs.getString("accounts", "[]") ?: "[]"; val json = JSONArray(s); for(i in 0 until json.length()) { val obj = json.getJSONObject(i); accounts.add(XtreamServer(obj.getString("url"), obj.getString("username"), obj.getString("password"))) } }
 
     private fun showAccountsDialog() {
         if(accounts.isEmpty()) { showLoginDialog(); return }
         val names = accounts.mapIndexed { i, a -> "👤 حساب ${i+1}: ${a.username}@${a.url.removePrefix("http://").removePrefix("https://").substringBefore(":")}" }.toTypedArray()
-        val items = names + arrayOf("➕ إضافة حساب", "🗑️ حذف كل الحسابات", "📊 إحصائيات المشاهدة")
-        AlertDialog.Builder(this).setTitle("👤 إدارة الحسابات (${accounts.size})").setItems(items) { _, which ->
+        AlertDialog.Builder(this).setTitle("👤 إدارة الحسابات (${accounts.size})").setItems(names + arrayOf("➕ إضافة حساب", "🗑️ حذف كل الحسابات", "📊 إحصائيات المشاهدة")) { _, which ->
             when {
                 which < accounts.size -> { currentAccountIndex = which; server = accounts[which]; prefs.edit().putInt("current_account", which).apply(); switchTab("home"); Toast.makeText(this,"✅ تم التبديل",Toast.LENGTH_SHORT).show() }
                 which == accounts.size -> showLoginDialog()
@@ -323,7 +298,7 @@ class MainActivity : AppCompatActivity() {
         val topChannels = channelCounts.entries.sortedByDescending { it.value }.take(5)
         val message = StringBuilder()
         message.appendLine("📊 إحصائيات اليوم:"); message.appendLine("⏱️ وقت المشاهدة: ${hours}h ${minutes}m"); message.appendLine()
-        if(topChannels.isNotEmpty()) { message.appendLine("📺 الأكثر مشاهدة:"); topChannels.forEachIndexed { i, (name, count) -> message.appendLine("${i+1}. $name ($count مرة)") } }
+        if(topChannels.isNotEmpty()) { message.appendLine("📺 الأكثر مشاهدة:"); topChannels.forEachIndexed { i, (chname, count) -> message.appendLine("${i+1}. $chname ($count مرة)") } }
         AlertDialog.Builder(this).setTitle("📊 إحصائيات المشاهدة").setMessage(message.toString()).setPositiveButton("حسناً", null).show()
     }
 
@@ -374,16 +349,19 @@ class MainActivity : AppCompatActivity() {
     private fun showThemeDialog() { AlertDialog.Builder(this).setTitle("🎨 اختر الثيم").setItems(themes.values.map{it.name}.toTypedArray()){_,w->prefs.edit().putString("theme",themes.keys.toList()[w]).apply();Toast.makeText(this,"🔄 أعد التشغيل",Toast.LENGTH_LONG).show()}.show() }
     private fun showM3uDialog() { val e=EditText(this).apply{hint="رابط M3U أو الصق المحتوى";minLines=3;setPadding(30,20,30,20)}; AlertDialog.Builder(this).setTitle("📋 إضافة M3U").setView(e).setPositiveButton("تحميل"){_,_->val i=e.text.toString(); if(i.startsWith("http"))loadM3uFromUrl(i)else parseM3uContent(i)}.setNegativeButton("إلغاء",null).show() }
     private fun loadM3uFromUrl(url: String) { showLoading(); thread{try{val c=java.net.URL(url).readText();runOnUiThread{hideLoading();parseM3uContent(c)}}catch(ex:Exception){runOnUiThread{hideLoading();Toast.makeText(this,"❌ فشل",Toast.LENGTH_SHORT).show()}}} }
-    private fun parseM3uContent(content: String) { val ch=mutableListOf<XtreamChannel>(); var n=""; for(l in content.split("\n")){if(l.startsWith("#EXTINF"))n=Regex(",(.+)").find(l)?.groupValues?.get(1)?.trim()?:"قناة"; else if(l.startsWith("http"))ch.add(XtreamChannel(ch.size,n,"live","","","","m3u","ts"))}; liveChannels.addAll(ch); Toast.makeText(this,"✅ ${ch.size} قناة",Toast.LENGTH_SHORT).show(); updateLiveList() }
+    private fun parseM3uContent(content: String) { val ch=mutableListOf<XtreamChannel>(); var nm=""; for(l in content.split("\n")){if(l.startsWith("#EXTINF"))nm=Regex(",(.+)").find(l)?.groupValues?.get(1)?.trim()?:"قناة"; else if(l.startsWith("http"))ch.add(XtreamChannel(ch.size,nm,"live","","","","m3u","ts"))}; liveChannels.addAll(ch); Toast.makeText(this,"✅ ${ch.size} قناة",Toast.LENGTH_SHORT).show(); updateLiveList() }
 
     private fun loadEpg() { server?.let{s->showLoading(); thread{try{val j=java.net.URL("${s.url}/player_api.php?username=${s.username}&password=${s.password}&action=get_short_epg").readText();epgData.clear();val a=JSONObject(j).getJSONArray("epg_listings");for(i in 0 until a.length()){val o=a.getJSONObject(i);epgData.add(EpgProgram(o.optString("epg_id",""),o.optString("title",""),o.optString("start",""),o.optString("end",""),o.optString("description","")))};runOnUiThread{hideLoading();Toast.makeText(this,"📺 ${epgData.size} برنامج",Toast.LENGTH_SHORT).show();showEpg()}}catch(ex:Exception){runOnUiThread{hideLoading();Toast.makeText(this,"❌ فشل EPG",Toast.LENGTH_SHORT).show()}}}}?:Toast.makeText(this,"سجل دخول",Toast.LENGTH_SHORT).show() }
 
     private fun showEpg() { 
-        val g=epgData.groupBy{it.channelId}; val n=g.keys.toTypedArray()
-        if(n.isEmpty()){Toast.makeText(this,"لا بيانات",Toast.LENGTH_SHORT).show();return}
-        AlertDialog.Builder(this).setTitle("📺 دليل البرامج").setItems(n){_,i->
-            val channelName = n[i]; val p=g[channelName]?:emptyList()
-            AlertDialog.Builder(this).setTitle(channelName).setItems(p.map{"🕐 ${it.startTime}-${it.endTime}: ${it.title}"}.toTypedArray(),null).setPositiveButton("إغلاق",null).show()
+        val g=epgData.groupBy{it.channelId}
+        val channelKeys=g.keys.toTypedArray()
+        if(channelKeys.isEmpty()){Toast.makeText(this,"لا بيانات",Toast.LENGTH_SHORT).show();return}
+        AlertDialog.Builder(this).setTitle("📺 دليل البرامج").setItems(channelKeys){_,i->
+            val chName = channelKeys[i]
+            val programs=g[chName]?:emptyList()
+            val programTexts = programs.map{epg->"🕐 ${epg.startTime}-${epg.endTime}: ${epg.title}"}.toTypedArray()
+            AlertDialog.Builder(this).setTitle(chName).setItems(programTexts,null).setPositiveButton("إغلاق",null).show()
         }.setPositiveButton("إغلاق",null).show() 
     }
 
@@ -506,7 +484,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showEpisodesDialog(name:String,episodes:List<XtreamEpisode>){AlertDialog.Builder(this).setTitle(name).setItems(episodes.map{"🎭 حلقة ${it.episodeNum}: ${it.title}"}.toTypedArray()){_,i->val e=episodes[i];playStream(XtreamAPI.getSeriesEpisodeUrl(server!!,e.id,e.containerExtension),"$name - حلقة ${e.episodeNum}")}.setNegativeButton("إغلاق",null).show()}
+    private fun showEpisodesDialog(name:String,episodes:List<XtreamEpisode>){AlertDialog.Builder(this).setTitle(name).setItems(episodes.map{ep->"🎭 حلقة ${ep.episodeNum}: ${ep.title}"}.toTypedArray()){_,i->val e=episodes[i];playStream(XtreamAPI.getSeriesEpisodeUrl(server!!,e.id,e.containerExtension),"$name - حلقة ${e.episodeNum}")}.setNegativeButton("إغلاق",null).show()}
 
     private fun playStream(url:String,name:String){try{currentStreamUrl=url;currentStreamName=name;player.setMediaItem(MediaItem.fromUri(url));player.prepare();player.play();tvChannelInfo.text="🎬 $name";watchStartTime=System.currentTimeMillis();Toast.makeText(this,"▶️ $name",Toast.LENGTH_SHORT).show()}catch(e:Exception){Toast.makeText(this,"❌ ${e.message}",Toast.LENGTH_LONG).show()}}
 
