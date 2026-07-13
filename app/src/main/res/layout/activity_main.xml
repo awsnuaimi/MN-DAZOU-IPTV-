@@ -6,7 +6,6 @@
     android:background="#121212"
     android:padding="16dp">
 
-    <!-- العنوان -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -15,57 +14,49 @@
         android:textSize="22sp"
         android:textStyle="bold"
         android:layout_gravity="center"
-        android:layout_marginBottom="20dp" />
+        android:layout_marginBottom="15dp" />
+
+    <!-- أزرار الإعدادات الجديدة -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="10dp">
+        
+        <Button android:id="@+id/btnXtream" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="⚙️ Xtream" />
+        <Button android:id="@+id/btnM3u" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🔗 M3U" />
+    </LinearLayout>
 
     <!-- أزرار الأقسام -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginBottom="16dp">
-
-        <Button
-            android:id="@+id/btnLiveTv"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="📺 مباشر"
-            android:layout_marginEnd="8dp" />
-
-        <Button
-            android:id="@+id/btnMovies"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="🎬 أفلام"
-            android:layout_marginStart="8dp" />
+        android:layout_marginBottom="10dp">
+        <Button android:id="@+id/btnLiveTv" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="📺 مباشر" />
+        <Button android:id="@+id/btnMovies" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🎬 أفلام" />
     </LinearLayout>
 
-    <!-- شريط البحث -->
     <EditText
         android:id="@+id/etSearch"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="🔍 بحث عن محتوى..."
+        android:hint="🔍 بحث..."
         android:textColor="#FFFFFF"
-        android:textColorHint="#888888"
-        android:padding="12dp"
+        android:padding="10dp"
         android:background="#2C2C2C"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="10dp" />
 
-    <!-- قائمة القنوات/الأفلام -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvChannels"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
 
-    <!-- مشغل الفيديو -->
     <com.google.android.exoplayer2.ui.PlayerView
         android:id="@+id/playerView"
         android:layout_width="match_parent"
-        android:layout_height="250dp"
-        android:visibility="gone"
-        android:background="#000000" />
+        android:layout_height="200dp"
+        android:visibility="gone" />
 
 </LinearLayout>
