@@ -10,7 +10,7 @@ class RecyclerViewAdapter(private val list: List<StreamModel>, private val onCli
     RecyclerView.Adapter<RecyclerViewAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val textView: TextView = view.findViewById(android.R.id.text1)
+        val tv: TextView = view.findViewById(android.R.id.text1)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -19,7 +19,7 @@ class RecyclerViewAdapter(private val list: List<StreamModel>, private val onCli
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.textView.text = list[position].name
+        holder.tv.text = list[position].name
         holder.itemView.setOnClickListener { onClick(list[position]) }
     }
 

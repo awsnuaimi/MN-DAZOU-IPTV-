@@ -1,6 +1,7 @@
 package com.dazou.iptvplayer
 
 import android.os.Bundle
+import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -13,78 +14,45 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var rv: RecyclerView
+    private val baseUrl = "http://YOUR_SERVER_URL/"
+    private val username = "YOUR_USERNAME"
+    private val password = "YOUR_PASSWORD"
     private var player: ExoPlayer? = null
-    
-    // ضع بياناتك هنا
-    private val baseUrl = "http://your-server-url:port/"
-    private val username = "your_username"
-    private val password = "your_password"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        rv = findViewById(R.id.rvChannels)
+        val rv = findViewById<RecyclerView>(R.id.rvChannels)
         rv.layoutManager = LinearLayoutManager(this)
+        
+        val api = Retrofit.Builder().baseUrl(baseUrl).addConverterFactory(GsonConverterFactory.create()).build().create(XtreamApi::class.java)
 
-        val btnLive = findViewById<Button>(R.id.btnLiveTv)
-        val btnMovies = findViewById<Button>(R.id.btnMovies)
-
-        val retrofit = Retrofit.Builder()
-            .baseUrl(baseUrl)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-
-        val api = retrofit.create(XtreamApi::class.java)
-
-        btnLive.setOnClickListener {
+        findViewById<Button>(R.id.btnLiveTv).setOnClickListener {
             api.getLiveStreams(username, password).enqueue(object : Callback<List<StreamModel>> {
-                override fun onResponse(call: Call<List<StreamModel>>, response: Response<List<StreamModel>>) {
-                    response.body()?.let { updateList(it) }
+                override fun onResponse(c: Call<List<StreamModel>>, r: Response<List<StreamModel>>) {
+                    r.body()?.let { rv.adapter = RecyclerViewAdapter(it) { s -> play(s.stream_id) } }
                 }
-                override fun onFailure(call: Call<List<StreamModel>>, t: Throwable) {
-                    Toast.makeText(this@MainActivity, "خطأ في الاتصال", Toast.LENGTH_SHORT).show()
-                }
+                override fun onFailure(c: Call<List<StreamModel>>, t: Throwable) {}
             })
         }
 
-        btnMovies.setOnClickListener {
+        findViewById<Button>(R.id.btnMovies).setOnClickListener {
             api.getVodStreams(username, password).enqueue(object : Callback<List<StreamModel>> {
-                override fun onResponse(call: Call<List<StreamModel>>, response: Response<List<StreamModel>>) {
-                    response.body()?.let { updateList(it) }
+                override fun onResponse(c: Call<List<StreamModel>>, r: Response<List<StreamModel>>) {
+                    r.body()?.let { rv.adapter = RecyclerViewAdapter(it) { s -> play(s.stream_id) } }
                 }
-                override fun onFailure(call: Call<List<StreamModel>>, t: Throwable) {
-                    Toast.makeText(this@MainActivity, "خطأ في الاتصال", Toast.LENGTH_SHORT).show()
-                }
+                override fun onFailure(c: Call<List<StreamModel>>, t: Throwable) {}
             })
         }
     }
 
-        private fun updateList(list: List<StreamModel>) {
-        // تحديث المحول باستخدام النوع الصريح
-        val adapter = RecyclerViewAdapter(list) { stream -> 
-            playStream(stream) 
-        }
-        rv.adapter = adapter
-    }
-{
-        val names = list.map { it.name }
-        val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, names)
-        // ملاحظة: لتبسيط الكود، استخدمنا ArrayAdapter، سأعلمك كيف تجعلها احترافية لاحقاً
-        rv.adapter = RecyclerViewAdapter(list) { stream -> 
-            playStream(stream) 
-        }
-    }
-
-    private fun playStream(stream: StreamModel) {
-        val playerView = findViewById<PlayerView>(R.id.playerView)
-        playerView.visibility = android.view.View.VISIBLE
+    private fun play(id: String) {
+        val pv = findViewById<PlayerView>(R.id.playerView)
+        pv.visibility = View.VISIBLE
         player = ExoPlayer.Builder(this).build()
-        playerView.player = player
-        // ملاحظة: رابط التشغيل يختلف حسب النوع، هذا مبدئي
-        val url = "${baseUrl}live/${username}/${password}/${stream.stream_id}.m3u8"
-        player?.setMediaItem(MediaItem.fromUri(url))
+        pv.player = player
+        player?.setMediaItem(MediaItem.fromUri("${baseUrl}live/${username}/${password}/${id}.m3u8"))
         player?.prepare()
         player?.playWhenReady = true
     }
