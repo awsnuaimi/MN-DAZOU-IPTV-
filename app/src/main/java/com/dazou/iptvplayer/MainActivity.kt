@@ -295,10 +295,10 @@ class MainActivity : AppCompatActivity() {
         val hours = todayWatch / (1000 * 60 * 60); val minutes = (todayWatch % (1000 * 60 * 60)) / (1000 * 60)
         val channelCounts = mutableMapOf<String, Int>()
         prefs.all.forEach { (key, value) -> if(key.startsWith("channel_count_") && value is Int) channelCounts[key.removePrefix("channel_count_")] = value }
-        val topChannels = channelCounts.entries.sortedByDescending { it.value }.take(5)
+        val topChannels = channelCounts.entries.sortedByDescending { entry -> entry.value }.take(5)
         val message = StringBuilder()
         message.appendLine("📊 إحصائيات اليوم:"); message.appendLine("⏱️ وقت المشاهدة: ${hours}h ${minutes}m"); message.appendLine()
-        if(topChannels.isNotEmpty()) { message.appendLine("📺 الأكثر مشاهدة:"); topChannels.forEachIndexed { i, entry -> message.appendLine("${i+1}. ${entry.key} (${entry.value} مرة)") } }
+        if(topChannels.isNotEmpty()) { message.appendLine("📺 الأكثر مشاهدة:"); topChannels.forEachIndexed { index, channelEntry -> message.appendLine("${index+1}. ${channelEntry.key} (${channelEntry.value} مرة)") } }
         AlertDialog.Builder(this).setTitle("📊 إحصائيات المشاهدة").setMessage(message.toString()).setPositiveButton("حسناً", null).show()
     }
 
@@ -337,9 +337,9 @@ class MainActivity : AppCompatActivity() {
     private fun playChannelAtIndex(index: Int) {
         val channels=when(currentStreamType){"live"->liveChannels;"movie"->vodMovies;else->emptyList()}
         if(index<0||index>=channels.size)return
-        currentStreamIndex=index; val ch=channels[index]
-        val url=when(currentStreamType){"live"->XtreamAPI.getStreamUrl(server!!,(ch as XtreamChannel).streamId,ch.containerExtension);"movie"->XtreamAPI.getMovieUrl(server!!,(ch as XtreamMovie).streamId,ch.containerExtension);else->""}
-        playStream(url,ch.name); tvChannelInfo.text="🎬 ${ch.name} (${index+1}/${channels.size})"
+        currentStreamIndex=index; val channelItem=channels[index]
+        val url=when(currentStreamType){"live"->XtreamAPI.getStreamUrl(server!!,(channelItem as XtreamChannel).streamId,channelItem.containerExtension);"movie"->XtreamAPI.getMovieUrl(server!!,(channelItem as XtreamMovie).streamId,channelItem.containerExtension);else->""}
+        playStream(url,channelItem.name); tvChannelInfo.text="🎬 ${channelItem.name} (${index+1}/${channels.size})"
         prefs.edit().putInt("last_channel_index",index).putString("last_channel_type",currentStreamType).apply(); rv.smoothScrollToPosition(index)
     }
 
@@ -354,15 +354,15 @@ class MainActivity : AppCompatActivity() {
     private fun loadEpg() { server?.let{srv->showLoading(); thread{try{val j=java.net.URL("${srv.url}/player_api.php?username=${srv.username}&password=${srv.password}&action=get_short_epg").readText();epgData.clear();val a=JSONObject(j).getJSONArray("epg_listings");for(i in 0 until a.length()){val o=a.getJSONObject(i);epgData.add(EpgProgram(o.optString("epg_id",""),o.optString("title",""),o.optString("start",""),o.optString("end",""),o.optString("description","")))};runOnUiThread{hideLoading();Toast.makeText(this,"📺 ${epgData.size} برنامج",Toast.LENGTH_SHORT).show();showEpg()}}catch(ex:Exception){runOnUiThread{hideLoading();Toast.makeText(this,"❌ فشل EPG",Toast.LENGTH_SHORT).show()}}}}?:Toast.makeText(this,"سجل دخول",Toast.LENGTH_SHORT).show() }
 
     private fun showEpg() { 
-        val g=epgData.groupBy{epg->epg.channelId}
-        val channelKeys=g.keys.toTypedArray()
-        if(channelKeys.isEmpty()){Toast.makeText(this,"لا بيانات",Toast.LENGTH_SHORT).show();return}
-        AlertDialog.Builder(this).setTitle("📺 دليل البرامج").setItems(channelKeys){_,i->
-            val chName = channelKeys[i]
-            val programs=g[chName]?:emptyList()
-            val programTexts = programs.map{epgItem->"🕐 ${epgItem.startTime}-${epgItem.endTime}: ${epgItem.title}"}.toTypedArray()
-            AlertDialog.Builder(this).setTitle(chName).setItems(programTexts,null).setPositiveButton("إغلاق",null).show()
-        }.setPositiveButton("إغلاق",null).show() 
+        val grouped = epgData.groupBy{ epgItem -> epgItem.channelId }
+        val keys = grouped.keys.toTypedArray()
+        if(keys.isEmpty()){ Toast.makeText(this,"لا بيانات",Toast.LENGTH_SHORT).show(); return }
+        AlertDialog.Builder(this).setTitle("📺 دليل البرامج").setItems(keys){ _,index ->
+            val channel = keys[index]
+            val programs = grouped[channel] ?: emptyList()
+            val titles = programs.map{ prog -> "🕐 ${prog.startTime}-${prog.endTime}: ${prog.title}" }.toTypedArray()
+            AlertDialog.Builder(this).setTitle(channel).setItems(titles,null).setPositiveButton("إغلاق",null).show()
+        }.setPositiveButton("إغلاق",null).show()
     }
 
     private fun switchTab(tab: String) {
@@ -418,7 +418,23 @@ class MainActivity : AppCompatActivity() {
 
     private fun showLoginDialog() { val t=themes[currentTheme]!!;val d=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(50,50,50,50);setBackgroundColor(t.card)};d.addView(TextView(this).apply{text="⚙️ إضافة حساب Xtream";textSize=20f;setTextColor(t.accent);setTypeface(null,Typeface.BOLD);gravity=Gravity.CENTER;setPadding(0,0,0,30)});val es=EditText(this).apply{hint="رابط السيرفر";setHintTextColor(t.textGray);setTextColor(t.textWhite);setBackgroundColor(t.bg);setPadding(30,20,30,20);setText("http://")};val eu=EditText(this).apply{hint="اسم المستخدم";setHintTextColor(t.textGray);setTextColor(t.textWhite);setBackgroundColor(t.bg);setPadding(30,20,30,20)};val ep=EditText(this).apply{hint="كلمة المرور";setHintTextColor(t.textGray);setTextColor(t.textWhite);setBackgroundColor(t.bg);setPadding(30,20,30,20)};d.addView(es);d.addView(createSpacer(10));d.addView(eu);d.addView(createSpacer(10));d.addView(ep);AlertDialog.Builder(this).setView(d).setPositiveButton("حفظ"){_,_->val acc=XtreamServer(es.text.toString().trimEnd('/'),eu.text.toString(),ep.text.toString());accounts.add(acc);currentAccountIndex=accounts.size-1;server=acc;saveAccounts();prefs.edit().putInt("current_account",currentAccountIndex).apply();Toast.makeText(this,"✅ تم حفظ الحساب",Toast.LENGTH_SHORT).show();switchTab("home")}.setNegativeButton("إلغاء",null).show() }
     private fun createSpacer(h:Int)=View(this).apply{layoutParams=LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,h)}
-    private fun performSearch() { val q=etSearch.text.toString().lowercase();if(q.isEmpty())return;when(currentCategory){"live"->{val f=liveChannels.filter{ch->ch.name.lowercase().contains(q)};if(f.isNotEmpty()){liveChannels.clear();liveChannels.addAll(f);updateLiveList();tvTitle.text="🔍 $q"}else Toast.makeText(this,"لا نتائج",Toast.LENGTH_SHORT).show()};"movies"->{val f=vodMovies.filter{m->m.name.lowercase().contains(q)};if(f.isNotEmpty()){vodMovies.clear();vodMovies.addAll(f);updateMoviesList();tvTitle.text="🔍 $q"}else Toast.makeText(this,"لا نتائج",Toast.LENGTH_SHORT).show()}} }
+
+    private fun performSearch() { 
+        val q = etSearch.text.toString().lowercase()
+        if(q.isEmpty()) return
+        when(currentCategory) {
+            "live" -> {
+                val filtered = liveChannels.filter { liveChannel -> liveChannel.name.lowercase().contains(q) }
+                if(filtered.isNotEmpty()) { liveChannels.clear(); liveChannels.addAll(filtered); updateLiveList(); tvTitle.text="🔍 $q" }
+                else Toast.makeText(this,"لا نتائج",Toast.LENGTH_SHORT).show()
+            }
+            "movies" -> {
+                val filtered = vodMovies.filter { movie -> movie.name.lowercase().contains(q) }
+                if(filtered.isNotEmpty()) { vodMovies.clear(); vodMovies.addAll(filtered); updateMoviesList(); tvTitle.text="🔍 $q" }
+                else Toast.makeText(this,"لا نتائج",Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     private fun addToFavorites(type:String,id:Int,name:String,icon:String=""){if(favorites.none{fav->fav.type==type&&fav.id==id}){favorites.add(FavoriteItem(type,id,name,icon));saveFavorites();Toast.makeText(this,"⭐ تم",Toast.LENGTH_SHORT).show()}else Toast.makeText(this,"موجود",Toast.LENGTH_SHORT).show()}
     private fun removeFavorite(item:FavoriteItem){favorites.removeAll{fav->fav.type==item.type&&fav.id==item.id};saveFavorites()}
@@ -449,9 +465,42 @@ class MainActivity : AppCompatActivity() {
     private fun showLoading(){progressBar.visibility=View.VISIBLE}
     private fun hideLoading(){progressBar.visibility=View.GONE}
 
-    private fun updateLiveList(){val t=themes[currentTheme]!!;rv.adapter=createContentAdapter(liveChannels.map{ch->Pair(ch.name,ch.streamIcon)},"📺",t){itemName,imgUrl->val idx=liveChannels.indexOfFirst{ch->ch.name==itemName};currentStreamIndex=idx;currentStreamType="live";val ch=liveChannels[idx];val u=XtreamAPI.getStreamUrl(server!!,ch.streamId,ch.containerExtension);addToHistory("live",ch.streamId,ch.name,imgUrl);playStream(u,ch.name)}}
-    private fun updateMoviesList(){val t=themes[currentTheme]!!;rv.adapter=createContentAdapter(vodMovies.map{m->Pair(m.name,m.streamIcon)},"🎬",t){itemName,imgUrl->val idx=vodMovies.indexOfFirst{m->m.name==itemName};currentStreamIndex=idx;currentStreamType="movie";val m=vodMovies[idx];val u=XtreamAPI.getMovieUrl(server!!,m.streamId,m.containerExtension);addToHistory("movie",m.streamId,m.name,imgUrl);playStream(u,m.name)}}
-    private fun updateSeriesList(){val t=themes[currentTheme]!!;rv.adapter=createContentAdapter(seriesList.map{s->Pair(s.name,s.cover)},"📺",t){itemName,_->val s=seriesList.find{sr->sr.name==itemName}!!;XtreamAPI.getSeriesInfo(server!!,s.seriesId){showEpisodesDialog(s.name,it)}}}
+    private fun updateLiveList(){
+        val t=themes[currentTheme]!!
+        val mapped = liveChannels.map{ ch -> Pair(ch.name, ch.streamIcon) }
+        rv.adapter=createContentAdapter(mapped,"📺",t){ itemName, imgUrl ->
+            val idx = liveChannels.indexOfFirst{ ch -> ch.name == itemName }
+            currentStreamIndex = idx
+            currentStreamType = "live"
+            val selectedChannel = liveChannels[idx]
+            val url = XtreamAPI.getStreamUrl(server!!, selectedChannel.streamId, selectedChannel.containerExtension)
+            addToHistory("live", selectedChannel.streamId, selectedChannel.name, imgUrl)
+            playStream(url, selectedChannel.name)
+        }
+    }
+
+    private fun updateMoviesList(){
+        val t=themes[currentTheme]!!
+        val mapped = vodMovies.map{ m -> Pair(m.name, m.streamIcon) }
+        rv.adapter=createContentAdapter(mapped,"🎬",t){ itemName, imgUrl ->
+            val idx = vodMovies.indexOfFirst{ m -> m.name == itemName }
+            currentStreamIndex = idx
+            currentStreamType = "movie"
+            val selectedMovie = vodMovies[idx]
+            val url = XtreamAPI.getMovieUrl(server!!, selectedMovie.streamId, selectedMovie.containerExtension)
+            addToHistory("movie", selectedMovie.streamId, selectedMovie.name, imgUrl)
+            playStream(url, selectedMovie.name)
+        }
+    }
+
+    private fun updateSeriesList(){
+        val t=themes[currentTheme]!!
+        val mapped = seriesList.map{ s -> Pair(s.name, s.cover) }
+        rv.adapter=createContentAdapter(mapped,"📺",t){ itemName, _ ->
+            val series = seriesList.find{ sr -> sr.name == itemName }!!
+            XtreamAPI.getSeriesInfo(server!!, series.seriesId){ episodes -> showEpisodesDialog(series.name, episodes) }
+        }
+    }
 
     private fun createContentAdapter(items:List<Pair<String,String>>,icon:String,theme:ThemeColors,onClick:(String,String)->Unit):RecyclerView.Adapter<RecyclerView.ViewHolder>{
         return object:RecyclerView.Adapter<RecyclerView.ViewHolder>(){
