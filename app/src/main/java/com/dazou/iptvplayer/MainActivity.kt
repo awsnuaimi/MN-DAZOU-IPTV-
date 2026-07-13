@@ -47,7 +47,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var searchLayout: LinearLayout
     private lateinit var etSearch: EditText
 
-    // عناصر التحكم الجديدة
     private lateinit var controlsLayout: LinearLayout
     private lateinit var btnPrevChannel: Button
     private lateinit var btnPlayPause: Button
@@ -91,104 +90,116 @@ class MainActivity : AppCompatActivity() {
     data class HistoryItem(val type: String, val id: Int, val name: String, val timestamp: Long)
     data class ThemeColors(val name: String, val bg: Int, val card: Int, val accent: Int, val bottomBar: Int, val textWhite: Int, val textGray: Int, val activeTab: Int)
 
-    private fun dimen(id: Int): Int = resources.getDimensionPixelSize(id)
-    private fun dimenSp(id: Int): Float = resources.getDimension(id) / resources.displayMetrics.scaledDensity
+    // دوال مساعدة مع حماية كاملة
+    private fun dimen(id: Int): Int = try { resources.getDimensionPixelSize(id) } catch (e: Exception) { 0 }
+    private fun dimenSp(id: Int): Float = try { resources.getDimension(id) / resources.displayMetrics.scaledDensity } catch (e: Exception) { 12f }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        supportActionBar?.hide()
-        prefs = getSharedPreferences("mndazou_prefs", Context.MODE_PRIVATE)
-        downloadManager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-        currentTheme = prefs.getString("theme", "dark") ?: "dark"
-        themes = mapOf(
-            "dark" to ThemeColors("داكن", Color.parseColor("#0F0F1A"), Color.parseColor("#1A1A35"), Color.parseColor("#FF6B6B"), Color.parseColor("#12122A"), Color.parseColor("#FFFFFF"), Color.parseColor("#AAAAAA"), Color.parseColor("#2D2D5E")),
-            "blue" to ThemeColors("أزرق", Color.parseColor("#0A1628"), Color.parseColor("#1B2D4A"), Color.parseColor("#4FC3F7"), Color.parseColor("#0D1F3C"), Color.parseColor("#FFFFFF"), Color.parseColor("#90CAF9"), Color.parseColor("#1565C0")),
-            "green" to ThemeColors("أخضر", Color.parseColor("#0A1F0A"), Color.parseColor("#1A3A1A"), Color.parseColor("#66BB6A"), Color.parseColor("#0D2A0D"), Color.parseColor("#FFFFFF"), Color.parseColor("#A5D6A7"), Color.parseColor("#2E7D32")),
-            "purple" to ThemeColors("بنفسجي", Color.parseColor("#1A0A2E"), Color.parseColor("#2D1B4E"), Color.parseColor("#CE93D8"), Color.parseColor("#1F0D3D"), Color.parseColor("#FFFFFF"), Color.parseColor("#E1BEE7"), Color.parseColor("#6A1B9A")),
-            "red" to ThemeColors("أحمر", Color.parseColor("#1A0A0A"), Color.parseColor("#3A1A1A"), Color.parseColor("#EF5350"), Color.parseColor("#2A0D0D"), Color.parseColor("#FFFFFF"), Color.parseColor("#EF9A9A"), Color.parseColor("#C62828"))
-        )
-        val t = themes[currentTheme]!!
+        try {
+            supportActionBar?.hide()
+            prefs = getSharedPreferences("mndazou_prefs", Context.MODE_PRIVATE)
+            downloadManager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            currentTheme = prefs.getString("theme", "dark") ?: "dark"
+            themes = mapOf(
+                "dark" to ThemeColors("داكن", Color.parseColor("#0F0F1A"), Color.parseColor("#1A1A35"), Color.parseColor("#FF6B6B"), Color.parseColor("#12122A"), Color.parseColor("#FFFFFF"), Color.parseColor("#AAAAAA"), Color.parseColor("#2D2D5E")),
+                "blue" to ThemeColors("أزرق", Color.parseColor("#0A1628"), Color.parseColor("#1B2D4A"), Color.parseColor("#4FC3F7"), Color.parseColor("#0D1F3C"), Color.parseColor("#FFFFFF"), Color.parseColor("#90CAF9"), Color.parseColor("#1565C0")),
+                "green" to ThemeColors("أخضر", Color.parseColor("#0A1F0A"), Color.parseColor("#1A3A1A"), Color.parseColor("#66BB6A"), Color.parseColor("#0D2A0D"), Color.parseColor("#FFFFFF"), Color.parseColor("#A5D6A7"), Color.parseColor("#2E7D32")),
+                "purple" to ThemeColors("بنفسجي", Color.parseColor("#1A0A2E"), Color.parseColor("#2D1B4E"), Color.parseColor("#CE93D8"), Color.parseColor("#1F0D3D"), Color.parseColor("#FFFFFF"), Color.parseColor("#E1BEE7"), Color.parseColor("#6A1B9A")),
+                "red" to ThemeColors("أحمر", Color.parseColor("#1A0A0A"), Color.parseColor("#3A1A1A"), Color.parseColor("#EF5350"), Color.parseColor("#2A0D0D"), Color.parseColor("#FFFFFF"), Color.parseColor("#EF9A9A"), Color.parseColor("#C62828"))
+            )
+            val t = themes[currentTheme]!!
 
-        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(t.bg) }
+            val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(t.bg) }
 
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(dimen(R.dimen.header_padding_top), dimen(R.dimen.header_padding_top), dimen(R.dimen.header_padding_top), dimen(R.dimen.header_padding_bottom))
-            setBackgroundColor(t.bottomBar); gravity = Gravity.CENTER_VERTICAL
+            val header = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(dimen(R.dimen.header_padding_top), dimen(R.dimen.header_padding_top), dimen(R.dimen.header_padding_top), dimen(R.dimen.header_padding_bottom))
+                setBackgroundColor(t.bottomBar); gravity = Gravity.CENTER_VERTICAL
+            }
+            btnBack = Button(this).apply { text = "⬅️"; textSize = dimenSp(R.dimen.header_icon_size); setBackgroundColor(Color.TRANSPARENT); setTextColor(t.textWhite); visibility = View.GONE; setOnClickListener { goBack() } }
+            header.addView(btnBack)
+            tvTitle = TextView(this).apply { text = "MN-DAZOU IPTV"; textSize = dimenSp(R.dimen.header_text_size); setTextColor(t.accent); setTypeface(null, Typeface.BOLD); gravity = Gravity.CENTER; layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) }
+            header.addView(tvTitle)
+            header.addView(Button(this).apply { text = "🎨"; textSize = dimenSp(R.dimen.header_icon_size); setBackgroundColor(Color.TRANSPARENT); setTextColor(t.textGray); setOnClickListener { showThemeDialog() } })
+            header.addView(Button(this).apply { text = "⚙️"; textSize = dimenSp(R.dimen.header_icon_size); setBackgroundColor(Color.TRANSPARENT); setTextColor(t.textGray); setOnClickListener { showLoginDialog() } })
+            root.addView(header)
+
+            searchLayout = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dimen(R.dimen.search_padding_h), dimen(R.dimen.search_padding_v), dimen(R.dimen.search_padding_h), dimen(R.dimen.search_padding_v)); setBackgroundColor(t.bottomBar); gravity = Gravity.CENTER_VERTICAL; visibility = View.GONE }
+            etSearch = EditText(this).apply { hint = "🔍 بحث..."; setHintTextColor(t.textGray); setTextColor(t.textWhite); setBackgroundColor(t.bg); setPadding(12, 4, 12, 4); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f); textSize = dimenSp(R.dimen.search_text_size) }
+            searchLayout.addView(etSearch)
+            searchLayout.addView(Button(this).apply { text = "بحث"; textSize = dimenSp(R.dimen.search_text_size); setBackgroundColor(t.accent); setTextColor(Color.BLACK); setOnClickListener { performSearch() } })
+            root.addView(searchLayout)
+
+            playerView = PlayerView(this).apply { layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dimen(R.dimen.player_height)); setBackgroundColor(Color.BLACK); useController = false }
+            root.addView(playerView)
+
+            tvChannelInfo = TextView(this).apply { text = ""; textSize = dimenSp(R.dimen.player_info_text_size); setTextColor(Color.WHITE); setBackgroundColor(Color.parseColor("#CC000000")); setPadding(12, 4, 12, 4); visibility = View.GONE; gravity = Gravity.CENTER }
+            root.addView(tvChannelInfo)
+
+            controlsLayout = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dimen(R.dimen.player_control_padding), dimen(R.dimen.player_control_padding), dimen(R.dimen.player_control_padding), dimen(R.dimen.player_control_padding)); setBackgroundColor(Color.parseColor("#DD000000")); gravity = Gravity.CENTER; visibility = View.GONE }
+            val ctrlTextSize = dimenSp(R.dimen.player_control_text_size)
+            btnPrevChannel = createCtrlButton("⏪", ctrlTextSize) { playPreviousChannel() }
+            btnPlayPause = createCtrlButton("▶️", ctrlTextSize) { togglePlayPause() }
+            btnNextChannel = createCtrlButton("⏩", ctrlTextSize) { playNextChannel() }
+            btnAspectRatio = createCtrlButton("🔲", ctrlTextSize) { changeAspectRatio() }
+            btnToggleFullscreen = createCtrlButton("⛶", ctrlTextSize) { toggleFullscreen() }
+            btnRecord = createCtrlButton("🔴", ctrlTextSize) { toggleRecording() }
+            btnShare = createCtrlButton("📤", ctrlTextSize) { shareCurrentStream() }
+            btnDownload = createCtrlButton("⬇️", ctrlTextSize) { downloadCurrentStream() }
+            controlsLayout.addView(btnPrevChannel); controlsLayout.addView(btnPlayPause); controlsLayout.addView(btnNextChannel)
+            controlsLayout.addView(btnAspectRatio); controlsLayout.addView(btnToggleFullscreen); controlsLayout.addView(btnRecord)
+            controlsLayout.addView(btnShare); controlsLayout.addView(btnDownload)
+            root.addView(controlsLayout)
+
+            val tabLayout = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dimen(R.dimen.tab_padding), dimen(R.dimen.tab_padding), dimen(R.dimen.tab_padding), dimen(R.dimen.tab_padding)); setBackgroundColor(t.bottomBar); gravity = Gravity.CENTER }
+            btnHome = createTabButton("🏠 الرئيسية") { switchTab("home") }
+            btnLive = createTabButton("📺 مباشر") { switchTab("live") }
+            btnMovies = createTabButton("🎬 أفلام") { switchTab("movies") }
+            btnSeries = createTabButton("🎭 مسلسلات") { switchTab("series") }
+            btnFavorites = createTabButton("⭐ مفضلة") { switchTab("favorites") }
+            tabLayout.addView(btnHome); tabLayout.addView(btnLive); tabLayout.addView(btnMovies); tabLayout.addView(btnSeries); tabLayout.addView(btnFavorites)
+            root.addView(tabLayout)
+
+            progressBar = ProgressBar(this).apply { visibility = View.GONE; layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 4) }
+            root.addView(progressBar)
+
+            rv = RecyclerView(this).apply { layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f); layoutManager = LinearLayoutManager(this@MainActivity); setBackgroundColor(t.bg) }
+            root.addView(rv)
+
+            setContentView(root)
+
+            player = ExoPlayer.Builder(this).build()
+            playerView.player = player
+            player.addListener(object : Player.Listener {
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    btnPlayPause.text = if (isPlaying) "⏸️" else "▶️"
+                    controlsLayout.visibility = View.VISIBLE
+                    tvChannelInfo.visibility = View.VISIBLE
+                }
+                override fun onPlaybackStateChanged(state: Int) {
+                    if (state == Player.STATE_ENDED) playNextChannel()
+                }
+            })
+
+            loadFavorites(); loadHistory()
+            registerDownloadReceiver()
+
+            val savedUrl = prefs.getString("server_url", "")
+            if (!savedUrl.isNullOrEmpty()) {
+                server = XtreamServer(savedUrl!!, prefs.getString("server_username", "")!!, prefs.getString("server_password", "")!!)
+                switchTab("home")
+            } else showLoginDialog()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            val errorMsg = "خطأ: ${e.message}"
+            Toast.makeText(this, errorMsg, Toast.LENGTH_LONG).show()
+            val errorLayout = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL; setPadding(50, 100, 50, 50)
+                addView(TextView(this@MainActivity).apply { text = errorMsg; textSize = 18f; setTextColor(Color.RED) })
+            }
+            setContentView(errorLayout)
         }
-        btnBack = Button(this).apply { text = "⬅️"; textSize = dimenSp(R.dimen.header_icon_size); setBackgroundColor(Color.TRANSPARENT); setTextColor(t.textWhite); visibility = View.GONE; setOnClickListener { goBack() } }
-        header.addView(btnBack)
-        tvTitle = TextView(this).apply { text = "MN-DAZOU IPTV"; textSize = dimenSp(R.dimen.header_text_size); setTextColor(t.accent); setTypeface(null, Typeface.BOLD); gravity = Gravity.CENTER; layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) }
-        header.addView(tvTitle)
-        header.addView(Button(this).apply { text = "🎨"; textSize = dimenSp(R.dimen.header_icon_size); setBackgroundColor(Color.TRANSPARENT); setTextColor(t.textGray); setOnClickListener { showThemeDialog() } })
-        header.addView(Button(this).apply { text = "⚙️"; textSize = dimenSp(R.dimen.header_icon_size); setBackgroundColor(Color.TRANSPARENT); setTextColor(t.textGray); setOnClickListener { showLoginDialog() } })
-        root.addView(header)
-
-        searchLayout = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dimen(R.dimen.search_padding_h), dimen(R.dimen.search_padding_v), dimen(R.dimen.search_padding_h), dimen(R.dimen.search_padding_v)); setBackgroundColor(t.bottomBar); gravity = Gravity.CENTER_VERTICAL; visibility = View.GONE }
-        etSearch = EditText(this).apply { hint = "🔍 بحث..."; setHintTextColor(t.textGray); setTextColor(t.textWhite); setBackgroundColor(t.bg); setPadding(12, 4, 12, 4); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f); textSize = dimenSp(R.dimen.search_text_size) }
-        searchLayout.addView(etSearch)
-        searchLayout.addView(Button(this).apply { text = "بحث"; textSize = dimenSp(R.dimen.search_text_size); setBackgroundColor(t.accent); setTextColor(Color.BLACK); setOnClickListener { performSearch() } })
-        root.addView(searchLayout)
-
-        playerView = PlayerView(this).apply { layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dimen(R.dimen.player_height)); setBackgroundColor(Color.BLACK); useController = false }
-        root.addView(playerView)
-
-        tvChannelInfo = TextView(this).apply { text = ""; textSize = dimenSp(R.dimen.player_info_text_size); setTextColor(Color.WHITE); setBackgroundColor(Color.parseColor("#CC000000")); setPadding(12, 4, 12, 4); visibility = View.GONE; gravity = Gravity.CENTER }
-        root.addView(tvChannelInfo)
-
-        controlsLayout = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dimen(R.dimen.player_control_padding), dimen(R.dimen.player_control_padding), dimen(R.dimen.player_control_padding), dimen(R.dimen.player_control_padding)); setBackgroundColor(Color.parseColor("#DD000000")); gravity = Gravity.CENTER; visibility = View.GONE }
-        val ctrlTextSize = dimenSp(R.dimen.player_control_text_size)
-        btnPrevChannel = createCtrlButton("⏪", ctrlTextSize) { playPreviousChannel() }
-        btnPlayPause = createCtrlButton("▶️", ctrlTextSize) { togglePlayPause() }
-        btnNextChannel = createCtrlButton("⏩", ctrlTextSize) { playNextChannel() }
-        btnAspectRatio = createCtrlButton("🔲", ctrlTextSize) { changeAspectRatio() }
-        btnToggleFullscreen = createCtrlButton("⛶", ctrlTextSize) { toggleFullscreen() }
-        btnRecord = createCtrlButton("🔴", ctrlTextSize) { toggleRecording() }
-        btnShare = createCtrlButton("📤", ctrlTextSize) { shareCurrentStream() }
-        btnDownload = createCtrlButton("⬇️", ctrlTextSize) { downloadCurrentStream() }
-        controlsLayout.addView(btnPrevChannel); controlsLayout.addView(btnPlayPause); controlsLayout.addView(btnNextChannel)
-        controlsLayout.addView(btnAspectRatio); controlsLayout.addView(btnToggleFullscreen); controlsLayout.addView(btnRecord)
-        controlsLayout.addView(btnShare); controlsLayout.addView(btnDownload)
-        root.addView(controlsLayout)
-
-        val tabLayout = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dimen(R.dimen.tab_padding), dimen(R.dimen.tab_padding), dimen(R.dimen.tab_padding), dimen(R.dimen.tab_padding)); setBackgroundColor(t.bottomBar); gravity = Gravity.CENTER }
-        btnHome = createTabButton("🏠 الرئيسية") { switchTab("home") }
-        btnLive = createTabButton("📺 مباشر") { switchTab("live") }
-        btnMovies = createTabButton("🎬 أفلام") { switchTab("movies") }
-        btnSeries = createTabButton("🎭 مسلسلات") { switchTab("series") }
-        btnFavorites = createTabButton("⭐ مفضلة") { switchTab("favorites") }
-        tabLayout.addView(btnHome); tabLayout.addView(btnLive); tabLayout.addView(btnMovies); tabLayout.addView(btnSeries); tabLayout.addView(btnFavorites)
-        root.addView(tabLayout)
-
-        progressBar = ProgressBar(this).apply { visibility = View.GONE; layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 4) }
-        root.addView(progressBar)
-
-        rv = RecyclerView(this).apply { layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f); layoutManager = LinearLayoutManager(this@MainActivity); setBackgroundColor(t.bg) }
-        root.addView(rv)
-
-        setContentView(root)
-
-        player = ExoPlayer.Builder(this).build()
-        playerView.player = player
-        player.addListener(object : Player.Listener {
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                btnPlayPause.text = if (isPlaying) "⏸️" else "▶️"
-                controlsLayout.visibility = View.VISIBLE
-                tvChannelInfo.visibility = View.VISIBLE
-            }
-            override fun onPlaybackStateChanged(state: Int) {
-                if (state == Player.STATE_ENDED) playNextChannel()
-            }
-        })
-
-        loadFavorites(); loadHistory()
-        registerDownloadReceiver()
-
-        val savedUrl = prefs.getString("server_url", "")
-        if (!savedUrl.isNullOrEmpty()) {
-            server = XtreamServer(savedUrl!!, prefs.getString("server_username", "")!!, prefs.getString("server_password", "")!!)
-            switchTab("home")
-        } else showLoginDialog()
     }
 
     private fun createCtrlButton(text: String, size: Float, onClick: () -> Unit): Button {
@@ -200,6 +211,7 @@ class MainActivity : AppCompatActivity() {
         return Button(this).apply { this.text = text; textSize = dimenSp(R.dimen.tab_text_size); setTextColor(t.textGray); setBackgroundColor(Color.TRANSPARENT); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f); setOnClickListener { onClick() } }
     }
 
+    // جميع الدوال الأخرى كما هي بالضبط من الكود السابق
     private fun togglePlayPause() { if (player.isPlaying) player.pause() else player.play() }
 
     private fun playNextChannel() {
