@@ -160,19 +160,40 @@ class MainActivity : AppCompatActivity() {
 
     private fun goBack() { isShowingCategories = true; selectedCategoryId = null; btnBack.visibility = View.GONE; when (currentCategory) { "live" -> showLiveCategories(); "movies" -> showVodCategories(); "series" -> showSeriesCategories() } }
 
-    // ===== Favorites (same) =====
+    // ===== Favorites =====
     private fun addToFavorites(type: String, id: Int, name: String) { if (favorites.none { it.type == type && it.id == id }) { favorites.add(FavoriteItem(type, id, name)); saveFavorites(); Toast.makeText(this, "⭐ تم", Toast.LENGTH_SHORT).show() } }
     private fun removeFavorite(item: FavoriteItem) { favorites.removeAll { it.type == item.type && it.id == item.id }; saveFavorites() }
     private fun saveFavorites() { val j = JSONArray(); favorites.forEach { val o = JSONObject(); o.put("type", it.type); o.put("id", it.id); o.put("name", it.name); j.put(o) }; prefs.edit().putString("favorites", j.toString()).apply() }
     private fun loadFavorites() { try { favorites.clear(); val s = prefs.getString("favorites", "[]") ?: "[]"; val j = JSONArray(s); for (i in 0 until j.length()) { val o = j.getJSONObject(i); favorites.add(FavoriteItem(o.getString("type"), o.getInt("id"), o.getString("name"))) } } catch (_: Exception) { favorites.clear() } }
-    private fun showFavorites() { /* same as previous working version */ }
+    private fun showFavorites() { isShowingCategories = true; val t = themes[currentTheme]!!; rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() { override fun onCreateViewHolder(p: ViewGroup, vt: Int): RecyclerView.ViewHolder { val l = LinearLayout(p.context).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(16), dp(12), dp(16), dp(12)); gravity = Gravity.CENTER_VERTICAL; setBackgroundColor(t.card) }; l.addView(TextView(p.context).apply { textSize = sp(13f); setTextColor(t.textWhite); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) }); l.addView(Button(p.context).apply { text = "❌"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.RED); textSize = sp(12f) }); return object : RecyclerView.ViewHolder(l) {} } override fun onBindViewHolder(h: RecyclerView.ViewHolder, p: Int) { val l = (h.itemView as LinearLayout); val fav = favorites[p]; (l.getChildAt(0) as TextView).text = "⭐ ${fav.name}"; l.setOnClickListener { playFavoriteItem(fav) }; l.getChildAt(1).setOnClickListener { removeFavorite(fav); showFavorites() } } override fun getItemCount() = favorites.size } }
 
-    // ===== History (same) =====
+    // ===== History =====
     private fun addToHistory(type: String, id: Int, name: String) { watchHistory.removeAll { it.type == type && it.id == id }; watchHistory.add(HistoryItem(type, id, name, System.currentTimeMillis())); if (watchHistory.size > 20) watchHistory.removeAt(0); saveHistory() }
     private fun saveHistory() { val j = JSONArray(); watchHistory.forEach { val o = JSONObject(); o.put("type", it.type); o.put("id", it.id); o.put("name", it.name); o.put("timestamp", it.timestamp); j.put(o) }; prefs.edit().putString("history", j.toString()).apply() }
     private fun loadHistory() { try { watchHistory.clear(); val s = prefs.getString("history", "[]") ?: "[]"; val j = JSONArray(s); for (i in 0 until j.length()) { val o = j.getJSONObject(i); watchHistory.add(HistoryItem(o.getString("type"), o.getInt("id"), o.getString("name"), o.getLong("timestamp"))) } } catch (_: Exception) { watchHistory.clear() } }
+    private fun playFavoriteItem(fav: FavoriteItem) { when (fav.type) { "live" -> { val url = XtreamAPI.getStreamUrl(server!!, fav.id); playStream(url, fav.name); addToHistory("live", fav.id, fav.name) } "movie" -> { val url = XtreamAPI.getMovieUrl(server!!, fav.id); playStream(url, fav.name); addToHistory("movie", fav.id, fav.name) } } }
 
-    // ===== Login Dialog with ScrollView =====
+    // ===== SEARCH =====
+    private fun performSearch() {
+        val q = etSearch.text.toString().lowercase()
+        if (q.isEmpty()) return
+        when (currentCategory) {
+            "live" -> {
+                val filtered = liveChannels.filter { it.name.lowercase().contains(q) }
+                if (filtered.isNotEmpty()) { liveChannels.clear(); liveChannels.addAll(filtered); updateLiveList(); tvTitle.text = "🔍 $q (${filtered.size})" } else Toast.makeText(this, "لا نتائج", Toast.LENGTH_SHORT).show()
+            }
+            "movies" -> {
+                val filtered = vodMovies.filter { it.name.lowercase().contains(q) }
+                if (filtered.isNotEmpty()) { vodMovies.clear(); vodMovies.addAll(filtered); updateMoviesList(); tvTitle.text = "🔍 $q (${filtered.size})" } else Toast.makeText(this, "لا نتائج", Toast.LENGTH_SHORT).show()
+            }
+            "series" -> {
+                val filtered = seriesList.filter { it.name.lowercase().contains(q) }
+                if (filtered.isNotEmpty()) { seriesList.clear(); seriesList.addAll(filtered); updateSeriesList(); tvTitle.text = "🔍 $q (${filtered.size})" } else Toast.makeText(this, "لا نتائج", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // ===== Login =====
     private fun showLoginDialog() {
         val t = themes[currentTheme]!!; val dlgSize = sp(if (isTv) 22f else 16f); val inpSize = sp(if (isTv) 18f else 13f); val pad = dp(if (isTv) 30 else 18)
         val sv = ScrollView(this).apply { setPadding(dp(30), dp(30), dp(30), dp(30)) }
@@ -195,21 +216,10 @@ class MainActivity : AppCompatActivity() {
         }.setNegativeButton("إلغاء", null).show()
     }
 
-    // ===== Loaders with error display if list empty =====
+    // ===== Loaders with error display =====
     private fun loadLiveCategories() { server?.let { srv -> showLoading(); XtreamAPI.getLiveCategories(srv) { cats -> hideLoading(); if (cats.isNotEmpty()) { liveCategories.clear(); liveCategories.addAll(cats); showLiveCategories() } else loadLiveStreams(null) } } ?: showLoginDialog() }
     private fun showLiveCategories() { isShowingCategories = true; tvTitle.text = "📺 المجموعات (${liveCategories.size})"; rv.adapter = createCategoryAdapter(liveCategories) { cat -> selectedCategoryId = cat.categoryId; isShowingCategories = false; btnBack.visibility = View.VISIBLE; tvTitle.text = "📺 ${cat.categoryName}"; loadLiveStreams(cat.categoryId) } }
-    private fun loadLiveStreams(catId: String?) {
-        server?.let { srv ->
-            showLoading()
-            XtreamAPI.getLiveStreams(srv, catId) { channels ->
-                hideLoading()
-                liveChannels.clear()
-                liveChannels.addAll(channels)
-                if (channels.isNotEmpty()) updateLiveList()
-                else showEmptyError("لم يتم العثور على قنوات")
-            }
-        }
-    }
+    private fun loadLiveStreams(catId: String?) { server?.let { srv -> showLoading(); XtreamAPI.getLiveStreams(srv, catId) { channels -> hideLoading(); liveChannels.clear(); liveChannels.addAll(channels); if (channels.isNotEmpty()) updateLiveList() else showEmptyError("لم يتم العثور على قنوات") } } }
     private fun updateLiveList() { tvTitle.text = "${tvTitle.text} (${liveChannels.size})"; rv.adapter = createChannelAdapter(liveChannels.map { it.name }) { name -> val ch = liveChannels.find { it.name == name }!!; val url = XtreamAPI.getStreamUrl(server!!, ch.streamId, ch.containerExtension); addToHistory("live", ch.streamId, ch.name); playStream(url, ch.name) } }
 
     private fun loadVodCategories() { server?.let { srv -> showLoading(); XtreamAPI.getVodCategories(srv) { cats -> hideLoading(); if (cats.isNotEmpty()) { vodCategories.clear(); vodCategories.addAll(cats); showVodCategories() } else loadMovies(null) } } ?: showLoginDialog() }
@@ -222,7 +232,7 @@ class MainActivity : AppCompatActivity() {
     private fun loadSeriesList(catId: String?) { server?.let { srv -> showLoading(); XtreamAPI.getSeries(srv, catId) { series -> hideLoading(); seriesList.clear(); seriesList.addAll(series); if (series.isNotEmpty()) updateSeriesList() else showEmptyError("لم يتم العثور على مسلسلات") } } }
     private fun updateSeriesList() { tvTitle.text = "${tvTitle.text} (${seriesList.size})"; rv.adapter = createChannelAdapter(seriesList.map { it.name }) { name -> val s = seriesList.find { it.name == name }!!; XtreamAPI.getSeriesInfo(server!!, s.seriesId) { episodes -> showEpisodesDialog(s.name, episodes) } } }
 
-    // ===== Error display =====
+    // Error display
     private fun showEmptyError(message: String) {
         val errMsg = XtreamAPI.lastErrorMessage
         val jsonSnippet = XtreamAPI.lastJsonSnippet
@@ -243,7 +253,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun refreshCurrentTab() { switchTab(currentCategory) }
 
-    // ===== Adapters (small sizes for phone) =====
+    // ===== Adapters =====
     private fun createCategoryAdapter(cats: List<XtreamCategory>, onClick: (XtreamCategory) -> Unit): RecyclerView.Adapter<RecyclerView.ViewHolder> {
         val t = themes[currentTheme]!!
         return object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
