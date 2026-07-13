@@ -15,39 +15,9 @@ data class XtreamChannel(val streamId: Int, val name: String, val streamType: St
 data class XtreamMovie(val streamId: Int, val name: String, val containerExtension: String, val streamIcon: String, val plot: String, val cast: String, val director: String, val genre: String, val rating: String, val year: String)
 data class XtreamSeries(val seriesId: Int, val name: String, val cover: String, val plot: String, val cast: String, val director: String, val genre: String, val rating: String, val year: String)
 data class XtreamEpisode(val id: Int, val episodeNum: Int, val seasonNum: Int, val title: String, val containerExtension: String, val info: String)
+data class EpgProgram(val channelId: String, val title: String, val startTime: String, val endTime: String, val description: String)
 
-object XtreamAPI {// دالة EPG
-fun getEpg(server: XtreamServer, streamId: Int? = null, callback: (List<EpgProgram>) -> Unit) {
-    thread {
-        try {
-            var url = "${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_short_epg"
-            if (streamId != null) url += "&stream_id=$streamId"
-            lastRequestUrl = url
-            val json = fetchJson(url)
-            lastResponseBody = json.take(1000)
-            val epgList = mutableListOf<EpgProgram>()
-            val jsonArray = extractJsonArray(json)
-            if (jsonArray != null) {
-                for (i in 0 until jsonArray.length()) {
-                    val obj = jsonArray.getJSONObject(i)
-                    epgList.add(EpgProgram(
-                        channelId = obj.optString("epg_id", ""),
-                        title = obj.optString("title", ""),
-                        startTime = obj.optString("start", ""),
-                        endTime = obj.optString("end", ""),
-                        description = obj.optString("description", "")
-                    ))
-                }
-            }
-            lastItemCount = epgList.size
-            runOnUiThread { callback(epgList) }
-        } catch (e: Exception) {
-            Log.e(TAG, "EPG error", e)
-            lastErrorMessage = e.message ?: "خطأ"
-            runOnUiThread { callback(emptyList()) }
-        }
-    }
-}
+object XtreamAPI {
     private const val TAG = "XtreamAPI"
 
     var lastRequestUrl: String = ""
@@ -73,13 +43,12 @@ fun getEpg(server: XtreamServer, streamId: Int? = null, callback: (List<EpgProgr
     fun getLiveStreams(server: XtreamServer, categoryId: String? = null, callback: (List<XtreamChannel>) -> Unit) {
         thread {
             try {
-                // --- 4. إزالة category_id مؤقتاً لاختبار السبب ---
                 var url = "${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_live_streams"
-                // if (categoryId != null) url += "&category_id=$categoryId"  // معطلة مؤقتاً
+                if (categoryId != null) url += "&category_id=$categoryId"
                 lastRequestUrl = url
                 val json = fetchJson(url)
-                lastResponseBody = json  // الاحتفاظ بالكامل، وليس أول 500 حرف
-                Log.e(TAG, "FULL JSON RESPONSE:\n$json")
+                lastResponseBody = json.take(500)
+                Log.d(TAG, "Live streams JSON first 500: $lastResponseBody")
                 val channels = parseChannels(json)
                 lastItemCount = channels.size
                 Log.d(TAG, "Parsed ${channels.size} live channels")
@@ -113,11 +82,11 @@ fun getEpg(server: XtreamServer, streamId: Int? = null, callback: (List<EpgProgr
         thread {
             try {
                 var url = "${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_vod_streams"
-                // if (categoryId != null) url += "&category_id=$categoryId"  // معطلة مؤقتاً
+                if (categoryId != null) url += "&category_id=$categoryId"
                 lastRequestUrl = url
                 val json = fetchJson(url)
-                lastResponseBody = json
-                Log.e(TAG, "FULL JSON RESPONSE:\n$json")
+                lastResponseBody = json.take(500)
+                Log.d(TAG, "VOD streams JSON first 500: $lastResponseBody")
                 val movies = parseMovies(json)
                 lastItemCount = movies.size
                 Log.d(TAG, "Parsed ${movies.size} movies")
@@ -136,11 +105,11 @@ fun getEpg(server: XtreamServer, streamId: Int? = null, callback: (List<EpgProgr
         thread {
             try {
                 var url = "${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_series"
-                // if (categoryId != null) url += "&category_id=$categoryId"  // معطلة مؤقتاً
+                if (categoryId != null) url += "&category_id=$categoryId"
                 lastRequestUrl = url
                 val json = fetchJson(url)
-                lastResponseBody = json
-                Log.e(TAG, "FULL JSON RESPONSE:\n$json")
+                lastResponseBody = json.take(500)
+                Log.d(TAG, "Series JSON first 500: $lastResponseBody")
                 val series = parseSeries(json)
                 lastItemCount = series.size
                 Log.d(TAG, "Parsed ${series.size} series")
@@ -169,6 +138,39 @@ fun getEpg(server: XtreamServer, streamId: Int? = null, callback: (List<EpgProgr
         }
     }
 
+    // ✅ دالة EPG الجديدة
+    fun getEpg(server: XtreamServer, streamId: Int? = null, callback: (List<EpgProgram>) -> Unit) {
+        thread {
+            try {
+                var url = "${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_short_epg"
+                if (streamId != null) url += "&stream_id=$streamId"
+                lastRequestUrl = url
+                val json = fetchJson(url)
+                lastResponseBody = json.take(1000)
+                val epgList = mutableListOf<EpgProgram>()
+                val jsonArray = extractJsonArray(json)
+                if (jsonArray != null) {
+                    for (i in 0 until jsonArray.length()) {
+                        val obj = jsonArray.getJSONObject(i)
+                        epgList.add(EpgProgram(
+                            channelId = obj.optString("epg_id", ""),
+                            title = obj.optString("title", ""),
+                            startTime = obj.optString("start", ""),
+                            endTime = obj.optString("end", ""),
+                            description = obj.optString("description", "")
+                        ))
+                    }
+                }
+                lastItemCount = epgList.size
+                runOnUiThread { callback(epgList) }
+            } catch (e: Exception) {
+                Log.e(TAG, "EPG error", e)
+                lastErrorMessage = e.message ?: "خطأ"
+                runOnUiThread { callback(emptyList()) }
+            }
+        }
+    }
+
     fun getStreamUrl(server: XtreamServer, streamId: Int, extension: String = "ts", type: String = "live") =
         "${server.url}/$type/${server.username}/${server.password}/$streamId.$extension"
 
@@ -178,20 +180,13 @@ fun getEpg(server: XtreamServer, streamId: Int? = null, callback: (List<EpgProgr
     fun getSeriesEpisodeUrl(server: XtreamServer, episodeId: Int, extension: String = "mp4") =
         "${server.url}/series/${server.username}/${server.password}/$episodeId.$extension"
 
-    // ----------- 3. التحقق من كود HTTP -----------
     private fun fetchJson(urlString: String): String {
         val conn = URL(urlString).openConnection() as HttpURLConnection
         conn.requestMethod = "GET"
         conn.connectTimeout = 10000
         conn.readTimeout = 10000
         conn.setRequestProperty("User-Agent", "Mozilla/5.0")
-
-        val code = conn.responseCode
-        Log.e("HTTP", "Response code: $code")
-        lastErrorMessage = "HTTP $code"
-
-        val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-        val reader = BufferedReader(InputStreamReader(stream))
+        val reader = BufferedReader(InputStreamReader(conn.inputStream))
         val response = StringBuilder()
         var line: String?
         while (reader.readLine().also { line = it } != null) response.append(line)
@@ -200,109 +195,25 @@ fun getEpg(server: XtreamServer, streamId: Int? = null, callback: (List<EpgProgr
         return response.toString()
     }
 
-    // ----------- 1. extractJsonArray المحسّنة -----------
     private fun extractJsonArray(json: String): JSONArray? {
         val trimmed = json.trim()
         if (trimmed.startsWith("[")) return try { JSONArray(trimmed) } catch (_: Exception) { null }
-
         if (trimmed.startsWith("{")) {
             return try {
                 val obj = JSONObject(trimmed)
-
-                val possibleKeys = listOf(
-                    "available_channels",
-                    "channels",
-                    "streams",
-                    "live_streams",
-                    "movies",
-                    "series",
-                    "data"
-                )
-
-                for (key in possibleKeys) {
-                    if (obj.has(key)) {
-                        return obj.getJSONArray(key)
-                    }
-                }
+                val possibleKeys = listOf("available_channels", "channels", "streams", "live_streams", "movies", "series", "data")
+                for (key in possibleKeys) { if (obj.has(key)) return obj.getJSONArray(key) }
                 null
             } catch (_: Exception) { null }
         }
         return null
     }
 
-    private fun parseCategories(json: String): List<XtreamCategory> {
-        val list = mutableListOf<XtreamCategory>()
-        val arr = extractJsonArray(json) ?: return list
-        for (i in 0 until arr.length()) {
-            val o = arr.getJSONObject(i)
-            list.add(XtreamCategory(o.optString("category_id"), o.optString("category_name", "?"), o.optInt("parent_id")))
-        }
-        return list
-    }
+    private fun parseCategories(json: String): List<XtreamCategory> { val list = mutableListOf<XtreamCategory>(); val arr = extractJsonArray(json) ?: return list; for (i in 0 until arr.length()) { val o = arr.getJSONObject(i); list.add(XtreamCategory(o.optString("category_id"), o.optString("category_name", "?"), o.optInt("parent_id"))) }; return list }
+    private fun parseChannels(json: String): List<XtreamChannel> { val list = mutableListOf<XtreamChannel>(); val arr = extractJsonArray(json) ?: return list; for (i in 0 until arr.length()) { val o = arr.getJSONObject(i); list.add(XtreamChannel(o.optInt("stream_id"), o.optString("name", "Ch $i"), o.optString("stream_type", "live"), o.optString("stream_icon"), o.optString("epg_channel_id"), o.optString("added"), o.optString("category_id"), o.optString("container_extension", "ts"))) }; return list }
+    private fun parseMovies(json: String): List<XtreamMovie> { val list = mutableListOf<XtreamMovie>(); val arr = extractJsonArray(json) ?: return list; for (i in 0 until arr.length()) { val o = arr.getJSONObject(i); list.add(XtreamMovie(o.optInt("stream_id"), o.optString("name", "Movie $i"), o.optString("container_extension", "mp4"), o.optString("stream_icon"), o.optString("plot"), o.optString("cast"), o.optString("director"), o.optString("genre"), o.optString("rating"), o.optString("year"))) }; return list }
+    private fun parseSeries(json: String): List<XtreamSeries> { val list = mutableListOf<XtreamSeries>(); val arr = extractJsonArray(json) ?: return list; for (i in 0 until arr.length()) { val o = arr.getJSONObject(i); list.add(XtreamSeries(o.optInt("series_id"), o.optString("name", "Series $i"), o.optString("cover"), o.optString("plot"), o.optString("cast"), o.optString("director"), o.optString("genre"), o.optString("rating"), o.optString("year"))) }; return list }
+    private fun parseEpisodes(json: String): List<XtreamEpisode> { val episodes = mutableListOf<XtreamEpisode>(); try { val root = JSONObject(json); val epsObj = root.optJSONObject("episodes") ?: root.optJSONObject("episodes_list") ?: root.optJSONObject("data"); epsObj?.let { val keys = it.keys(); while (keys.hasNext()) { val seasonKey = keys.next(); val seasonArr = it.optJSONArray(seasonKey) ?: continue; for (i in 0 until seasonArr.length()) { val ep = seasonArr.getJSONObject(i); episodes.add(XtreamEpisode(ep.optInt("id"), ep.optInt("episode_num"), seasonKey.toIntOrNull() ?: 1, ep.optString("title", "Ep $i"), ep.optString("container_extension", "mp4"), ep.optString("info"))) } } } } catch (_: Exception) {}; return episodes }
 
-    private fun parseChannels(json: String): List<XtreamChannel> {
-        val list = mutableListOf<XtreamChannel>()
-        val arr = extractJsonArray(json) ?: return list
-        for (i in 0 until arr.length()) {
-            val o = arr.getJSONObject(i)
-            list.add(XtreamChannel(
-                o.optInt("stream_id"), o.optString("name", "Ch $i"), o.optString("stream_type", "live"),
-                o.optString("stream_icon"), o.optString("epg_channel_id"), o.optString("added"),
-                o.optString("category_id"), o.optString("container_extension", "ts")
-            ))
-        }
-        return list
-    }
-
-    private fun parseMovies(json: String): List<XtreamMovie> {
-        val list = mutableListOf<XtreamMovie>()
-        val arr = extractJsonArray(json) ?: return list
-        for (i in 0 until arr.length()) {
-            val o = arr.getJSONObject(i)
-            list.add(XtreamMovie(
-                o.optInt("stream_id"), o.optString("name", "Movie $i"), o.optString("container_extension", "mp4"),
-                o.optString("stream_icon"), o.optString("plot"), o.optString("cast"), o.optString("director"),
-                o.optString("genre"), o.optString("rating"), o.optString("year")
-            ))
-        }
-        return list
-    }
-
-    private fun parseSeries(json: String): List<XtreamSeries> {
-        val list = mutableListOf<XtreamSeries>()
-        val arr = extractJsonArray(json) ?: return list
-        for (i in 0 until arr.length()) {
-            val o = arr.getJSONObject(i)
-            list.add(XtreamSeries(
-                o.optInt("series_id"), o.optString("name", "Series $i"), o.optString("cover"),
-                o.optString("plot"), o.optString("cast"), o.optString("director"), o.optString("genre"),
-                o.optString("rating"), o.optString("year")
-            ))
-        }
-        return list
-    }
-
-    private fun parseEpisodes(json: String): List<XtreamEpisode> {
-        val episodes = mutableListOf<XtreamEpisode>()
-        try {
-            val root = JSONObject(json)
-            val epsObj = root.optJSONObject("episodes") ?: root.optJSONObject("episodes_list") ?: root.optJSONObject("data")
-            epsObj?.let {
-                val keys = it.keys()
-                while (keys.hasNext()) {
-                    val seasonKey = keys.next()
-                    val seasonArr = it.optJSONArray(seasonKey) ?: continue
-                    for (i in 0 until seasonArr.length()) {
-                        val ep = seasonArr.getJSONObject(i)
-                        episodes.add(XtreamEpisode(ep.optInt("id"), ep.optInt("episode_num"), seasonKey.toIntOrNull() ?: 1, ep.optString("title", "Ep $i"), ep.optString("container_extension", "mp4"), ep.optString("info")))
-                    }
-                }
-            }
-        } catch (_: Exception) {}
-        return episodes
-    }
-
-    private fun runOnUiThread(action: () -> Unit) {
-        android.os.Handler(android.os.Looper.getMainLooper()).post(action)
-    }
+    private fun runOnUiThread(action: () -> Unit) { android.os.Handler(android.os.Looper.getMainLooper()).post(action) }
 }
