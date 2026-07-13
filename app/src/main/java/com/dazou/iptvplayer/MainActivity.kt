@@ -27,6 +27,20 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.concurrent.thread
 
+// ✅ معالج الأخطاء العام
+class GlobalExceptionHandler(private val context: Context, private val defaultHandler: Thread.UncaughtExceptionHandler) : Thread.UncaughtExceptionHandler {
+    override fun uncaughtException(thread: Thread, throwable: Throwable) {
+        try {
+            val logFile = File(context.getExternalFilesDir(null), "crash_log.txt")
+            val writer = PrintWriter(FileWriter(logFile, true))
+            writer.println("========== ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())} ==========")
+            throwable.printStackTrace(writer)
+            writer.close()
+        } catch (_: Exception) {}
+        defaultHandler.uncaughtException(thread, throwable)
+    }
+}
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var player: ExoPlayer
@@ -66,8 +80,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var prefs: SharedPreferences
     private var isTv = false
 
-    data class EpgProgram(val channelId: String, val title: String, val startTime: String, val endTime: String, val description: String)
-
     private fun isTelevision(): Boolean {
         val uiModeManager = getSystemService(Context.UI_MODE_SERVICE) as? UiModeManager
         return uiModeManager?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
@@ -75,6 +87,16 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // ✅ تفعيل التقاط الأخطاء
+        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+        if (defaultHandler != null) {
+            Thread.setDefaultUncaughtExceptionHandler(GlobalExceptionHandler(this, defaultHandler))
+        }
+
+        // ✅ فحص إذا فيه كراش سابق
+        checkForCrashLog()
+
         try {
             supportActionBar?.hide()
             isTv = isTelevision()
@@ -112,7 +134,7 @@ class MainActivity : AppCompatActivity() {
                 textSize = if (isTv) sp(22f) else sp(16f)
                 setBackgroundColor(Color.TRANSPARENT)
                 setTextColor(textGray)
-                setOnClickListener { showLoginDialog() }
+                setOnClickListener { showSettingsDialog() }
             })
             root.addView(header)
 
@@ -292,8 +314,44 @@ class MainActivity : AppCompatActivity() {
             }
         } catch (e: Exception) {
             e.printStackTrace()
+            saveCrashLog(e)
             Toast.makeText(this, "خطأ: ${e.message}", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun checkForCrashLog() {
+        try {
+            val logFile = File(getExternalFilesDir(null), "crash_log.txt")
+            if (logFile.exists() && logFile.length() > 0) {
+                val content = logFile.readText()
+                if (content.isNotBlank()) {
+                    AlertDialog.Builder(this)
+                        .setTitle("⚠️ تم اكتشاف خطأ سابق")
+                        .setMessage("هل تريد عرض تقرير الخطأ؟")
+                        .setPositiveButton("عرض") { _, _ ->
+                            AlertDialog.Builder(this)
+                                .setTitle("📋 تقرير الخطأ")
+                                .setMessage(content.takeLast(2000))
+                                .setPositiveButton("مسح التقرير") { _, _ -> logFile.delete() }
+                                .setNegativeButton("إغلاق", null)
+                                .show()
+                        }
+                        .setNegativeButton("مسح") { _, _ -> logFile.delete() }
+                        .setNeutralButton("لاحقاً", null)
+                        .show()
+                }
+            }
+        } catch (_: Exception) {}
+    }
+
+    private fun saveCrashLog(throwable: Throwable) {
+        try {
+            val logFile = File(getExternalFilesDir(null), "crash_log.txt")
+            val writer = PrintWriter(FileWriter(logFile, true))
+            writer.println("========== ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())} ==========")
+            throwable.printStackTrace(writer)
+            writer.close()
+        } catch (_: Exception) {}
     }
 
     private fun createBottomButton(icon: String, label: String, color: Int, size: Float, onClick: () -> Unit) = Button(this).apply {
@@ -327,6 +385,29 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "📱 وضع عادي", Toast.LENGTH_SHORT).show()
         }
         playerView.requestLayout()
+    }
+
+    private fun showSettingsDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("⚙️ الإعدادات")
+            .setItems(arrayOf("🔗 إعدادات Xtream", "📋 عرض تقرير الأخطاء")) { _, which ->
+                when (which) {
+                    0 -> showLoginDialog()
+                    1 -> {
+                        val logFile = File(getExternalFilesDir(null), "crash_log.txt")
+                        if (logFile.exists()) {
+                            AlertDialog.Builder(this)
+                                .setTitle("📋 تقرير الأخطاء")
+                                .setMessage(logFile.readText().takeLast(3000))
+                                .setPositiveButton("مسح", { _, _ -> logFile.delete() })
+                                .setNegativeButton("إغلاق", null)
+                                .show()
+                        } else {
+                            Toast.makeText(this, "لا توجد أخطاء مسجلة ✅", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }.show()
     }
 
     private fun performSearch() {
@@ -482,7 +563,10 @@ class MainActivity : AppCompatActivity() {
             player.prepare(); player.play()
             tvChannelInfo.text = "🎬 $name"
             Toast.makeText(this, "▶️ $name", Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) { Toast.makeText(this, "❌ ${e.message}", Toast.LENGTH_LONG).show() }
+        } catch (e: Exception) {
+            saveCrashLog(e)
+            Toast.makeText(this, "❌ ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
 
     override fun onDestroy() { super.onDestroy(); player.release() }
