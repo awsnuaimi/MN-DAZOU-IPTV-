@@ -19,8 +19,10 @@ data class XtreamEpisode(val id: Int, val episodeNum: Int, val seasonNum: Int, v
 object XtreamAPI {
     private const val TAG = "XtreamAPI"
 
+    var lastRequestUrl: String = ""
+    var lastResponseBody: String = ""
     var lastErrorMessage: String = ""
-    var lastJsonSnippet: String = ""
+    var lastItemCount: Int = -1
 
     fun getLiveCategories(server: XtreamServer, callback: (List<XtreamCategory>) -> Unit) {
         thread {
@@ -40,18 +42,22 @@ object XtreamAPI {
     fun getLiveStreams(server: XtreamServer, categoryId: String? = null, callback: (List<XtreamChannel>) -> Unit) {
         thread {
             try {
+                // --- 4. إزالة category_id مؤقتاً لاختبار السبب ---
                 var url = "${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_live_streams"
-                if (categoryId != null) url += "&category_id=$categoryId"
+                // if (categoryId != null) url += "&category_id=$categoryId"  // معطلة مؤقتاً
+                lastRequestUrl = url
                 val json = fetchJson(url)
-                lastJsonSnippet = json.take(500)
-                Log.d(TAG, "Live streams JSON first 500: $lastJsonSnippet")
+                lastResponseBody = json  // الاحتفاظ بالكامل، وليس أول 500 حرف
+                Log.e(TAG, "FULL JSON RESPONSE:\n$json")
                 val channels = parseChannels(json)
+                lastItemCount = channels.size
                 Log.d(TAG, "Parsed ${channels.size} live channels")
                 runOnUiThread { callback(channels) }
             } catch (e: Exception) {
                 Log.e(TAG, "live streams error", e)
                 lastErrorMessage = e.message ?: "خطأ غير معروف"
-                lastJsonSnippet = ""
+                lastResponseBody = ""
+                lastItemCount = -1
                 runOnUiThread { callback(emptyList()) }
             }
         }
@@ -76,17 +82,20 @@ object XtreamAPI {
         thread {
             try {
                 var url = "${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_vod_streams"
-                if (categoryId != null) url += "&category_id=$categoryId"
+                // if (categoryId != null) url += "&category_id=$categoryId"  // معطلة مؤقتاً
+                lastRequestUrl = url
                 val json = fetchJson(url)
-                lastJsonSnippet = json.take(500)
-                Log.d(TAG, "VOD streams JSON first 500: $lastJsonSnippet")
+                lastResponseBody = json
+                Log.e(TAG, "FULL JSON RESPONSE:\n$json")
                 val movies = parseMovies(json)
+                lastItemCount = movies.size
                 Log.d(TAG, "Parsed ${movies.size} movies")
                 runOnUiThread { callback(movies) }
             } catch (e: Exception) {
                 Log.e(TAG, "vod streams error", e)
                 lastErrorMessage = e.message ?: "خطأ غير معروف"
-                lastJsonSnippet = ""
+                lastResponseBody = ""
+                lastItemCount = -1
                 runOnUiThread { callback(emptyList()) }
             }
         }
@@ -96,17 +105,20 @@ object XtreamAPI {
         thread {
             try {
                 var url = "${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_series"
-                if (categoryId != null) url += "&category_id=$categoryId"
+                // if (categoryId != null) url += "&category_id=$categoryId"  // معطلة مؤقتاً
+                lastRequestUrl = url
                 val json = fetchJson(url)
-                lastJsonSnippet = json.take(500)
-                Log.d(TAG, "Series JSON first 500: $lastJsonSnippet")
+                lastResponseBody = json
+                Log.e(TAG, "FULL JSON RESPONSE:\n$json")
                 val series = parseSeries(json)
+                lastItemCount = series.size
                 Log.d(TAG, "Parsed ${series.size} series")
                 runOnUiThread { callback(series) }
             } catch (e: Exception) {
                 Log.e(TAG, "series error", e)
                 lastErrorMessage = e.message ?: "خطأ غير معروف"
-                lastJsonSnippet = ""
+                lastResponseBody = ""
+                lastItemCount = -1
                 runOnUiThread { callback(emptyList()) }
             }
         }
@@ -135,13 +147,20 @@ object XtreamAPI {
     fun getSeriesEpisodeUrl(server: XtreamServer, episodeId: Int, extension: String = "mp4") =
         "${server.url}/series/${server.username}/${server.password}/$episodeId.$extension"
 
+    // ----------- 3. التحقق من كود HTTP -----------
     private fun fetchJson(urlString: String): String {
         val conn = URL(urlString).openConnection() as HttpURLConnection
         conn.requestMethod = "GET"
         conn.connectTimeout = 10000
         conn.readTimeout = 10000
         conn.setRequestProperty("User-Agent", "Mozilla/5.0")
-        val reader = BufferedReader(InputStreamReader(conn.inputStream))
+
+        val code = conn.responseCode
+        Log.e("HTTP", "Response code: $code")
+        lastErrorMessage = "HTTP $code"
+
+        val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+        val reader = BufferedReader(InputStreamReader(stream))
         val response = StringBuilder()
         var line: String?
         while (reader.readLine().also { line = it } != null) response.append(line)
@@ -150,6 +169,7 @@ object XtreamAPI {
         return response.toString()
     }
 
+    // ----------- 1. extractJsonArray المحسّنة -----------
     private fun extractJsonArray(json: String): JSONArray? {
         val trimmed = json.trim()
         if (trimmed.startsWith("[")) return try { JSONArray(trimmed) } catch (_: Exception) { null }
@@ -158,17 +178,20 @@ object XtreamAPI {
             return try {
                 val obj = JSONObject(trimmed)
 
-                val commonKeys = arrayOf("data", "result", "items", "channels", "movies", "series", "live", "vod", "streams")
-                for (key in commonKeys) {
-                    val arr = obj.optJSONArray(key)
-                    if (arr != null) return arr
-                }
+                val possibleKeys = listOf(
+                    "available_channels",
+                    "channels",
+                    "streams",
+                    "live_streams",
+                    "movies",
+                    "series",
+                    "data"
+                )
 
-                val keys = obj.keys()
-                while (keys.hasNext()) {
-                    val key = keys.next()
-                    val value = obj.opt(key)
-                    if (value is JSONArray) return value
+                for (key in possibleKeys) {
+                    if (obj.has(key)) {
+                        return obj.getJSONArray(key)
+                    }
                 }
                 null
             } catch (_: Exception) { null }
@@ -178,11 +201,7 @@ object XtreamAPI {
 
     private fun parseCategories(json: String): List<XtreamCategory> {
         val list = mutableListOf<XtreamCategory>()
-        val arr = extractJsonArray(json)
-        if (arr == null) {
-            Log.e(TAG, "parseCategories: Failed to extract JSON array. Raw JSON: ${json.take(200)}")
-            return list
-        }
+        val arr = extractJsonArray(json) ?: return list
         for (i in 0 until arr.length()) {
             val o = arr.getJSONObject(i)
             list.add(XtreamCategory(o.optString("category_id"), o.optString("category_name", "?"), o.optInt("parent_id")))
@@ -192,44 +211,21 @@ object XtreamAPI {
 
     private fun parseChannels(json: String): List<XtreamChannel> {
         val list = mutableListOf<XtreamChannel>()
-        val arr = extractJsonArray(json)
-        if (arr == null) {
-            lastErrorMessage = "فشل استخراج مصفوفة JSON من:\n${json.take(500)}"
-            Log.e(TAG, "parseChannels: Failed to extract JSON array. Raw JSON: ${json.take(200)}")
-            return list
-        }
-        Log.d(TAG, "parseChannels: Found array with ${arr.length()} items.")
+        val arr = extractJsonArray(json) ?: return list
         for (i in 0 until arr.length()) {
-            try {
-                val o = arr.getJSONObject(i)
-                val name = o.optString("name", "No Name")
-                if (i == 0) {
-                    // عرض جميع مفاتيح أول عنصر للتشخيص
-                    val firstItemKeys = o.keys().asSequence().toList().joinToString()
-                    lastErrorMessage = "أول عنصر في المصفوفة (عدد العناصر: ${arr.length()}):\nالاسم: $name\nالمفاتيح: $firstItemKeys"
-                    Log.d(TAG, "First item keys: $firstItemKeys")
-                    Log.d(TAG, "First item name: $name")
-                }
-                list.add(XtreamChannel(
-                    o.optInt("stream_id"), name, o.optString("stream_type", "live"),
-                    o.optString("stream_icon"), o.optString("epg_channel_id"), o.optString("added"),
-                    o.optString("category_id"), o.optString("container_extension", "ts")
-                ))
-            } catch (e: Exception) {
-                Log.e(TAG, "Error parsing channel at index $i", e)
-            }
+            val o = arr.getJSONObject(i)
+            list.add(XtreamChannel(
+                o.optInt("stream_id"), o.optString("name", "Ch $i"), o.optString("stream_type", "live"),
+                o.optString("stream_icon"), o.optString("epg_channel_id"), o.optString("added"),
+                o.optString("category_id"), o.optString("container_extension", "ts")
+            ))
         }
         return list
     }
 
     private fun parseMovies(json: String): List<XtreamMovie> {
         val list = mutableListOf<XtreamMovie>()
-        val arr = extractJsonArray(json)
-        if (arr == null) {
-            lastErrorMessage = "فشل استخراج مصفوفة JSON من:\n${json.take(500)}"
-            Log.e(TAG, "parseMovies: Failed to extract JSON array. Raw JSON: ${json.take(200)}")
-            return list
-        }
+        val arr = extractJsonArray(json) ?: return list
         for (i in 0 until arr.length()) {
             val o = arr.getJSONObject(i)
             list.add(XtreamMovie(
@@ -243,12 +239,7 @@ object XtreamAPI {
 
     private fun parseSeries(json: String): List<XtreamSeries> {
         val list = mutableListOf<XtreamSeries>()
-        val arr = extractJsonArray(json)
-        if (arr == null) {
-            lastErrorMessage = "فشل استخراج مصفوفة JSON من:\n${json.take(500)}"
-            Log.e(TAG, "parseSeries: Failed to extract JSON array. Raw JSON: ${json.take(200)}")
-            return list
-        }
+        val arr = extractJsonArray(json) ?: return list
         for (i in 0 until arr.length()) {
             val o = arr.getJSONObject(i)
             list.add(XtreamSeries(
