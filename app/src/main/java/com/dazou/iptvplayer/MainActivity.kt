@@ -10,7 +10,6 @@ import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.media3.common.MediaItem
@@ -27,12 +26,19 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnLive: Button
     private lateinit var btnMovies: Button
     private lateinit var btnSeries: Button
-    
+    private lateinit var btnBack: Button
+
     private var server: XtreamServer? = null
     private var liveChannels = mutableListOf<XtreamChannel>()
     private var vodMovies = mutableListOf<XtreamMovie>()
     private var seriesList = mutableListOf<XtreamSeries>()
+    private var liveCategories = mutableListOf<XtreamCategory>()
+    private var vodCategories = mutableListOf<XtreamCategory>()
+    private var seriesCategories = mutableListOf<XtreamCategory>()
+    
     private var currentCategory = "live"
+    private var selectedCategoryId: String? = null
+    private var isShowingCategories = true
 
     // ألوان الثيم الداكن
     private val darkBg = Color.parseColor("#1A1A2E")
@@ -42,6 +48,7 @@ class MainActivity : AppCompatActivity() {
     private val textWhite = Color.parseColor("#FFFFFF")
     private val textGray = Color.parseColor("#B0B0B0")
     private val activeTab = Color.parseColor("#0F3460")
+    private val greenLive = Color.parseColor("#4CAF50")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,16 +66,27 @@ class MainActivity : AppCompatActivity() {
             setBackgroundColor(darkCard)
             gravity = Gravity.CENTER_VERTICAL
         }
-        
+
+        btnBack = Button(this).apply {
+            text = "⬅️"
+            textSize = 20f
+            setBackgroundColor(Color.TRANSPARENT)
+            setTextColor(textWhite)
+            visibility = View.GONE
+            setOnClickListener { goBackToCategories() }
+        }
+        headerLayout.addView(btnBack)
+
         tvTitle = TextView(this).apply {
             text = "DAZOU IPTV"
-            textSize = 24f
+            textSize = 22f
             setTextColor(accentColor)
             setTypeface(null, Typeface.BOLD)
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            gravity = Gravity.CENTER
         }
         headerLayout.addView(tvTitle)
-        
+
         val btnSettings = Button(this).apply {
             text = "⚙️"
             textSize = 20f
@@ -88,7 +106,7 @@ class MainActivity : AppCompatActivity() {
             setCardBackgroundColor(Color.BLACK)
             cardElevation = 8f
         }
-        
+
         playerView = PlayerView(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
@@ -98,7 +116,7 @@ class MainActivity : AppCompatActivity() {
         playerCard.addView(playerView)
         root.addView(playerCard)
 
-        // شريط التصنيفات
+        // شريط التصنيفات الرئيسية
         val tabLayout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             setPadding(10, 15, 10, 15)
@@ -106,9 +124,9 @@ class MainActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
         }
 
-        btnLive = createTabButton("📺 مباشر") { switchTab("live") }
-        btnMovies = createTabButton("🎬 أفلام") { switchTab("movies") }
-        btnSeries = createTabButton("📺 مسلسلات") { switchTab("series") }
+        btnLive = createTabButton("📺 مباشر") { switchMainTab("live") }
+        btnMovies = createTabButton("🎬 أفلام") { switchMainTab("movies") }
+        btnSeries = createTabButton("📺 مسلسلات") { switchMainTab("series") }
 
         tabLayout.addView(btnLive)
         tabLayout.addView(btnMovies)
@@ -139,7 +157,7 @@ class MainActivity : AppCompatActivity() {
         
         // تحميل تلقائي
         if (server != null) {
-            loadLiveStreams()
+            switchMainTab("live")
         } else {
             showLoginDialog()
         }
@@ -148,7 +166,7 @@ class MainActivity : AppCompatActivity() {
     private fun createTabButton(text: String, onClick: () -> Unit): Button {
         return Button(this).apply {
             this.text = text
-            textSize = 14f
+            textSize = 13f
             setTextColor(textWhite)
             setBackgroundColor(Color.TRANSPARENT)
             setTypeface(null, Typeface.BOLD)
@@ -157,27 +175,52 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun switchTab(tab: String) {
+    private fun switchMainTab(tab: String) {
         currentCategory = tab
-        
+        selectedCategoryId = null
+        isShowingCategories = true
+        btnBack.visibility = View.GONE
+
         // إعادة تعيين ألوان الأزرار
         btnLive.setBackgroundColor(Color.TRANSPARENT)
         btnMovies.setBackgroundColor(Color.TRANSPARENT)
         btnSeries.setBackgroundColor(Color.TRANSPARENT)
 
-        // تفعيل الزر المختار
         when (tab) {
             "live" -> {
                 btnLive.setBackgroundColor(activeTab)
-                loadLiveStreams()
+                tvTitle.text = "📺 البث المباشر"
+                loadLiveCategories()
             }
             "movies" -> {
                 btnMovies.setBackgroundColor(activeTab)
-                loadMovies()
+                tvTitle.text = "🎬 الأفلام"
+                loadVodCategories()
             }
             "series" -> {
                 btnSeries.setBackgroundColor(activeTab)
-                loadSeries()
+                tvTitle.text = "📺 المسلسلات"
+                loadSeriesCategories()
+            }
+        }
+    }
+
+    private fun goBackToCategories() {
+        isShowingCategories = true
+        selectedCategoryId = null
+        btnBack.visibility = View.GONE
+        when (currentCategory) {
+            "live" -> {
+                tvTitle.text = "📺 البث المباشر"
+                showLiveCategories()
+            }
+            "movies" -> {
+                tvTitle.text = "🎬 الأفلام"
+                showVodCategories()
+            }
+            "series" -> {
+                tvTitle.text = "📺 المسلسلات"
+                showSeriesCategories()
             }
         }
     }
@@ -244,7 +287,7 @@ class MainActivity : AppCompatActivity() {
                     password = etPassword.text.toString()
                 )
                 Toast.makeText(this, "✅ تم الاتصال", Toast.LENGTH_SHORT).show()
-                loadLiveStreams()
+                switchMainTab("live")
             }
             .setNegativeButton("إلغاء", null)
             .setCancelable(false)
@@ -257,40 +300,271 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadLiveStreams() {
+    // تحميل التصنيفات
+    private fun loadLiveCategories() {
         server?.let { s ->
             showLoading()
-            XtreamAPI.getLiveStreams(s) { channels ->
+            XtreamAPI.getLiveCategories(s) { categories ->
+                liveCategories.clear()
+                liveCategories.addAll(categories)
+                hideLoading()
+                if (categories.isEmpty()) {
+                    loadLiveStreams(null)
+                } else {
+                    showLiveCategories()
+                }
+            }
+        } ?: showLoginDialog()
+    }
+
+    private fun loadVodCategories() {
+        server?.let { s ->
+            showLoading()
+            XtreamAPI.getVodCategories(s) { categories ->
+                vodCategories.clear()
+                vodCategories.addAll(categories)
+                hideLoading()
+                if (categories.isEmpty()) {
+                    loadMovies(null)
+                } else {
+                    showVodCategories()
+                }
+            }
+        } ?: showLoginDialog()
+    }
+
+    private fun loadSeriesCategories() {
+        server?.let { s ->
+            showLoading()
+            XtreamAPI.getLiveCategories(s) { categories ->
+                seriesCategories.clear()
+                seriesCategories.addAll(categories)
+                hideLoading()
+                if (categories.isEmpty()) {
+                    loadSeriesList(null)
+                } else {
+                    showSeriesCategories()
+                }
+            }
+        } ?: showLoginDialog()
+    }
+
+    // عرض التصنيفات
+    private fun showLiveCategories() {
+        isShowingCategories = true
+        tvTitle.text = "📺 مجموعات البث (${liveCategories.size})"
+        rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+                val card = CardView(parent.context).apply {
+                    layoutParams = ViewGroup.MarginLayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+                    ).apply { setMargins(15, 8, 15, 8) }
+                    radius = 12f
+                    setCardBackgroundColor(darkCard)
+                    cardElevation = 4f
+                }
+                val layout = LinearLayout(parent.context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    setPadding(30, 25, 30, 25)
+                    gravity = Gravity.CENTER_VERTICAL
+                }
+                val icon = TextView(parent.context).apply {
+                    text = "📁"
+                    textSize = 24f
+                }
+                layout.addView(icon)
+                val tv = TextView(parent.context).apply {
+                    setPadding(20, 0, 0, 0)
+                    textSize = 16f
+                    setTextColor(textWhite)
+                    setTypeface(null, Typeface.BOLD)
+                    layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                }
+                layout.addView(tv)
+                val arrow = TextView(parent.context).apply {
+                    text = "→"
+                    textSize = 20f
+                    setTextColor(accentColor)
+                }
+                layout.addView(arrow)
+                card.addView(layout)
+                return object : RecyclerView.ViewHolder(card) {}
+            }
+
+            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, pos: Int) {
+                val card = holder.itemView as CardView
+                val layout = card.getChildAt(0) as LinearLayout
+                val tv = layout.getChildAt(1) as TextView
+                val category = liveCategories[pos]
+                tv.text = category.categoryName
+                card.setOnClickListener {
+                    selectedCategoryId = category.categoryId
+                    isShowingCategories = false
+                    btnBack.visibility = View.VISIBLE
+                    tvTitle.text = "📺 ${category.categoryName}"
+                    loadLiveStreams(category.categoryId)
+                }
+            }
+
+            override fun getItemCount() = liveCategories.size
+        }
+    }
+
+    private fun showVodCategories() {
+        isShowingCategories = true
+        tvTitle.text = "🎬 مجموعات الأفلام (${vodCategories.size})"
+        rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+                val card = CardView(parent.context).apply {
+                    layoutParams = ViewGroup.MarginLayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+                    ).apply { setMargins(15, 8, 15, 8) }
+                    radius = 12f
+                    setCardBackgroundColor(darkCard)
+                    cardElevation = 4f
+                }
+                val layout = LinearLayout(parent.context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    setPadding(30, 25, 30, 25)
+                    gravity = Gravity.CENTER_VERTICAL
+                }
+                val icon = TextView(parent.context).apply {
+                    text = "🎬"
+                    textSize = 24f
+                }
+                layout.addView(icon)
+                val tv = TextView(parent.context).apply {
+                    setPadding(20, 0, 0, 0)
+                    textSize = 16f
+                    setTextColor(textWhite)
+                    setTypeface(null, Typeface.BOLD)
+                    layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                }
+                layout.addView(tv)
+                val arrow = TextView(parent.context).apply {
+                    text = "→"
+                    textSize = 20f
+                    setTextColor(accentGold)
+                }
+                layout.addView(arrow)
+                card.addView(layout)
+                return object : RecyclerView.ViewHolder(card) {}
+            }
+
+            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, pos: Int) {
+                val card = holder.itemView as CardView
+                val layout = card.getChildAt(0) as LinearLayout
+                val tv = layout.getChildAt(1) as TextView
+                val category = vodCategories[pos]
+                tv.text = category.categoryName
+                card.setOnClickListener {
+                    selectedCategoryId = category.categoryId
+                    isShowingCategories = false
+                    btnBack.visibility = View.VISIBLE
+                    tvTitle.text = "🎬 ${category.categoryName}"
+                    loadMovies(category.categoryId)
+                }
+            }
+
+            override fun getItemCount() = vodCategories.size
+        }
+    }
+
+    private fun showSeriesCategories() {
+        isShowingCategories = true
+        tvTitle.text = "📺 مجموعات المسلسلات (${seriesCategories.size})"
+        rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+                val card = CardView(parent.context).apply {
+                    layoutParams = ViewGroup.MarginLayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+                    ).apply { setMargins(15, 8, 15, 8) }
+                    radius = 12f
+                    setCardBackgroundColor(darkCard)
+                    cardElevation = 4f
+                }
+                val layout = LinearLayout(parent.context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    setPadding(30, 25, 30, 25)
+                    gravity = Gravity.CENTER_VERTICAL
+                }
+                val icon = TextView(parent.context).apply {
+                    text = "📺"
+                    textSize = 24f
+                }
+                layout.addView(icon)
+                val tv = TextView(parent.context).apply {
+                    setPadding(20, 0, 0, 0)
+                    textSize = 16f
+                    setTextColor(textWhite)
+                    setTypeface(null, Typeface.BOLD)
+                    layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                }
+                layout.addView(tv)
+                val arrow = TextView(parent.context).apply {
+                    text = "→"
+                    textSize = 20f
+                    setTextColor(greenLive)
+                }
+                layout.addView(arrow)
+                card.addView(layout)
+                return object : RecyclerView.ViewHolder(card) {}
+            }
+
+            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, pos: Int) {
+                val card = holder.itemView as CardView
+                val layout = card.getChildAt(0) as LinearLayout
+                val tv = layout.getChildAt(1) as TextView
+                val category = seriesCategories[pos]
+                tv.text = category.categoryName
+                card.setOnClickListener {
+                    selectedCategoryId = category.categoryId
+                    isShowingCategories = false
+                    btnBack.visibility = View.VISIBLE
+                    tvTitle.text = "📺 ${category.categoryName}"
+                    loadSeriesList(category.categoryId)
+                }
+            }
+
+            override fun getItemCount() = seriesCategories.size
+        }
+    }
+
+    // تحميل المحتوى
+    private fun loadLiveStreams(categoryId: String?) {
+        server?.let { s ->
+            showLoading()
+            XtreamAPI.getLiveStreams(s, categoryId) { channels ->
                 hideLoading()
                 liveChannels.clear()
                 liveChannels.addAll(channels)
                 updateLiveList()
             }
-        } ?: showLoginDialog()
+        }
     }
 
-    private fun loadMovies() {
+    private fun loadMovies(categoryId: String?) {
         server?.let { s ->
             showLoading()
-            XtreamAPI.getVodStreams(s) { movies ->
+            XtreamAPI.getVodStreams(s, categoryId) { movies ->
                 hideLoading()
                 vodMovies.clear()
                 vodMovies.addAll(movies)
                 updateMoviesList()
             }
-        } ?: showLoginDialog()
+        }
     }
 
-    private fun loadSeries() {
+    private fun loadSeriesList(categoryId: String?) {
         server?.let { s ->
             showLoading()
-            XtreamAPI.getSeries(s) { series ->
+            XtreamAPI.getSeries(s, categoryId) { series ->
                 hideLoading()
                 seriesList.clear()
                 seriesList.addAll(series)
                 updateSeriesList()
             }
-        } ?: showLoginDialog()
+        }
     }
 
     private fun showLoading() {
@@ -302,20 +576,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateLiveList() {
-        tvTitle.text = "📺 البث المباشر (${liveChannels.size})"
+        tvTitle.text = "${tvTitle.text} (${liveChannels.size})"
         rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
                 val card = CardView(parent.context).apply {
                     layoutParams = ViewGroup.MarginLayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-                    ).apply { setMargins(15, 8, 15, 8) }
-                    radius = 12f
+                    ).apply { setMargins(15, 5, 15, 5) }
+                    radius = 10f
                     setCardBackgroundColor(darkCard)
-                    cardElevation = 4f
+                    cardElevation = 2f
                 }
                 val tv = TextView(parent.context).apply {
-                    setPadding(30, 30, 30, 30)
-                    textSize = 16f
+                    setPadding(25, 22, 25, 22)
+                    textSize = 15f
                     setTextColor(textWhite)
                     setTypeface(null, Typeface.BOLD)
                 }
@@ -339,20 +613,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateMoviesList() {
-        tvTitle.text = "🎬 الأفلام (${vodMovies.size})"
+        tvTitle.text = "${tvTitle.text} (${vodMovies.size})"
         rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
                 val card = CardView(parent.context).apply {
                     layoutParams = ViewGroup.MarginLayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-                    ).apply { setMargins(15, 8, 15, 8) }
-                    radius = 12f
+                    ).apply { setMargins(15, 5, 15, 5) }
+                    radius = 10f
                     setCardBackgroundColor(darkCard)
-                    cardElevation = 4f
+                    cardElevation = 2f
                 }
                 val tv = TextView(parent.context).apply {
-                    setPadding(30, 30, 30, 30)
-                    textSize = 16f
+                    setPadding(25, 22, 25, 22)
+                    textSize = 15f
                     setTextColor(textWhite)
                     setTypeface(null, Typeface.BOLD)
                 }
@@ -376,20 +650,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateSeriesList() {
-        tvTitle.text = "📺 المسلسلات (${seriesList.size})"
+        tvTitle.text = "${tvTitle.text} (${seriesList.size})"
         rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
                 val card = CardView(parent.context).apply {
                     layoutParams = ViewGroup.MarginLayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-                    ).apply { setMargins(15, 8, 15, 8) }
-                    radius = 12f
+                    ).apply { setMargins(15, 5, 15, 5) }
+                    radius = 10f
                     setCardBackgroundColor(darkCard)
-                    cardElevation = 4f
+                    cardElevation = 2f
                 }
                 val tv = TextView(parent.context).apply {
-                    setPadding(30, 30, 30, 30)
-                    textSize = 16f
+                    setPadding(25, 22, 25, 22)
+                    textSize = 15f
                     setTextColor(textWhite)
                     setTypeface(null, Typeface.BOLD)
                 }
