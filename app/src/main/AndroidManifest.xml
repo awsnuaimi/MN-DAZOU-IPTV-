@@ -7,7 +7,7 @@
 
     <application
         android:allowBackup="true"
-        android:label="DAZOU IPTV"
+        android:label="MN-DAZOU IPTV"
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light"
         android:usesCleartextTraffic="true">
