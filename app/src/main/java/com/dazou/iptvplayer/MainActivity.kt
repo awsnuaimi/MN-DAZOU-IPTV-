@@ -338,8 +338,13 @@ class MainActivity : AppCompatActivity() {
         val channels=when(currentStreamType){"live"->liveChannels;"movie"->vodMovies;else->emptyList()}
         if(index<0||index>=channels.size)return
         currentStreamIndex=index; val channelItem=channels[index]
+        val channelName = when(currentStreamType){
+            "live" -> (channelItem as XtreamChannel).name
+            "movie" -> (channelItem as XtreamMovie).name
+            else -> ""
+        }
         val url=when(currentStreamType){"live"->XtreamAPI.getStreamUrl(server!!,(channelItem as XtreamChannel).streamId,channelItem.containerExtension);"movie"->XtreamAPI.getMovieUrl(server!!,(channelItem as XtreamMovie).streamId,channelItem.containerExtension);else->""}
-        playStream(url,channelItem.name); tvChannelInfo.text="🎬 ${channelItem.name} (${index+1}/${channels.size})"
+        playStream(url,channelName); tvChannelInfo.text="🎬 $channelName (${index+1}/${channels.size})"
         prefs.edit().putInt("last_channel_index",index).putString("last_channel_type",currentStreamType).apply(); rv.smoothScrollToPosition(index)
     }
 
