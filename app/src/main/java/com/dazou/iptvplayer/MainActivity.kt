@@ -268,7 +268,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveAccounts() { val json = JSONArray(); accounts.forEach { acc -> val obj = JSONObject(); obj.put("url", acc.url); obj.put("username", acc.username); obj.put("password", acc.password); json.put(obj) }; prefs.edit().putString("accounts", json.toString()).apply() }
-    private fun loadAccounts() { val s = prefs.getString("accounts", "[]") ?: "[]"; val json = JSONArray(s); for(i in 0 until json.length()) { val obj = json.getJSONObject(i); accounts.add(XtreamServer(obj.getString("url"), obj.getString("username"), obj.getString("password"))) } }
+    
+    private fun loadAccounts() {
+        try {
+            val s = prefs.getString("accounts", "[]") ?: "[]"
+            val j = JSONArray(s)
+            accounts.clear()
+            for (i in 0 until j.length()) {
+                val o = j.getJSONObject(i)
+                accounts.add(XtreamServer(o.getString("url"), o.getString("username"), o.getString("password")))
+            }
+        } catch (e: Exception) {
+            accounts.clear()
+            prefs.edit().remove("accounts").apply()
+        }
+    }
 
     private fun showAccountsDialog() {
         if(accounts.isEmpty()) { showLoginDialog(); return }
@@ -444,10 +458,40 @@ class MainActivity : AppCompatActivity() {
     private fun addToFavorites(type:String,id:Int,name:String,icon:String=""){if(favorites.none{fav->fav.type==type&&fav.id==id}){favorites.add(FavoriteItem(type,id,name,icon));saveFavorites();Toast.makeText(this,"⭐ تم",Toast.LENGTH_SHORT).show()}else Toast.makeText(this,"موجود",Toast.LENGTH_SHORT).show()}
     private fun removeFavorite(item:FavoriteItem){favorites.removeAll{fav->fav.type==item.type&&fav.id==item.id};saveFavorites()}
     private fun saveFavorites(){val j=JSONArray();favorites.forEach{fav->val o=JSONObject();o.put("type",fav.type);o.put("id",fav.id);o.put("name",fav.name);o.put("icon",fav.icon);j.put(o)};prefs.edit().putString("favorites",j.toString()).apply()}
-    private fun loadFavorites(){val s=prefs.getString("favorites","[]")?:return;val j=JSONArray(s);for(i in 0 until j.length()){val o=j.getJSONObject(i);favorites.add(FavoriteItem(o.getString("type"),o.getInt("id"),o.getString("name"),o.optString("icon","")))}}
+    
+    private fun loadFavorites() {
+        try {
+            val s = prefs.getString("favorites", "[]") ?: "[]"
+            val j = JSONArray(s)
+            favorites.clear()
+            for (i in 0 until j.length()) {
+                val o = j.getJSONObject(i)
+                favorites.add(FavoriteItem(o.getString("type"), o.getInt("id"), o.getString("name"), o.optString("icon", "")))
+            }
+        } catch (e: Exception) {
+            favorites.clear()
+            prefs.edit().remove("favorites").apply()
+        }
+    }
+
     private fun addToHistory(type:String,id:Int,name:String,icon:String=""){watchHistory.removeAll{hist->hist.type==type&&hist.id==id};watchHistory.add(HistoryItem(type,id,name,System.currentTimeMillis(),icon));if(watchHistory.size>20)watchHistory.removeAt(0);saveHistory()}
     private fun saveHistory(){val j=JSONArray();watchHistory.forEach{hist->val o=JSONObject();o.put("type",hist.type);o.put("id",hist.id);o.put("name",hist.name);o.put("timestamp",hist.timestamp);o.put("icon",hist.icon);j.put(o)};prefs.edit().putString("history",j.toString()).apply()}
-    private fun loadHistory(){val s=prefs.getString("history","[]")?:return;val j=JSONArray(s);for(i in 0 until j.length()){val o=j.getJSONObject(i);watchHistory.add(HistoryItem(o.getString("type"),o.getInt("id"),o.getString("name"),o.getLong("timestamp"),o.optString("icon","")))}}
+    
+    private fun loadHistory() {
+        try {
+            val s = prefs.getString("history", "[]") ?: "[]"
+            val j = JSONArray(s)
+            watchHistory.clear()
+            for (i in 0 until j.length()) {
+                val o = j.getJSONObject(i)
+                watchHistory.add(HistoryItem(o.getString("type"), o.getInt("id"), o.getString("name"), o.getLong("timestamp"), o.optString("icon", "")))
+            }
+        } catch (e: Exception) {
+            watchHistory.clear()
+            prefs.edit().remove("history").apply()
+        }
+    }
+
     private fun playFavoriteItem(fav:FavoriteItem){when(fav.type){"live"->{val u=XtreamAPI.getStreamUrl(server!!,fav.id);playStream(u,fav.name);addToHistory("live",fav.id,fav.name,fav.icon)};"movie"->{val u=XtreamAPI.getMovieUrl(server!!,fav.id);playStream(u,fav.name);addToHistory("movie",fav.id,fav.name,fav.icon)}}}
     private fun playHistoryItem(item:HistoryItem){when(item.type){"live"->playStream(XtreamAPI.getStreamUrl(server!!,item.id),item.name);"movie"->playStream(XtreamAPI.getMovieUrl(server!!,item.id),item.name)}}
 
