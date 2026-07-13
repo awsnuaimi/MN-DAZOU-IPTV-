@@ -34,7 +34,6 @@ import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
 
-    // جميع المتغيرات الأساسية
     private lateinit var player: ExoPlayer
     private lateinit var playerView: PlayerView
     private lateinit var rv: RecyclerView
@@ -66,7 +65,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvRecording: TextView
     private lateinit var audioManager: AudioManager
 
-    // متغيرات البيانات
     private var server: XtreamServer? = null
     private var liveChannels = mutableListOf<XtreamChannel>()
     private var vodMovies = mutableListOf<XtreamMovie>()
@@ -105,7 +103,6 @@ class MainActivity : AppCompatActivity() {
     data class HistoryItem(val type: String, val id: Int, val name: String, val timestamp: Long, val icon: String = "")
     data class EpgProgram(val channelId: String, val title: String, val startTime: String, val endTime: String, val description: String)
     data class ThemeColors(val name: String, val bg: Int, val card: Int, val accent: Int, val bottomBar: Int, val textWhite: Int, val textGray: Int, val activeTab: Int)
-    data class WatchStats(val totalTime: Long, val channelCount: Int, val topChannels: List<Pair<String, Int>>)
 
     private fun initThemes() {
         themes = mapOf(
@@ -132,7 +129,6 @@ class MainActivity : AppCompatActivity() {
             setBackgroundColor(theme.bg)
         }
 
-        // شريط العنوان مع معلومات الحساب
         val headerLayout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL; setPadding(20, 45, 20, 20)
             setBackgroundColor(theme.bottomBar); gravity = Gravity.CENTER_VERTICAL
@@ -145,14 +141,12 @@ class MainActivity : AppCompatActivity() {
         headerLayout.addView(Button(this).apply{text="⚙️"; textSize=16f; setBackgroundColor(Color.TRANSPARENT); setTextColor(theme.textGray); setOnClickListener{showSettingsDialog()}})
         root.addView(headerLayout)
 
-        // شريط البحث
         searchLayout = LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; setPadding(15,10,15,10); setBackgroundColor(theme.bottomBar); gravity=Gravity.CENTER_VERTICAL; visibility=View.GONE }
         etSearch = EditText(this).apply { hint="🔍 بحث..."; setHintTextColor(theme.textGray); setTextColor(theme.textWhite); setBackgroundColor(theme.card); setPadding(25,15,25,15); layoutParams=LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1f) }
         searchLayout.addView(etSearch)
         searchLayout.addView(Button(this).apply{text="بحث"; setBackgroundColor(theme.accent); setTextColor(Color.BLACK); setOnClickListener{performSearch()}})
         root.addView(searchLayout)
 
-        // مشغل الفيديو
         val playerCard = CardView(this).apply { layoutParams=LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,420); radius=0f; setCardBackgroundColor(Color.BLACK); cardElevation=8f }
         val playerContainer = FrameLayout(this).apply { layoutParams=FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT) }
         playerView = PlayerView(this).apply { layoutParams=FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT); setBackgroundColor(Color.BLACK) }
@@ -160,7 +154,6 @@ class MainActivity : AppCompatActivity() {
         tvRecording = TextView(this).apply { text="🔴"; textSize=14f; setTextColor(Color.RED); setBackgroundColor(Color.parseColor("#CC000000")); setPadding(15,5,15,5); visibility=View.GONE; gravity=Gravity.END; layoutParams=FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT,Gravity.TOP or Gravity.END) }
         playerContainer.addView(playerView); playerContainer.addView(tvChannelInfo); playerContainer.addView(tvRecording); playerCard.addView(playerContainer); root.addView(playerCard)
 
-        // أزرار التنقل
         val navLayout = LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; setPadding(15,10,15,10); setBackgroundColor(Color.parseColor("#DD000000")); gravity=Gravity.CENTER; visibility=View.GONE }
         btnPrevChannel = Button(this).apply { text="⏪"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.WHITE); textSize=22f; setOnClickListener{playPreviousChannel()} }
         btnPlayPause = Button(this).apply { text="▶️"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.WHITE); textSize=22f; setOnClickListener{togglePlayPause()} }
@@ -168,7 +161,6 @@ class MainActivity : AppCompatActivity() {
         btnRecord = Button(this).apply { text="🔴"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.WHITE); textSize=18f; setOnClickListener{toggleRecording()} }
         navLayout.addView(btnPrevChannel); navLayout.addView(btnPlayPause); navLayout.addView(btnNextChannel); navLayout.addView(btnRecord); root.addView(navLayout)
 
-        // أزرار الأدوات
         playerControlsLayout = LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; setPadding(10,8,10,8); setBackgroundColor(Color.parseColor("#DD000000")); gravity=Gravity.CENTER_VERTICAL; visibility=View.GONE }
         btnShare = Button(this).apply { text="📤"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.WHITE); textSize=16f; setOnClickListener{shareCurrentStream()} }
         btnQuality = Button(this).apply { text="HD"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.WHITE); textSize=14f; setOnClickListener{showQualityDialog()} }
@@ -177,20 +169,16 @@ class MainActivity : AppCompatActivity() {
         btnFullscreen = Button(this).apply { text="⛶"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.WHITE); textSize=18f; setOnClickListener{toggleFullscreen()} }
         playerControlsLayout.addView(btnShare); playerControlsLayout.addView(btnQuality); playerControlsLayout.addView(btnAspectRatio); playerControlsLayout.addView(btnDownload); playerControlsLayout.addView(btnFullscreen); root.addView(playerControlsLayout)
 
-        // شريط التقدم
         val seekLayout = LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; setPadding(10,5,10,5); setBackgroundColor(Color.parseColor("#DD000000")); gravity=Gravity.CENTER_VERTICAL; visibility=View.GONE }
         tvCurrentTime = TextView(this).apply { text="00:00"; setTextColor(Color.WHITE); textSize=12f }
         seekBar = SeekBar(this).apply { layoutParams=LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1f); setOnSeekBarChangeListener(object:SeekBar.OnSeekBarChangeListener{override fun onProgressChanged(s:SeekBar?,p:Int,f:Boolean){if(f)player.seekTo(p.toLong())} override fun onStartTrackingTouch(s:SeekBar?){} override fun onStopTrackingTouch(s:SeekBar?){}}) }
         tvTotalTime = TextView(this).apply { text="00:00"; setTextColor(Color.WHITE); textSize=12f }
         seekLayout.addView(tvCurrentTime); seekLayout.addView(seekBar); seekLayout.addView(tvTotalTime); root.addView(seekLayout)
 
-        // شريط التحميل
         progressBar = ProgressBar(this).apply { visibility=View.GONE; layoutParams=LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,6) }; root.addView(progressBar)
 
-        // قائمة المحتوى
         rv = RecyclerView(this).apply { layoutParams=LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,0,1f); layoutManager=LinearLayoutManager(this@MainActivity); setBackgroundColor(theme.bg) }; root.addView(rv)
 
-        // شريط سفلي - 6 أزرار
         val bottomBar = LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; setPadding(3,10,3,18); setBackgroundColor(theme.bottomBar); gravity=Gravity.CENTER }
         btnHome = createBottomButton("🏠","رئيسية",theme){switchTab("home")}
         btnLive = createBottomButton("📺","مباشر",theme){switchTab("live")}
@@ -249,7 +237,6 @@ class MainActivity : AppCompatActivity() {
         return if(h>0) String.format("%d:%02d:%02d",h,m,s) else String.format("%02d:%02d",m,s)
     }
 
-    // نظام التسجيل DVR
     private fun toggleRecording() {
         if(isRecording) stopRecording() else startRecording()
     }
@@ -271,13 +258,14 @@ class MainActivity : AppCompatActivity() {
                     val input = URL(currentStreamUrl).openStream()
                     val output = FileOutputStream(recordingFile)
                     val buffer = ByteArray(4096)
-                    var bytesRead: Int
-                    while(isRecording && input.read(buffer).also{bytesRead=it} != -1) {
+                    var bytesRead = input.read(buffer)
+                    while(isRecording && bytesRead != -1) {
                         output.write(buffer, 0, bytesRead)
+                        bytesRead = input.read(buffer)
                     }
                     output.close(); input.close()
                 } catch(e: Exception) {
-                    runOnUiThread { Toast.makeText(this,"❌ خطأ في التسجيل",Toast.LENGTH_SHORT).show(); stopRecording() }
+                    runOnUiThread { Toast.makeText(this@MainActivity,"❌ خطأ في التسجيل",Toast.LENGTH_SHORT).show(); stopRecording() }
                 }
             }
         } catch(e: Exception) { Toast.makeText(this,"❌ فشل بدء التسجيل",Toast.LENGTH_SHORT).show() }
@@ -297,7 +285,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // نظام المشاركة
     private fun shareCurrentStream() {
         currentStreamName?.let { name ->
             val shareText = "شاهد معي على MN-DAZOU IPTV:\n📺 $name\n🔗 ${currentStreamUrl ?: ""}"
@@ -310,7 +297,6 @@ class MainActivity : AppCompatActivity() {
         } ?: Toast.makeText(this,"لا يوجد محتوى للمشاركة",Toast.LENGTH_SHORT).show()
     }
 
-    // نظام الحسابات المتعددة
     private fun saveAccounts() {
         val json = JSONArray()
         accounts.forEach {
@@ -346,7 +332,6 @@ class MainActivity : AppCompatActivity() {
             }.show()
     }
 
-    // إحصائيات المشاهدة
     private fun saveWatchTime(duration: Long) {
         val today = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date())
         val totalToday = prefs.getLong("watch_$today", 0) + duration
@@ -364,7 +349,6 @@ class MainActivity : AppCompatActivity() {
         val hours = todayWatch / (1000 * 60 * 60)
         val minutes = (todayWatch % (1000 * 60 * 60)) / (1000 * 60)
 
-        // جمع القنوات الأكثر مشاهدة
         val allPrefs = prefs.all
         val channelCounts = mutableMapOf<String, Int>()
         allPrefs.forEach { (key, value) ->
@@ -414,7 +398,6 @@ class MainActivity : AppCompatActivity() {
         else->super.onKeyDown(keyCode,event)
     }
 
-    // دوال التنقل والتشغيل
     private fun togglePlayPause() { if(isPlayerPlaying) player.pause() else player.play() }
     private fun changeAspectRatio() { currentAspectRatio=(currentAspectRatio+1)%3; playerView.resizeMode=when(currentAspectRatio){0->androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT;1->androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL;else->androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM}; Toast.makeText(this,"📐 ${arrayOf("ملائم","ملء","تكبير")[currentAspectRatio]}",Toast.LENGTH_SHORT).show() }
     private fun toggleFullscreen() { if(playerView.layoutParams.height==420){playerView.layoutParams.height=ViewGroup.LayoutParams.MATCH_PARENT;Toast.makeText(this,"⛶ ملء الشاشة",Toast.LENGTH_SHORT).show()}else{playerView.layoutParams.height=420;Toast.makeText(this,"📱 وضع عادي",Toast.LENGTH_SHORT).show()};playerView.requestLayout() }
@@ -441,8 +424,20 @@ class MainActivity : AppCompatActivity() {
     private fun showM3uDialog() { val e=EditText(this).apply{hint="رابط M3U أو الصق المحتوى";minLines=3;setPadding(30,20,30,20)}; AlertDialog.Builder(this).setTitle("📋 إضافة M3U").setView(e).setPositiveButton("تحميل"){_,_->val i=e.text.toString(); if(i.startsWith("http"))loadM3uFromUrl(i)else parseM3uContent(i)}.setNegativeButton("إلغاء",null).show() }
     private fun loadM3uFromUrl(url: String) { showLoading(); thread{try{val c=java.net.URL(url).readText();runOnUiThread{hideLoading();parseM3uContent(c)}}catch(ex:Exception){runOnUiThread{hideLoading();Toast.makeText(this,"❌ فشل",Toast.LENGTH_SHORT).show()}}} }
     private fun parseM3uContent(content: String) { val ch=mutableListOf<XtreamChannel>(); var n=""; for(l in content.split("\n")){if(l.startsWith("#EXTINF"))n=Regex(",(.+)").find(l)?.groupValues?.get(1)?.trim()?:"قناة"; else if(l.startsWith("http"))ch.add(XtreamChannel(ch.size,n,"live","","","","m3u","ts"))}; liveChannels.addAll(ch); Toast.makeText(this,"✅ ${ch.size} قناة",Toast.LENGTH_SHORT).show(); updateLiveList() }
+
     private fun loadEpg() { server?.let{s->showLoading(); thread{try{val j=java.net.URL("${s.url}/player_api.php?username=${s.username}&password=${s.password}&action=get_short_epg").readText();epgData.clear();val a=JSONObject(j).getJSONArray("epg_listings");for(i in 0 until a.length()){val o=a.getJSONObject(i);epgData.add(EpgProgram(o.optString("epg_id",""),o.optString("title",""),o.optString("start",""),o.optString("end",""),o.optString("description","")))};runOnUiThread{hideLoading();Toast.makeText(this,"📺 ${epgData.size} برنامج",Toast.LENGTH_SHORT).show();showEpg()}}catch(ex:Exception){runOnUiThread{hideLoading();Toast.makeText(this,"❌ فشل EPG",Toast.LENGTH_SHORT).show()}}}}?:Toast.makeText(this,"سجل دخول",Toast.LENGTH_SHORT).show() }
-    private fun showEpg() { val g=epgData.groupBy{it.channelId}; val n=g.keys.toTypedArray(); if(n.isEmpty()){Toast.makeText(this,"لا بيانات",Toast.LENGTH_SHORT).show();return}; AlertDialog.Builder(this).setTitle("📺 دليل البرامج").setItems(n){_,i->val p=g[n[i]]?:emptyList(); AlertDialog.Builder(this).setTitle(n[i]).setItems(p.map{"🕐 ${it.startTime}-${it.endTime}: ${it.title}"}.toTypedArray(),null).setPositiveButton("إغلاق",null).show()}.setPositiveButton("إغلاق",null).show() }
+
+    private fun showEpg() { 
+        val g=epgData.groupBy{it.channelId}; val n=g.keys.toTypedArray()
+        if(n.isEmpty()){Toast.makeText(this,"لا بيانات",Toast.LENGTH_SHORT).show();return}
+        AlertDialog.Builder(this).setTitle("📺 دليل البرامج").setItems(n){_,i->
+            val channelName = n[i]
+            val p=g[channelName]?:emptyList()
+            AlertDialog.Builder(this).setTitle(channelName)
+                .setItems(p.map{"🕐 ${it.startTime}-${it.endTime}: ${it.title}"}.toTypedArray(),null)
+                .setPositiveButton("إغلاق",null).show()
+        }.setPositiveButton("إغلاق",null).show() 
+    }
 
     private fun switchTab(tab: String) {
         currentCategory=tab; selectedCategoryId=null; isShowingCategories=true; btnBack.visibility=View.GONE; searchLayout.visibility=View.GONE
