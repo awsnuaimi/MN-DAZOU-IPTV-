@@ -150,25 +150,20 @@ object XtreamAPI {
         return response.toString()
     }
 
-    // ----------- الدالة الذكية الجديدة -----------
     private fun extractJsonArray(json: String): JSONArray? {
         val trimmed = json.trim()
-        // 1. النص بالكامل مصفوفة
         if (trimmed.startsWith("[")) return try { JSONArray(trimmed) } catch (_: Exception) { null }
 
-        // 2. النص كائن JSON
         if (trimmed.startsWith("{")) {
             return try {
                 val obj = JSONObject(trimmed)
 
-                // 2.1 البحث في المفاتيح الشائعة أولاً
                 val commonKeys = arrayOf("data", "result", "items", "channels", "movies", "series", "live", "vod", "streams")
                 for (key in commonKeys) {
                     val arr = obj.optJSONArray(key)
                     if (arr != null) return arr
                 }
 
-                // 2.2 لم نجدها؟ نمسح جميع المفاتيح ونأخذ أول JSONArray
                 val keys = obj.keys()
                 while (keys.hasNext()) {
                     val key = keys.next()
@@ -180,11 +175,14 @@ object XtreamAPI {
         }
         return null
     }
-    // -------------------------------------------
 
     private fun parseCategories(json: String): List<XtreamCategory> {
         val list = mutableListOf<XtreamCategory>()
-        val arr = extractJsonArray(json) ?: return list
+        val arr = extractJsonArray(json)
+        if (arr == null) {
+            Log.e(TAG, "parseCategories: Failed to extract JSON array. Raw JSON: ${json.take(200)}")
+            return list
+        }
         for (i in 0 until arr.length()) {
             val o = arr.getJSONObject(i)
             list.add(XtreamCategory(o.optString("category_id"), o.optString("category_name", "?"), o.optInt("parent_id")))
@@ -194,21 +192,44 @@ object XtreamAPI {
 
     private fun parseChannels(json: String): List<XtreamChannel> {
         val list = mutableListOf<XtreamChannel>()
-        val arr = extractJsonArray(json) ?: return list
+        val arr = extractJsonArray(json)
+        if (arr == null) {
+            lastErrorMessage = "فشل استخراج مصفوفة JSON من:\n${json.take(500)}"
+            Log.e(TAG, "parseChannels: Failed to extract JSON array. Raw JSON: ${json.take(200)}")
+            return list
+        }
+        Log.d(TAG, "parseChannels: Found array with ${arr.length()} items.")
         for (i in 0 until arr.length()) {
-            val o = arr.getJSONObject(i)
-            list.add(XtreamChannel(
-                o.optInt("stream_id"), o.optString("name", "Ch $i"), o.optString("stream_type", "live"),
-                o.optString("stream_icon"), o.optString("epg_channel_id"), o.optString("added"),
-                o.optString("category_id"), o.optString("container_extension", "ts")
-            ))
+            try {
+                val o = arr.getJSONObject(i)
+                val name = o.optString("name", "No Name")
+                if (i == 0) {
+                    // عرض جميع مفاتيح أول عنصر للتشخيص
+                    val firstItemKeys = o.keys().asSequence().toList().joinToString()
+                    lastErrorMessage = "أول عنصر في المصفوفة (عدد العناصر: ${arr.length()}):\nالاسم: $name\nالمفاتيح: $firstItemKeys"
+                    Log.d(TAG, "First item keys: $firstItemKeys")
+                    Log.d(TAG, "First item name: $name")
+                }
+                list.add(XtreamChannel(
+                    o.optInt("stream_id"), name, o.optString("stream_type", "live"),
+                    o.optString("stream_icon"), o.optString("epg_channel_id"), o.optString("added"),
+                    o.optString("category_id"), o.optString("container_extension", "ts")
+                ))
+            } catch (e: Exception) {
+                Log.e(TAG, "Error parsing channel at index $i", e)
+            }
         }
         return list
     }
 
     private fun parseMovies(json: String): List<XtreamMovie> {
         val list = mutableListOf<XtreamMovie>()
-        val arr = extractJsonArray(json) ?: return list
+        val arr = extractJsonArray(json)
+        if (arr == null) {
+            lastErrorMessage = "فشل استخراج مصفوفة JSON من:\n${json.take(500)}"
+            Log.e(TAG, "parseMovies: Failed to extract JSON array. Raw JSON: ${json.take(200)}")
+            return list
+        }
         for (i in 0 until arr.length()) {
             val o = arr.getJSONObject(i)
             list.add(XtreamMovie(
@@ -222,7 +243,12 @@ object XtreamAPI {
 
     private fun parseSeries(json: String): List<XtreamSeries> {
         val list = mutableListOf<XtreamSeries>()
-        val arr = extractJsonArray(json) ?: return list
+        val arr = extractJsonArray(json)
+        if (arr == null) {
+            lastErrorMessage = "فشل استخراج مصفوفة JSON من:\n${json.take(500)}"
+            Log.e(TAG, "parseSeries: Failed to extract JSON array. Raw JSON: ${json.take(200)}")
+            return list
+        }
         for (i in 0 until arr.length()) {
             val o = arr.getJSONObject(i)
             list.add(XtreamSeries(
