@@ -30,11 +30,10 @@ class MainActivity : AppCompatActivity() {
         val rv = findViewById<RecyclerView>(R.id.rvChannels)
         rv.layoutManager = LinearLayoutManager(this)
         
-        // ربط الأزرار
         findViewById<Button>(R.id.btnXtream).setOnClickListener { showLoginDialog() }
         findViewById<Button>(R.id.btnLiveTv).setOnClickListener { loadApiData("get_live_streams", rv) }
         findViewById<Button>(R.id.btnMovies).setOnClickListener { loadApiData("get_vod_streams", rv) }
-        findViewById<Button>(R.id.btnSeries)?.setOnClickListener { loadApiData("get_series", rv) }
+        findViewById<Button>(R.id.btnSeries).setOnClickListener { loadApiData("get_series", rv) }
     }
 
     private fun loadApiData(action: String, rv: RecyclerView) {
@@ -49,10 +48,7 @@ class MainActivity : AppCompatActivity() {
         call.enqueue(object : Callback<List<StreamModel>> {
             override fun onResponse(c: Call<List<StreamModel>>, r: Response<List<StreamModel>>) {
                 r.body()?.let { list ->
-                    rv.adapter = RecyclerViewAdapter(list) { s -> 
-                        val id = s.stream_id ?: s.series_id ?: ""
-                        play(id) 
-                    }
+                    rv.adapter = RecyclerViewAdapter(list) { s -> play(s.stream_id ?: s.series_id ?: "") }
                 }
             }
             override fun onFailure(c: Call<List<StreamModel>>, t: Throwable) { Toast.makeText(this@MainActivity, "خطأ بالاتصال", Toast.LENGTH_SHORT).show() }
