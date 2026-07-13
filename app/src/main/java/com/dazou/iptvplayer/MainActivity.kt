@@ -8,7 +8,6 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
@@ -22,13 +21,8 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import org.json.JSONArray
 import org.json.JSONObject
-import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
-
-    companion object {
-        private const val TAG = "MN-DAZOU-IPTV"
-    }
 
     private lateinit var player: ExoPlayer
     private lateinit var playerView: PlayerView
@@ -40,7 +34,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnSeries: Button
     private lateinit var btnFavorites: Button
     private lateinit var btnBack: Button
-    private lateinit var btnRefresh: Button
     private lateinit var searchLayout: LinearLayout
     private lateinit var etSearch: EditText
 
@@ -67,16 +60,9 @@ class MainActivity : AppCompatActivity() {
     data class HistoryItem(val type: String, val id: Int, val name: String, val timestamp: Long, val icon: String = "")
     data class ThemeColors(val name: String, val bg: Int, val card: Int, val accent: Int, val bottomBar: Int, val textWhite: Int, val textGray: Int, val activeTab: Int)
 
+    // أحجام متوازنة: صغيرة للموبايل، أكبر للتلفزيون
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
     private fun sp(value: Float) = value * resources.displayMetrics.scaledDensity
-    private fun headerPadTop() = dp(if (isTv) 30 else 16)
-    private fun headerPadBottom() = dp(if (isTv) 15 else 10)
-    private fun playerHeight() = dp(if (isTv) 480 else 380)
-    private fun titleSize() = sp(if (isTv) 26f else 18f)
-    private fun tabSize() = sp(if (isTv) 15f else 12f)
-    private fun itemSize() = sp(if (isTv) 17f else 14f)
-    private fun itemPadV() = dp(if (isTv) 22 else 16)
-    private fun itemPadH() = dp(if (isTv) 25 else 18)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,28 +82,26 @@ class MainActivity : AppCompatActivity() {
 
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(t.bg) }
 
-        // Header with Refresh
-        val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(14), headerPadTop(), dp(14), headerPadBottom()); setBackgroundColor(t.bottomBar); gravity = Gravity.CENTER_VERTICAL }
-        btnBack = Button(this).apply { text = "⬅️"; textSize = sp(if (isTv) 20f else 16f); setBackgroundColor(Color.TRANSPARENT); setTextColor(t.textWhite); visibility = View.GONE; setOnClickListener { goBack() } }
+        // Header
+        val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(14), dp(if (isTv) 30 else 16), dp(14), dp(if (isTv) 15 else 10)); setBackgroundColor(t.bottomBar); gravity = Gravity.CENTER_VERTICAL }
+        btnBack = Button(this).apply { text = "⬅️"; textSize = sp(if (isTv) 20f else 14f); setBackgroundColor(Color.TRANSPARENT); setTextColor(t.textWhite); visibility = View.GONE; setOnClickListener { goBack() } }
         header.addView(btnBack)
-        tvTitle = TextView(this).apply { text = "MN-DAZOU IPTV"; textSize = titleSize(); setTextColor(t.accent); setTypeface(null, Typeface.BOLD); gravity = Gravity.CENTER; layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) }
+        tvTitle = TextView(this).apply { text = "MN-DAZOU IPTV"; textSize = sp(if (isTv) 26f else 16f); setTextColor(t.accent); setTypeface(null, Typeface.BOLD); gravity = Gravity.CENTER; layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) }
         header.addView(tvTitle)
-        btnRefresh = Button(this).apply { text = "🔄"; textSize = sp(if (isTv) 20f else 14f); setBackgroundColor(Color.TRANSPARENT); setTextColor(t.textGray); setOnClickListener { refreshCurrentTab() } }
-        header.addView(btnRefresh)
-        val iconSize = sp(if (isTv) 20f else 14f)
+        val iconSize = sp(if (isTv) 20f else 12f)
         header.addView(Button(this).apply { text = "🎨"; textSize = iconSize; setBackgroundColor(Color.TRANSPARENT); setTextColor(t.textGray); setOnClickListener { showThemeDialog() } })
         header.addView(Button(this).apply { text = "⚙️"; textSize = iconSize; setBackgroundColor(Color.TRANSPARENT); setTextColor(t.textGray); setOnClickListener { showLoginDialog() } })
         root.addView(header)
 
         // Search
         searchLayout = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(10), dp(5), dp(10), dp(5)); setBackgroundColor(t.bottomBar); gravity = Gravity.CENTER_VERTICAL }
-        etSearch = EditText(this).apply { hint = "🔍 بحث..."; setHintTextColor(t.textGray); setTextColor(t.textWhite); setBackgroundColor(t.bg); setPadding(dp(18), dp(8), dp(18), dp(8)); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f); textSize = sp(if (isTv) 16f else 13f) }
+        etSearch = EditText(this).apply { hint = "🔍 بحث..."; setHintTextColor(t.textGray); setTextColor(t.textWhite); setBackgroundColor(t.bg); setPadding(dp(15), dp(6), dp(15), dp(6)); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f); textSize = sp(if (isTv) 16f else 12f) }
         searchLayout.addView(etSearch)
-        searchLayout.addView(Button(this).apply { text = "بحث"; textSize = sp(if (isTv) 16f else 13f); setBackgroundColor(t.accent); setTextColor(Color.BLACK); setOnClickListener { performSearch() } })
+        searchLayout.addView(Button(this).apply { text = "بحث"; textSize = sp(if (isTv) 16f else 12f); setBackgroundColor(t.accent); setTextColor(Color.BLACK); setOnClickListener { performSearch() } })
         root.addView(searchLayout)
 
         // Player
-        playerView = PlayerView(this).apply { layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, playerHeight()); setBackgroundColor(Color.BLACK); useController = true }
+        playerView = PlayerView(this).apply { layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(if (isTv) 480 else 380)); setBackgroundColor(Color.BLACK); useController = true }
         root.addView(playerView)
 
         // Tabs
@@ -147,7 +131,7 @@ class MainActivity : AppCompatActivity() {
         val savedUrl = prefs.getString("server_url", "")
         if (!savedUrl.isNullOrEmpty()) {
             server = XtreamServer(savedUrl!!, prefs.getString("server_username", "")!!, prefs.getString("server_password", "")!!)
-            testConnection()
+            switchTab("live")
         } else {
             showLoginDialog()
         }
@@ -155,7 +139,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun createTabButton(text: String, onClick: () -> Unit): Button {
         val t = themes[currentTheme]!!
-        return Button(this).apply { this.text = text; textSize = tabSize(); setTextColor(t.textGray); setBackgroundColor(Color.TRANSPARENT); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f); setOnClickListener { onClick() } }
+        return Button(this).apply { this.text = text; textSize = sp(if (isTv) 15f else 11f); setTextColor(t.textGray); setBackgroundColor(Color.TRANSPARENT); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f); setOnClickListener { onClick() } }
     }
 
     private fun showThemeDialog() {
@@ -176,11 +160,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun refreshCurrentTab() {
-        Toast.makeText(this, "🔄 جاري التحديث...", Toast.LENGTH_SHORT).show()
-        switchTab(currentCategory)
-    }
-
     private fun goBack() { isShowingCategories = true; selectedCategoryId = null; btnBack.visibility = View.GONE; when (currentCategory) { "live" -> showLiveCategories(); "movies" -> showVodCategories(); "series" -> showSeriesCategories() } }
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean { if (keyCode == KeyEvent.KEYCODE_BACK && !isShowingCategories) { goBack(); return true }; return super.onKeyDown(keyCode, event) }
 
@@ -189,7 +168,7 @@ class MainActivity : AppCompatActivity() {
     private fun removeFavorite(item: FavoriteItem) { favorites.removeAll { it.type == item.type && it.id == item.id }; saveFavorites() }
     private fun saveFavorites() { val j = JSONArray(); favorites.forEach { val o = JSONObject(); o.put("type", it.type); o.put("id", it.id); o.put("name", it.name); o.put("icon", it.icon); j.put(o) }; prefs.edit().putString("favorites", j.toString()).apply() }
     private fun loadFavorites() { try { favorites.clear(); val s = prefs.getString("favorites", "[]") ?: "[]"; val j = JSONArray(s); for (i in 0 until j.length()) { val o = j.getJSONObject(i); favorites.add(FavoriteItem(o.getString("type"), o.getInt("id"), o.getString("name"), o.optString("icon", ""))) } } catch (e: Exception) { favorites.clear(); prefs.edit().remove("favorites").apply() } }
-    private fun showFavorites() { isShowingCategories = true; val t = themes[currentTheme]!!; rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() { override fun onCreateViewHolder(p: ViewGroup, vt: Int): RecyclerView.ViewHolder { val l = LinearLayout(p.context).apply { orientation = LinearLayout.HORIZONTAL; setPadding(itemPadH(), itemPadV(), itemPadH(), itemPadV()); gravity = Gravity.CENTER_VERTICAL; setBackgroundColor(t.card) }; l.addView(TextView(p.context).apply { textSize = itemSize(); setTextColor(t.textWhite); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) }); l.addView(Button(p.context).apply { text = "❌"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.RED); textSize = sp(if (isTv) 18f else 14f) }); return object : RecyclerView.ViewHolder(l) {} } override fun onBindViewHolder(h: RecyclerView.ViewHolder, p: Int) { val l = (h.itemView as LinearLayout); val fav = favorites[p]; (l.getChildAt(0) as TextView).text = "⭐ ${fav.name}"; l.setOnClickListener { playFavoriteItem(fav) }; l.getChildAt(1).setOnClickListener { removeFavorite(fav); showFavorites() } } override fun getItemCount() = favorites.size } }
+    private fun showFavorites() { isShowingCategories = true; val t = themes[currentTheme]!!; rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() { override fun onCreateViewHolder(p: ViewGroup, vt: Int): RecyclerView.ViewHolder { val l = LinearLayout(p.context).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(if (isTv) 25 else 16), dp(if (isTv) 22 else 14), dp(if (isTv) 25 else 16), dp(if (isTv) 22 else 14)); gravity = Gravity.CENTER_VERTICAL; setBackgroundColor(t.card) }; l.addView(TextView(p.context).apply { textSize = sp(if (isTv) 17f else 13f); setTextColor(t.textWhite); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) }); l.addView(Button(p.context).apply { text = "❌"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.RED); textSize = sp(if (isTv) 18f else 12f) }); return object : RecyclerView.ViewHolder(l) {} } override fun onBindViewHolder(h: RecyclerView.ViewHolder, p: Int) { val l = (h.itemView as LinearLayout); val fav = favorites[p]; (l.getChildAt(0) as TextView).text = "⭐ ${fav.name}"; l.setOnClickListener { playFavoriteItem(fav) }; l.getChildAt(1).setOnClickListener { removeFavorite(fav); showFavorites() } } override fun getItemCount() = favorites.size } }
 
     // ===== HISTORY =====
     private fun addToHistory(type: String, id: Int, name: String, icon: String = "") { watchHistory.removeAll { it.type == type && it.id == id }; watchHistory.add(HistoryItem(type, id, name, System.currentTimeMillis(), icon)); if (watchHistory.size > 20) watchHistory.removeAt(0); saveHistory() }
@@ -200,80 +179,24 @@ class MainActivity : AppCompatActivity() {
     // ===== SEARCH =====
     private fun performSearch() { val q = etSearch.text.toString().lowercase(); if (q.isEmpty()) return; when (currentCategory) { "live" -> { val filtered = liveChannels.filter { it.name.lowercase().contains(q) }; if (filtered.isNotEmpty()) { liveChannels.clear(); liveChannels.addAll(filtered); updateLiveList(); tvTitle.text = "🔍 $q (${filtered.size})" } else Toast.makeText(this, "لا نتائج", Toast.LENGTH_SHORT).show() } "movies" -> { val filtered = vodMovies.filter { it.name.lowercase().contains(q) }; if (filtered.isNotEmpty()) { vodMovies.clear(); vodMovies.addAll(filtered); updateMoviesList(); tvTitle.text = "🔍 $q (${filtered.size})" } else Toast.makeText(this, "لا نتائج", Toast.LENGTH_SHORT).show() } "series" -> { val filtered = seriesList.filter { it.name.lowercase().contains(q) }; if (filtered.isNotEmpty()) { seriesList.clear(); seriesList.addAll(filtered); updateSeriesList(); tvTitle.text = "🔍 $q (${filtered.size})" } else Toast.makeText(this, "لا نتائج", Toast.LENGTH_SHORT).show() } } }
 
-    // ===== CONNECTION =====
-    private fun testConnection() {
-        showLoading()
-        tvTitle.text = "⏳ جاري الاتصال بالسيرفر..."
-        Log.d(TAG, "Testing connection to: ${server!!.url}")
-        thread {
-            try {
-                val url = "${server!!.url}/player_api.php?username=${server!!.username}&password=${server!!.password}"
-                Log.d(TAG, "URL: $url")
-                val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
-                conn.connectTimeout = 10000
-                conn.readTimeout = 10000
-                conn.requestMethod = "GET"
-                val responseCode = conn.responseCode
-                val responseBody = conn.inputStream.bufferedReader().readText()
-                Log.d(TAG, "Response code: $responseCode")
-                Log.d(TAG, "Response body (first 500 chars): ${responseBody.take(500)}")
-                conn.disconnect()
-
-                runOnUiThread {
-                    hideLoading()
-                    if (responseCode == 200) {
-                        Toast.makeText(this, "✅ تم الاتصال بنجاح", Toast.LENGTH_SHORT).show()
-                        switchTab("live")
-                    } else {
-                        showConnectionError("فشل الاتصال (كود: $responseCode)")
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Connection error: ${e.message}", e)
-                runOnUiThread {
-                    hideLoading()
-                    showConnectionError("فشل الاتصال: ${e.message}")
-                }
-            }
-        }
-    }
-
-    private fun showConnectionError(message: String) {
-        tvTitle.text = "❌ خطأ في الاتصال"
-        rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-                val l = LinearLayout(parent.context).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(30), dp(30), dp(30), dp(30)); gravity = Gravity.CENTER }
-                l.addView(TextView(parent.context).apply { text = message; textSize = sp(16f); setTextColor(Color.parseColor("#FF6B6B")); gravity = Gravity.CENTER; setTypeface(null, Typeface.BOLD) })
-                l.addView(TextView(parent.context).apply { text = "تأكد من:\n- صحة رابط السيرفر\n- اتصال الانترنت\n- صلاحية الحساب"; textSize = sp(13f); setTextColor(Color.parseColor("#AAAAAA")); gravity = Gravity.CENTER; setPadding(0, dp(15), 0, dp(15)) })
-                val btnRetry = Button(parent.context).apply { text = "🔄 إعادة المحاولة"; setBackgroundColor(Color.parseColor("#2D2D5E")); setTextColor(Color.WHITE); textSize = sp(14f); setOnClickListener { testConnection() } }
-                l.addView(btnRetry)
-                val btnNewAccount = Button(parent.context).apply { text = "⚙️ إدخال حساب جديد"; setBackgroundColor(Color.parseColor("#FF6B6B")); setTextColor(Color.WHITE); textSize = sp(14f); setOnClickListener { showLoginDialog() } }
-                l.addView(btnNewAccount)
-                return object : RecyclerView.ViewHolder(l) {}
-            }
-            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, pos: Int) {}
-            override fun getItemCount() = 1
-        }
-    }
-
-    // ===== LOGIN =====
+    // ===== LOGIN (مع ScrollView للموبايل) =====
     private fun showLoginDialog() {
         val t = themes[currentTheme]!!
         val dialogSize = sp(if (isTv) 22f else 16f)
-        val inputSize = sp(if (isTv) 18f else 14f)
-        val inputPadding = dp(if (isTv) 30 else 20)
+        val inputSize = sp(if (isTv) 18f else 13f)
+        val inputPadding = dp(if (isTv) 30 else 18)
 
         val scrollView = ScrollView(this).apply { setPadding(dp(30), dp(30), dp(30), dp(30)) }
         val d = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(t.card) }
 
         d.addView(TextView(this).apply { text = "⚙️ إضافة حساب Xtream"; textSize = dialogSize; setTextColor(t.accent); setTypeface(null, Typeface.BOLD); gravity = Gravity.CENTER; setPadding(0, 0, 0, dp(25)) })
-        d.addView(TextView(this).apply { text = "رابط السيرفر:"; textSize = sp(if (isTv) 16f else 13f); setTextColor(t.textGray); setPadding(0, dp(8), 0, dp(4)) })
+        d.addView(TextView(this).apply { text = "رابط السيرفر:"; textSize = sp(if (isTv) 16f else 12f); setTextColor(t.textGray); setPadding(0, dp(8), 0, dp(4)) })
         val es = EditText(this).apply { hint = "http://example.com:8080"; setHintTextColor(t.textGray); setTextColor(t.textWhite); setBackgroundColor(t.bg); setPadding(inputPadding, inputPadding, inputPadding, inputPadding); setText("http://"); textSize = inputSize }
         d.addView(es)
-        d.addView(TextView(this).apply { text = "اسم المستخدم:"; textSize = sp(if (isTv) 16f else 13f); setTextColor(t.textGray); setPadding(0, dp(12), 0, dp(4)) })
+        d.addView(TextView(this).apply { text = "اسم المستخدم:"; textSize = sp(if (isTv) 16f else 12f); setTextColor(t.textGray); setPadding(0, dp(12), 0, dp(4)) })
         val eu = EditText(this).apply { hint = "username"; setHintTextColor(t.textGray); setTextColor(t.textWhite); setBackgroundColor(t.bg); setPadding(inputPadding, inputPadding, inputPadding, inputPadding); textSize = inputSize }
         d.addView(eu)
-        d.addView(TextView(this).apply { text = "كلمة المرور:"; textSize = sp(if (isTv) 16f else 13f); setTextColor(t.textGray); setPadding(0, dp(12), 0, dp(4)) })
+        d.addView(TextView(this).apply { text = "كلمة المرور:"; textSize = sp(if (isTv) 16f else 12f); setTextColor(t.textGray); setPadding(0, dp(12), 0, dp(4)) })
         val ep = EditText(this).apply { hint = "password"; setHintTextColor(t.textGray); setTextColor(t.textWhite); setBackgroundColor(t.bg); setPadding(inputPadding, inputPadding, inputPadding, inputPadding); textSize = inputSize }
         d.addView(ep)
 
@@ -284,9 +207,8 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton("حفظ واتصال") { _, _ ->
                 server = XtreamServer(es.text.toString().trimEnd('/'), eu.text.toString(), ep.text.toString())
                 prefs.edit().putString("server_url", server!!.url).putString("server_username", server!!.username).putString("server_password", server!!.password).apply()
-                Log.d(TAG, "Saved server: ${server!!.url}")
-                Toast.makeText(this, "⏳ جاري الاتصال...", Toast.LENGTH_SHORT).show()
-                testConnection()
+                Toast.makeText(this, "✅ تم الحفظ", Toast.LENGTH_SHORT).show()
+                switchTab("live")
             }
             .setNegativeButton("إلغاء", null)
             .setCancelable(false)
@@ -294,124 +216,32 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ===== LIVE =====
-    private fun loadLiveCategories() {
-        Log.d(TAG, "Loading live categories...")
-        server?.let { srv ->
-            showLoading()
-            XtreamAPI.getLiveCategories(srv) { cats ->
-                Log.d(TAG, "Live categories received: ${cats.size}")
-                hideLoading()
-                if (cats.isNotEmpty()) {
-                    liveCategories.clear()
-                    liveCategories.addAll(cats)
-                    showLiveCategories()
-                } else {
-                    Log.w(TAG, "No live categories, loading all streams")
-                    loadLiveStreams(null)
-                }
-            }
-        } ?: run {
-            Log.e(TAG, "Server is null!")
-            Toast.makeText(this, "الرجاء تسجيل الدخول", Toast.LENGTH_SHORT).show()
-            showLoginDialog()
-        }
-    }
-
-    private fun showLiveCategories() {
-        isShowingCategories = true
-        tvTitle.text = "📺 المجموعات (${liveCategories.size})"
-        Log.d(TAG, "Showing ${liveCategories.size} live categories")
-        rv.adapter = createCategoryAdapter(liveCategories) { cat ->
-            selectedCategoryId = cat.categoryId
-            isShowingCategories = false
-            btnBack.visibility = View.VISIBLE
-            tvTitle.text = "📺 ${cat.categoryName}"
-            loadLiveStreams(cat.categoryId)
-        }
-    }
-
-    private fun loadLiveStreams(catId: String?) {
-        Log.d(TAG, "Loading live streams, categoryId: $catId")
-        server?.let { srv ->
-            showLoading()
-            XtreamAPI.getLiveStreams(srv, catId) { channels ->
-                Log.d(TAG, "Live streams received: ${channels.size}")
-                hideLoading()
-                if (channels.isNotEmpty()) {
-                    liveChannels.clear()
-                    liveChannels.addAll(channels)
-                    updateLiveList()
-                } else {
-                    Log.w(TAG, "No live streams found")
-                    Toast.makeText(this, "لا توجد قنوات في هذا القسم", Toast.LENGTH_SHORT).show()
-                    rv.adapter = createEmptyAdapter("لا توجد قنوات")
-                }
-            }
-        }
-    }
-
-    private fun updateLiveList() {
-        tvTitle.text = "${tvTitle.text} (${liveChannels.size})"
-        Log.d(TAG, "Updating live list with ${liveChannels.size} channels")
-        rv.adapter = createChannelAdapter(liveChannels.map { it.name }) { name ->
-            val ch = liveChannels.find { it.name == name }!!
-            val url = XtreamAPI.getStreamUrl(server!!, ch.streamId, ch.containerExtension)
-            addToHistory("live", ch.streamId, ch.name)
-            playStream(url, ch.name)
-        }
-    }
+    private fun loadLiveCategories() { server?.let { srv -> showLoading(); XtreamAPI.getLiveCategories(srv) { cats -> hideLoading(); if (cats.isNotEmpty()) { liveCategories.clear(); liveCategories.addAll(cats); showLiveCategories() } else { loadLiveStreams(null) } } } ?: run { Toast.makeText(this, "الرجاء تسجيل الدخول", Toast.LENGTH_SHORT).show(); showLoginDialog() } }
+    private fun showLiveCategories() { isShowingCategories = true; tvTitle.text = "📺 المجموعات (${liveCategories.size})"; rv.adapter = createCategoryAdapter(liveCategories) { cat -> selectedCategoryId = cat.categoryId; isShowingCategories = false; btnBack.visibility = View.VISIBLE; tvTitle.text = "📺 ${cat.categoryName}"; loadLiveStreams(cat.categoryId) } }
+    private fun loadLiveStreams(catId: String?) { server?.let { srv -> showLoading(); XtreamAPI.getLiveStreams(srv, catId) { channels -> hideLoading(); liveChannels.clear(); liveChannels.addAll(channels); updateLiveList() } } }
+    private fun updateLiveList() { tvTitle.text = "${tvTitle.text} (${liveChannels.size})"; rv.adapter = createChannelAdapter(liveChannels.map { it.name }) { name -> val ch = liveChannels.find { it.name == name }!!; val url = XtreamAPI.getStreamUrl(server!!, ch.streamId, ch.containerExtension); addToHistory("live", ch.streamId, ch.name); playStream(url, ch.name) } }
 
     // ===== VOD =====
-    private fun loadVodCategories() {
-        Log.d(TAG, "Loading VOD categories...")
-        server?.let { srv ->
-            showLoading()
-            XtreamAPI.getVodCategories(srv) { cats ->
-                Log.d(TAG, "VOD categories received: ${cats.size}")
-                hideLoading()
-                if (cats.isNotEmpty()) {
-                    vodCategories.clear()
-                    vodCategories.addAll(cats)
-                    showVodCategories()
-                } else {
-                    Log.w(TAG, "No VOD categories, loading all movies")
-                    loadMovies(null)
-                }
-            }
-        } ?: run { Toast.makeText(this, "الرجاء تسجيل الدخول", Toast.LENGTH_SHORT).show(); showLoginDialog() }
-    }
-
+    private fun loadVodCategories() { server?.let { srv -> showLoading(); XtreamAPI.getVodCategories(srv) { cats -> hideLoading(); if (cats.isNotEmpty()) { vodCategories.clear(); vodCategories.addAll(cats); showVodCategories() } else { loadMovies(null) } } } ?: run { Toast.makeText(this, "الرجاء تسجيل الدخول", Toast.LENGTH_SHORT).show(); showLoginDialog() } }
     private fun showVodCategories() { isShowingCategories = true; tvTitle.text = "🎬 المجموعات (${vodCategories.size})"; rv.adapter = createCategoryAdapter(vodCategories) { cat -> selectedCategoryId = cat.categoryId; isShowingCategories = false; btnBack.visibility = View.VISIBLE; tvTitle.text = "🎬 ${cat.categoryName}"; loadMovies(cat.categoryId) } }
-    private fun loadMovies(catId: String?) { Log.d(TAG, "Loading movies, categoryId: $catId"); server?.let { srv -> showLoading(); XtreamAPI.getVodStreams(srv, catId) { movies -> Log.d(TAG, "Movies received: ${movies.size}"); hideLoading(); if (movies.isNotEmpty()) { vodMovies.clear(); vodMovies.addAll(movies); updateMoviesList() } else { Toast.makeText(this, "لا توجد أفلام", Toast.LENGTH_SHORT).show(); rv.adapter = createEmptyAdapter("لا توجد أفلام") } } } }
+    private fun loadMovies(catId: String?) { server?.let { srv -> showLoading(); XtreamAPI.getVodStreams(srv, catId) { movies -> hideLoading(); vodMovies.clear(); vodMovies.addAll(movies); updateMoviesList() } } }
     private fun updateMoviesList() { tvTitle.text = "${tvTitle.text} (${vodMovies.size})"; rv.adapter = createChannelAdapter(vodMovies.map { it.name }) { name -> val m = vodMovies.find { it.name == name }!!; val url = XtreamAPI.getMovieUrl(server!!, m.streamId, m.containerExtension); addToHistory("movie", m.streamId, m.name); playStream(url, m.name) } }
 
     // ===== SERIES =====
-    private fun loadSeriesCategories() { Log.d(TAG, "Loading series categories..."); server?.let { srv -> showLoading(); XtreamAPI.getLiveCategories(srv) { cats -> Log.d(TAG, "Series categories received: ${cats.size}"); hideLoading(); if (cats.isNotEmpty()) { seriesCategories.clear(); seriesCategories.addAll(cats); showSeriesCategories() } else { loadSeriesList(null) } } } ?: run { Toast.makeText(this, "الرجاء تسجيل الدخول", Toast.LENGTH_SHORT).show(); showLoginDialog() } }
+    private fun loadSeriesCategories() { server?.let { srv -> showLoading(); XtreamAPI.getLiveCategories(srv) { cats -> hideLoading(); if (cats.isNotEmpty()) { seriesCategories.clear(); seriesCategories.addAll(cats); showSeriesCategories() } else { loadSeriesList(null) } } } ?: run { Toast.makeText(this, "الرجاء تسجيل الدخول", Toast.LENGTH_SHORT).show(); showLoginDialog() } }
     private fun showSeriesCategories() { isShowingCategories = true; tvTitle.text = "🎭 المجموعات (${seriesCategories.size})"; rv.adapter = createCategoryAdapter(seriesCategories) { cat -> selectedCategoryId = cat.categoryId; isShowingCategories = false; btnBack.visibility = View.VISIBLE; tvTitle.text = "🎭 ${cat.categoryName}"; loadSeriesList(cat.categoryId) } }
-    private fun loadSeriesList(catId: String?) { Log.d(TAG, "Loading series, categoryId: $catId"); server?.let { srv -> showLoading(); XtreamAPI.getSeries(srv, catId) { series -> Log.d(TAG, "Series received: ${series.size}"); hideLoading(); if (series.isNotEmpty()) { seriesList.clear(); seriesList.addAll(series); updateSeriesList() } else { Toast.makeText(this, "لا توجد مسلسلات", Toast.LENGTH_SHORT).show(); rv.adapter = createEmptyAdapter("لا توجد مسلسلات") } } } }
+    private fun loadSeriesList(catId: String?) { server?.let { srv -> showLoading(); XtreamAPI.getSeries(srv, catId) { series -> hideLoading(); seriesList.clear(); seriesList.addAll(series); updateSeriesList() } } }
     private fun updateSeriesList() { tvTitle.text = "${tvTitle.text} (${seriesList.size})"; rv.adapter = createChannelAdapter(seriesList.map { it.name }) { name -> val s = seriesList.find { it.name == name }!!; XtreamAPI.getSeriesInfo(server!!, s.seriesId) { episodes -> showEpisodesDialog(s.name, episodes) } } }
-
-    // ===== EMPTY ADAPTER =====
-    private fun createEmptyAdapter(message: String): RecyclerView.Adapter<RecyclerView.ViewHolder> {
-        return object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-                val tv = TextView(parent.context).apply { text = message; textSize = sp(16f); setTextColor(Color.parseColor("#AAAAAA")); gravity = Gravity.CENTER; setPadding(dp(30), dp(50), dp(30), dp(50)) }
-                return object : RecyclerView.ViewHolder(tv) {}
-            }
-            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, pos: Int) {}
-            override fun getItemCount() = 1
-        }
-    }
 
     // ===== ADAPTERS =====
     private fun createCategoryAdapter(cats: List<XtreamCategory>, onClick: (XtreamCategory) -> Unit): RecyclerView.Adapter<RecyclerView.ViewHolder> {
         val t = themes[currentTheme]!!
         return object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-                val l = LinearLayout(parent.context).apply { orientation = LinearLayout.HORIZONTAL; setPadding(itemPadH(), itemPadV(), itemPadH(), itemPadV()); gravity = Gravity.CENTER_VERTICAL; setBackgroundColor(t.card) }
-                l.addView(TextView(parent.context).apply { text = "📁"; textSize = sp(if (isTv) 26f else 22f) })
-                l.addView(TextView(parent.context).apply { setPadding(dp(15), 0, 0, 0); textSize = sp(if (isTv) 18f else 15f); setTextColor(t.textWhite); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) })
-                l.addView(TextView(parent.context).apply { text = "→"; textSize = sp(if (isTv) 22f else 18f); setTextColor(t.accent) })
+                val l = LinearLayout(parent.context).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(if (isTv) 25 else 16), dp(if (isTv) 22 else 14), dp(if (isTv) 25 else 16), dp(if (isTv) 22 else 14)); gravity = Gravity.CENTER_VERTICAL; setBackgroundColor(t.card) }
+                l.addView(TextView(parent.context).apply { text = "📁"; textSize = sp(if (isTv) 26f else 20f) })
+                l.addView(TextView(parent.context).apply { setPadding(dp(15), 0, 0, 0); textSize = sp(if (isTv) 18f else 13f); setTextColor(t.textWhite); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) })
+                l.addView(TextView(parent.context).apply { text = "→"; textSize = sp(if (isTv) 22f else 16f); setTextColor(t.accent) })
                 return object : RecyclerView.ViewHolder(l) {}
             }
             override fun onBindViewHolder(holder: RecyclerView.ViewHolder, pos: Int) { val l = (holder.itemView as LinearLayout); (l.getChildAt(1) as TextView).text = cats[pos].categoryName; l.setOnClickListener { onClick(cats[pos]) } }
@@ -423,9 +253,9 @@ class MainActivity : AppCompatActivity() {
         val t = themes[currentTheme]!!
         return object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-                val l = LinearLayout(parent.context).apply { orientation = LinearLayout.HORIZONTAL; setPadding(itemPadH(), itemPadV(), itemPadH(), itemPadV()); gravity = Gravity.CENTER_VERTICAL; setBackgroundColor(t.card) }
-                l.addView(TextView(parent.context).apply { textSize = itemSize(); setTextColor(t.textWhite); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) })
-                l.addView(Button(parent.context).apply { text = "⭐"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.parseColor("#FFD93D")); textSize = sp(if (isTv) 22f else 18f) })
+                val l = LinearLayout(parent.context).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(if (isTv) 25 else 16), dp(if (isTv) 22 else 12), dp(if (isTv) 25 else 16), dp(if (isTv) 22 else 12)); gravity = Gravity.CENTER_VERTICAL; setBackgroundColor(t.card) }
+                l.addView(TextView(parent.context).apply { textSize = sp(if (isTv) 17f else 13f); setTextColor(t.textWhite); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) })
+                l.addView(Button(parent.context).apply { text = "⭐"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.parseColor("#FFD93D")); textSize = sp(if (isTv) 22f else 16f) })
                 return object : RecyclerView.ViewHolder(l) {}
             }
             override fun onBindViewHolder(holder: RecyclerView.ViewHolder, pos: Int) { val l = (holder.itemView as LinearLayout); val name = names[pos]; (l.getChildAt(0) as TextView).text = name; l.setOnClickListener { onClick(name) }; l.getChildAt(1).setOnClickListener { val type = if (currentCategory == "movies") "movie" else "live"; val id = if (type == "live") liveChannels.getOrNull(pos)?.streamId ?: 0 else vodMovies.getOrNull(pos)?.streamId ?: 0; addToFavorites(type, id, name) } }
