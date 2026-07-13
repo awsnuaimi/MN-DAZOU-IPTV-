@@ -16,7 +16,38 @@ data class XtreamMovie(val streamId: Int, val name: String, val containerExtensi
 data class XtreamSeries(val seriesId: Int, val name: String, val cover: String, val plot: String, val cast: String, val director: String, val genre: String, val rating: String, val year: String)
 data class XtreamEpisode(val id: Int, val episodeNum: Int, val seasonNum: Int, val title: String, val containerExtension: String, val info: String)
 
-object XtreamAPI {
+object XtreamAPI {// دالة EPG
+fun getEpg(server: XtreamServer, streamId: Int? = null, callback: (List<EpgProgram>) -> Unit) {
+    thread {
+        try {
+            var url = "${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_short_epg"
+            if (streamId != null) url += "&stream_id=$streamId"
+            lastRequestUrl = url
+            val json = fetchJson(url)
+            lastResponseBody = json.take(1000)
+            val epgList = mutableListOf<EpgProgram>()
+            val jsonArray = extractJsonArray(json)
+            if (jsonArray != null) {
+                for (i in 0 until jsonArray.length()) {
+                    val obj = jsonArray.getJSONObject(i)
+                    epgList.add(EpgProgram(
+                        channelId = obj.optString("epg_id", ""),
+                        title = obj.optString("title", ""),
+                        startTime = obj.optString("start", ""),
+                        endTime = obj.optString("end", ""),
+                        description = obj.optString("description", "")
+                    ))
+                }
+            }
+            lastItemCount = epgList.size
+            runOnUiThread { callback(epgList) }
+        } catch (e: Exception) {
+            Log.e(TAG, "EPG error", e)
+            lastErrorMessage = e.message ?: "خطأ"
+            runOnUiThread { callback(emptyList()) }
+        }
+    }
+}
     private const val TAG = "XtreamAPI"
 
     var lastRequestUrl: String = ""

@@ -39,4 +39,6 @@
     <dimen name="dialog_input_size">13sp</dimen>
     <dimen name="dialog_input_padding">18dp</dimen>
     <dimen name="dialog_label_size">12sp</dimen>
-</resources>
+<resources/><dimen name="epg_item_padding">8dp</dimen>
+<dimen name="epg_title_size">13sp</dimen>
+<dimen name="epg_time_size">11sp</dimen>
