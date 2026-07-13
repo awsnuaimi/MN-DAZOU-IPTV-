@@ -19,6 +19,10 @@ data class XtreamEpisode(val id: Int, val episodeNum: Int, val seasonNum: Int, v
 object XtreamAPI {
     private const val TAG = "XtreamAPI"
 
+    // تخزين آخر خطأ للعرض في الواجهة
+    var lastErrorMessage: String = ""
+    var lastJsonSnippet: String = ""
+
     fun getLiveCategories(server: XtreamServer, callback: (List<XtreamCategory>) -> Unit) {
         thread {
             try {
@@ -28,6 +32,7 @@ object XtreamAPI {
                 runOnUiThread { callback(categories) }
             } catch (e: Exception) {
                 Log.e(TAG, "live categories error", e)
+                lastErrorMessage = e.message ?: "خطأ غير معروف"
                 runOnUiThread { callback(emptyList()) }
             }
         }
@@ -39,12 +44,15 @@ object XtreamAPI {
                 var url = "${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_live_streams"
                 if (categoryId != null) url += "&category_id=$categoryId"
                 val json = fetchJson(url)
-                Log.d(TAG, "Live streams JSON first 300 chars: ${json.take(300)}")
+                lastJsonSnippet = json.take(500)
+                Log.d(TAG, "Live streams JSON first 500: $lastJsonSnippet")
                 val channels = parseChannels(json)
                 Log.d(TAG, "Parsed ${channels.size} live channels")
                 runOnUiThread { callback(channels) }
             } catch (e: Exception) {
                 Log.e(TAG, "live streams error", e)
+                lastErrorMessage = e.message ?: "خطأ غير معروف"
+                lastJsonSnippet = ""
                 runOnUiThread { callback(emptyList()) }
             }
         }
@@ -59,6 +67,7 @@ object XtreamAPI {
                 runOnUiThread { callback(categories) }
             } catch (e: Exception) {
                 Log.e(TAG, "vod categories error", e)
+                lastErrorMessage = e.message ?: "خطأ غير معروف"
                 runOnUiThread { callback(emptyList()) }
             }
         }
@@ -70,12 +79,15 @@ object XtreamAPI {
                 var url = "${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_vod_streams"
                 if (categoryId != null) url += "&category_id=$categoryId"
                 val json = fetchJson(url)
-                Log.d(TAG, "VOD streams JSON first 300 chars: ${json.take(300)}")
+                lastJsonSnippet = json.take(500)
+                Log.d(TAG, "VOD streams JSON first 500: $lastJsonSnippet")
                 val movies = parseMovies(json)
                 Log.d(TAG, "Parsed ${movies.size} movies")
                 runOnUiThread { callback(movies) }
             } catch (e: Exception) {
                 Log.e(TAG, "vod streams error", e)
+                lastErrorMessage = e.message ?: "خطأ غير معروف"
+                lastJsonSnippet = ""
                 runOnUiThread { callback(emptyList()) }
             }
         }
@@ -87,12 +99,15 @@ object XtreamAPI {
                 var url = "${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_series"
                 if (categoryId != null) url += "&category_id=$categoryId"
                 val json = fetchJson(url)
-                Log.d(TAG, "Series JSON first 300 chars: ${json.take(300)}")
+                lastJsonSnippet = json.take(500)
+                Log.d(TAG, "Series JSON first 500: $lastJsonSnippet")
                 val series = parseSeries(json)
                 Log.d(TAG, "Parsed ${series.size} series")
                 runOnUiThread { callback(series) }
             } catch (e: Exception) {
                 Log.e(TAG, "series error", e)
+                lastErrorMessage = e.message ?: "خطأ غير معروف"
+                lastJsonSnippet = ""
                 runOnUiThread { callback(emptyList()) }
             }
         }
@@ -144,6 +159,7 @@ object XtreamAPI {
                 trimmed.startsWith("{") -> {
                     val obj = JSONObject(trimmed)
                     obj.optJSONArray("data") ?: obj.optJSONArray("result") ?: obj.optJSONArray("items")
+                    ?: obj.optJSONArray("channels") ?: obj.optJSONArray("movies") ?: obj.optJSONArray("series")
                 }
                 else -> null
             }
@@ -165,7 +181,11 @@ object XtreamAPI {
         val arr = extractJsonArray(json) ?: return list
         for (i in 0 until arr.length()) {
             val o = arr.getJSONObject(i)
-            list.add(XtreamChannel(o.optInt("stream_id"), o.optString("name", "Ch $i"), o.optString("stream_type", "live"), o.optString("stream_icon"), o.optString("epg_channel_id"), o.optString("added"), o.optString("category_id"), o.optString("container_extension", "ts")))
+            list.add(XtreamChannel(
+                o.optInt("stream_id"), o.optString("name", "Ch $i"), o.optString("stream_type", "live"),
+                o.optString("stream_icon"), o.optString("epg_channel_id"), o.optString("added"),
+                o.optString("category_id"), o.optString("container_extension", "ts")
+            ))
         }
         return list
     }
@@ -175,7 +195,11 @@ object XtreamAPI {
         val arr = extractJsonArray(json) ?: return list
         for (i in 0 until arr.length()) {
             val o = arr.getJSONObject(i)
-            list.add(XtreamMovie(o.optInt("stream_id"), o.optString("name", "Movie $i"), o.optString("container_extension", "mp4"), o.optString("stream_icon"), o.optString("plot"), o.optString("cast"), o.optString("director"), o.optString("genre"), o.optString("rating"), o.optString("year")))
+            list.add(XtreamMovie(
+                o.optInt("stream_id"), o.optString("name", "Movie $i"), o.optString("container_extension", "mp4"),
+                o.optString("stream_icon"), o.optString("plot"), o.optString("cast"), o.optString("director"),
+                o.optString("genre"), o.optString("rating"), o.optString("year")
+            ))
         }
         return list
     }
@@ -185,7 +209,11 @@ object XtreamAPI {
         val arr = extractJsonArray(json) ?: return list
         for (i in 0 until arr.length()) {
             val o = arr.getJSONObject(i)
-            list.add(XtreamSeries(o.optInt("series_id"), o.optString("name", "Series $i"), o.optString("cover"), o.optString("plot"), o.optString("cast"), o.optString("director"), o.optString("genre"), o.optString("rating"), o.optString("year")))
+            list.add(XtreamSeries(
+                o.optInt("series_id"), o.optString("name", "Series $i"), o.optString("cover"),
+                o.optString("plot"), o.optString("cast"), o.optString("director"), o.optString("genre"),
+                o.optString("rating"), o.optString("year")
+            ))
         }
         return list
     }
