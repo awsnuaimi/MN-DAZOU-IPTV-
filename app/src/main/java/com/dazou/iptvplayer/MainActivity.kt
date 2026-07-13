@@ -232,19 +232,41 @@ class MainActivity : AppCompatActivity() {
     private fun loadSeriesList(catId: String?) { server?.let { srv -> showLoading(); XtreamAPI.getSeries(srv, catId) { series -> hideLoading(); seriesList.clear(); seriesList.addAll(series); if (series.isNotEmpty()) updateSeriesList() else showEmptyError("لم يتم العثور على مسلسلات") } } }
     private fun updateSeriesList() { tvTitle.text = "${tvTitle.text} (${seriesList.size})"; rv.adapter = createChannelAdapter(seriesList.map { it.name }) { name -> val s = seriesList.find { it.name == name }!!; XtreamAPI.getSeriesInfo(server!!, s.seriesId) { episodes -> showEpisodesDialog(s.name, episodes) } } }
 
-    // Error display
+    // ===== Error display (Updated: uses lastResponseBody instead of lastJsonSnippet) =====
     private fun showEmptyError(message: String) {
-        val errMsg = XtreamAPI.lastErrorMessage
-        val jsonSnippet = XtreamAPI.lastJsonSnippet
-        val fullMessage = if (errMsg.isNotEmpty()) "$message\n\nخطأ: $errMsg\n\nأول 500 حرف من الرد:\n$jsonSnippet" else message
+        val report = buildString {
+            appendLine("❌ $message")
+            appendLine()
+            if (XtreamAPI.lastRequestUrl.isNotEmpty()) {
+                appendLine("🔗 الرابط:")
+                appendLine(XtreamAPI.lastRequestUrl)
+                appendLine()
+            }
+            if (XtreamAPI.lastErrorMessage.isNotEmpty()) {
+                appendLine("⚠️ الخطأ:")
+                appendLine(XtreamAPI.lastErrorMessage)
+                appendLine()
+            }
+            appendLine("📊 عدد العناصر المستخرجة: ${XtreamAPI.lastItemCount}")
+            if (XtreamAPI.lastResponseBody.isNotEmpty()) {
+                appendLine()
+                appendLine("📄 نص الاستجابة (أول 1000 حرف):")
+                appendLine(XtreamAPI.lastResponseBody.take(1000))
+            } else {
+                appendLine("📄 نص الاستجابة: (فارغ)")
+            }
+        }
+
         tvTitle.text = "❌ خطأ"
         rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+                val scrollView = ScrollView(parent.context)
                 val l = LinearLayout(parent.context).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(20), dp(20), dp(20)); gravity = Gravity.CENTER }
-                l.addView(TextView(parent.context).apply { text = fullMessage; textSize = sp(13f); setTextColor(Color.parseColor("#FF6B6B")); gravity = Gravity.CENTER })
+                l.addView(TextView(parent.context).apply { text = report; textSize = sp(12f); setTextColor(Color.parseColor("#FF6B6B")); gravity = Gravity.START })
                 val btnRetry = Button(parent.context).apply { text = "🔄 إعادة المحاولة"; setBackgroundColor(Color.parseColor("#2D2D5E")); setTextColor(Color.WHITE); setOnClickListener { refreshCurrentTab() } }
                 l.addView(btnRetry)
-                return object : RecyclerView.ViewHolder(l) {}
+                scrollView.addView(l)
+                return object : RecyclerView.ViewHolder(scrollView) {}
             }
             override fun onBindViewHolder(holder: RecyclerView.ViewHolder, pos: Int) {}
             override fun getItemCount() = 1
