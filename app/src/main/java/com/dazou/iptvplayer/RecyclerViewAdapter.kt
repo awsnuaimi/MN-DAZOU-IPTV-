@@ -1,5 +1,6 @@
 package com.dazou.iptvplayer
 
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -20,6 +21,9 @@ class RecyclerViewAdapter(private val list: List<StreamModel>, private val onCli
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.tv.text = list[position].name
+        holder.tv.setTextColor(Color.WHITE)
+        holder.tv.textSize = 16f
+        holder.tv.setPadding(30, 20, 30, 20)
         holder.itemView.setOnClickListener { onClick(list[position]) }
     }
 
