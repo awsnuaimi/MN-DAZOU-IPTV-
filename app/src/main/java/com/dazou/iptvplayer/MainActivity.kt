@@ -261,18 +261,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun shareCurrentStream() {
-        currentStreamName?.let { name ->
-            val shareText = "شاهد معي على MN-DAZOU IPTV:\n📺 $name\n🔗 ${currentStreamUrl ?: ""}"
-            startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, shareText); putExtra(Intent.EXTRA_SUBJECT, name) }, "مشاركة عبر"))
+        currentStreamName?.let { sname ->
+            val shareText = "شاهد معي على MN-DAZOU IPTV:\n📺 $sname\n🔗 ${currentStreamUrl ?: ""}"
+            startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, shareText); putExtra(Intent.EXTRA_SUBJECT, sname) }, "مشاركة عبر"))
         } ?: Toast.makeText(this,"لا يوجد محتوى للمشاركة",Toast.LENGTH_SHORT).show()
     }
 
-    private fun saveAccounts() { val json = JSONArray(); accounts.forEach { val obj = JSONObject(); obj.put("url", it.url); obj.put("username", it.username); obj.put("password", it.password); json.put(obj) }; prefs.edit().putString("accounts", json.toString()).apply() }
+    private fun saveAccounts() { val json = JSONArray(); accounts.forEach { acc -> val obj = JSONObject(); obj.put("url", acc.url); obj.put("username", acc.username); obj.put("password", acc.password); json.put(obj) }; prefs.edit().putString("accounts", json.toString()).apply() }
     private fun loadAccounts() { val s = prefs.getString("accounts", "[]") ?: "[]"; val json = JSONArray(s); for(i in 0 until json.length()) { val obj = json.getJSONObject(i); accounts.add(XtreamServer(obj.getString("url"), obj.getString("username"), obj.getString("password"))) } }
 
     private fun showAccountsDialog() {
         if(accounts.isEmpty()) { showLoginDialog(); return }
-        val names = accounts.mapIndexed { i, a -> "👤 حساب ${i+1}: ${a.username}@${a.url.removePrefix("http://").removePrefix("https://").substringBefore(":")}" }.toTypedArray()
+        val names = accounts.mapIndexed { i, acc -> "👤 حساب ${i+1}: ${acc.username}@${acc.url.removePrefix("http://").removePrefix("https://").substringBefore(":")}" }.toTypedArray()
         AlertDialog.Builder(this).setTitle("👤 إدارة الحسابات (${accounts.size})").setItems(names + arrayOf("➕ إضافة حساب", "🗑️ حذف كل الحسابات", "📊 إحصائيات المشاهدة")) { _, which ->
             when {
                 which < accounts.size -> { currentAccountIndex = which; server = accounts[which]; prefs.edit().putInt("current_account", which).apply(); switchTab("home"); Toast.makeText(this,"✅ تم التبديل",Toast.LENGTH_SHORT).show() }
@@ -286,7 +286,7 @@ class MainActivity : AppCompatActivity() {
     private fun saveWatchTime(duration: Long) {
         val today = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date())
         prefs.edit().putLong("watch_$today", prefs.getLong("watch_$today", 0) + duration).apply()
-        currentStreamName?.let { name -> prefs.edit().putInt("channel_count_$name", prefs.getInt("channel_count_$name", 0) + 1).apply() }
+        currentStreamName?.let { sname -> prefs.edit().putInt("channel_count_$sname", prefs.getInt("channel_count_$sname", 0) + 1).apply() }
     }
 
     private fun showWatchStats() {
@@ -298,7 +298,7 @@ class MainActivity : AppCompatActivity() {
         val topChannels = channelCounts.entries.sortedByDescending { it.value }.take(5)
         val message = StringBuilder()
         message.appendLine("📊 إحصائيات اليوم:"); message.appendLine("⏱️ وقت المشاهدة: ${hours}h ${minutes}m"); message.appendLine()
-        if(topChannels.isNotEmpty()) { message.appendLine("📺 الأكثر مشاهدة:"); topChannels.forEachIndexed { i, (chname, count) -> message.appendLine("${i+1}. $chname ($count مرة)") } }
+        if(topChannels.isNotEmpty()) { message.appendLine("📺 الأكثر مشاهدة:"); topChannels.forEachIndexed { i, entry -> message.appendLine("${i+1}. ${entry.key} (${entry.value} مرة)") } }
         AlertDialog.Builder(this).setTitle("📊 إحصائيات المشاهدة").setMessage(message.toString()).setPositiveButton("حسناً", null).show()
     }
 
@@ -328,7 +328,7 @@ class MainActivity : AppCompatActivity() {
     private fun changeAspectRatio() { currentAspectRatio=(currentAspectRatio+1)%3; playerView.resizeMode=when(currentAspectRatio){0->androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT;1->androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL;else->androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM}; Toast.makeText(this,"📐 ${arrayOf("ملائم","ملء","تكبير")[currentAspectRatio]}",Toast.LENGTH_SHORT).show() }
     private fun toggleFullscreen() { if(playerView.layoutParams.height==420){playerView.layoutParams.height=ViewGroup.LayoutParams.MATCH_PARENT;Toast.makeText(this,"⛶ ملء الشاشة",Toast.LENGTH_SHORT).show()}else{playerView.layoutParams.height=420;Toast.makeText(this,"📱 وضع عادي",Toast.LENGTH_SHORT).show()};playerView.requestLayout() }
     private fun showQualityDialog() { AlertDialog.Builder(this).setTitle("🎯 جودة الفيديو").setItems(arrayOf("Auto","4K","1080p","720p","480p")){_,_->Toast.makeText(this,"⚙️ تلقائي",Toast.LENGTH_SHORT).show()}.show() }
-    private fun downloadCurrentStream() { currentStreamUrl?.let{u->try{downloadId=downloadManager.enqueue(DownloadManager.Request(Uri.parse(u)).setTitle("MN-DAZOU IPTV").setDescription(currentStreamName?:"فيديو").setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED).setDestinationInExternalPublicDir(Environment.DIRECTORY_MOVIES,"MN-DAZOU_${System.currentTimeMillis()}.mp4"));Toast.makeText(this,"⬇️ جاري التحميل",Toast.LENGTH_SHORT).show()}catch(e:Exception){Toast.makeText(this,"❌ فشل",Toast.LENGTH_SHORT).show()}}?:Toast.makeText(this,"لا يوجد فيديو",Toast.LENGTH_SHORT).show() }
+    private fun downloadCurrentStream() { currentStreamUrl?.let{url->try{downloadId=downloadManager.enqueue(DownloadManager.Request(Uri.parse(url)).setTitle("MN-DAZOU IPTV").setDescription(currentStreamName?:"فيديو").setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED).setDestinationInExternalPublicDir(Environment.DIRECTORY_MOVIES,"MN-DAZOU_${System.currentTimeMillis()}.mp4"));Toast.makeText(this,"⬇️ جاري التحميل",Toast.LENGTH_SHORT).show()}catch(e:Exception){Toast.makeText(this,"❌ فشل",Toast.LENGTH_SHORT).show()}}?:Toast.makeText(this,"لا يوجد فيديو",Toast.LENGTH_SHORT).show() }
     private fun registerDownloadReceiver() { registerReceiver(object:BroadcastReceiver(){override fun onReceive(c:Context?,i:Intent?){if(i?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID,-1)==downloadId)Toast.makeText(this@MainActivity,"✅ تم التحميل",Toast.LENGTH_SHORT).show()}},IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)) }
 
     private fun playNextChannel() { val channels=when(currentStreamType){"live"->liveChannels;"movie"->vodMovies;else->emptyList()}; if(channels.isEmpty()||currentStreamIndex<0)return; playChannelAtIndex((currentStreamIndex+1)%channels.size) }
@@ -346,12 +346,12 @@ class MainActivity : AppCompatActivity() {
     private fun loadImage(url: String, callback: (Bitmap?) -> Unit) { imageCache[url]?.let{callback(it); return}; thread{try{val conn=URL(url).openConnection() as HttpURLConnection;conn.doInput=true;conn.connect();val bitmap=BitmapFactory.decodeStream(conn.inputStream);bitmap?.let{imageCache[url]=it};runOnUiThread{callback(bitmap)}}catch(e:Exception){runOnUiThread{callback(null)}}} }
 
     private fun showSettingsDialog() { AlertDialog.Builder(this).setTitle("⚙️ الإعدادات").setItems(arrayOf("🎨 تغيير الثيم","🔗 إعدادات Xtream","📋 إضافة M3U","📺 تحديث EPG","📊 إحصائيات","🗑️ مسح البيانات")){_,w->when(w){0->showThemeDialog();1->showLoginDialog();2->showM3uDialog();3->loadEpg();4->showWatchStats();5->{prefs.edit().clear().apply();accounts.clear();Toast.makeText(this,"تم المسح",Toast.LENGTH_SHORT).show();recreate()}}}.show() }
-    private fun showThemeDialog() { AlertDialog.Builder(this).setTitle("🎨 اختر الثيم").setItems(themes.values.map{it.name}.toTypedArray()){_,w->prefs.edit().putString("theme",themes.keys.toList()[w]).apply();Toast.makeText(this,"🔄 أعد التشغيل",Toast.LENGTH_LONG).show()}.show() }
+    private fun showThemeDialog() { AlertDialog.Builder(this).setTitle("🎨 اختر الثيم").setItems(themes.values.map{t->t.name}.toTypedArray()){_,w->prefs.edit().putString("theme",themes.keys.toList()[w]).apply();Toast.makeText(this,"🔄 أعد التشغيل",Toast.LENGTH_LONG).show()}.show() }
     private fun showM3uDialog() { val e=EditText(this).apply{hint="رابط M3U أو الصق المحتوى";minLines=3;setPadding(30,20,30,20)}; AlertDialog.Builder(this).setTitle("📋 إضافة M3U").setView(e).setPositiveButton("تحميل"){_,_->val i=e.text.toString(); if(i.startsWith("http"))loadM3uFromUrl(i)else parseM3uContent(i)}.setNegativeButton("إلغاء",null).show() }
     private fun loadM3uFromUrl(url: String) { showLoading(); thread{try{val c=java.net.URL(url).readText();runOnUiThread{hideLoading();parseM3uContent(c)}}catch(ex:Exception){runOnUiThread{hideLoading();Toast.makeText(this,"❌ فشل",Toast.LENGTH_SHORT).show()}}} }
     private fun parseM3uContent(content: String) { val ch=mutableListOf<XtreamChannel>(); var nm=""; for(l in content.split("\n")){if(l.startsWith("#EXTINF"))nm=Regex(",(.+)").find(l)?.groupValues?.get(1)?.trim()?:"قناة"; else if(l.startsWith("http"))ch.add(XtreamChannel(ch.size,nm,"live","","","","m3u","ts"))}; liveChannels.addAll(ch); Toast.makeText(this,"✅ ${ch.size} قناة",Toast.LENGTH_SHORT).show(); updateLiveList() }
 
-    private fun loadEpg() { server?.let{s->showLoading(); thread{try{val j=java.net.URL("${s.url}/player_api.php?username=${s.username}&password=${s.password}&action=get_short_epg").readText();epgData.clear();val a=JSONObject(j).getJSONArray("epg_listings");for(i in 0 until a.length()){val o=a.getJSONObject(i);epgData.add(EpgProgram(o.optString("epg_id",""),o.optString("title",""),o.optString("start",""),o.optString("end",""),o.optString("description","")))};runOnUiThread{hideLoading();Toast.makeText(this,"📺 ${epgData.size} برنامج",Toast.LENGTH_SHORT).show();showEpg()}}catch(ex:Exception){runOnUiThread{hideLoading();Toast.makeText(this,"❌ فشل EPG",Toast.LENGTH_SHORT).show()}}}}?:Toast.makeText(this,"سجل دخول",Toast.LENGTH_SHORT).show() }
+    private fun loadEpg() { server?.let{srv->showLoading(); thread{try{val j=java.net.URL("${srv.url}/player_api.php?username=${srv.username}&password=${srv.password}&action=get_short_epg").readText();epgData.clear();val a=JSONObject(j).getJSONArray("epg_listings");for(i in 0 until a.length()){val o=a.getJSONObject(i);epgData.add(EpgProgram(o.optString("epg_id",""),o.optString("title",""),o.optString("start",""),o.optString("end",""),o.optString("description","")))};runOnUiThread{hideLoading();Toast.makeText(this,"📺 ${epgData.size} برنامج",Toast.LENGTH_SHORT).show();showEpg()}}catch(ex:Exception){runOnUiThread{hideLoading();Toast.makeText(this,"❌ فشل EPG",Toast.LENGTH_SHORT).show()}}}}?:Toast.makeText(this,"سجل دخول",Toast.LENGTH_SHORT).show() }
 
     private fun showEpg() { 
         val g=epgData.groupBy{it.channelId}
@@ -360,7 +360,7 @@ class MainActivity : AppCompatActivity() {
         AlertDialog.Builder(this).setTitle("📺 دليل البرامج").setItems(channelKeys){_,i->
             val chName = channelKeys[i]
             val programs=g[chName]?:emptyList()
-            val programTexts = programs.map{epg->"🕐 ${epg.startTime}-${epg.endTime}: ${epg.title}"}.toTypedArray()
+            val programTexts = programs.map{epgItem->"🕐 ${epgItem.startTime}-${epgItem.endTime}: ${epgItem.title}"}.toTypedArray()
             AlertDialog.Builder(this).setTitle(chName).setItems(programTexts,null).setPositiveButton("إغلاق",null).show()
         }.setPositiveButton("إغلاق",null).show() 
     }
@@ -395,8 +395,8 @@ class MainActivity : AppCompatActivity() {
                         "quick_stats"->{tv.text="📊 إحصائيات المشاهدة";tv.setOnClickListener{showWatchStats()}}
                         "quick_recordings"->{tv.text="📁 التسجيلات";tv.setOnClickListener{showRecordings()}}
                         "empty"->tv.text="👋 أهلاً بك!"}}
-                else if(item is HistoryItem){(h.itemView as CardView).let{c->val l=c.getChildAt(0) as LinearLayout;(l.getChildAt(1) as TextView).text="🕐 ${item.name}";c.setOnClickListener{playHistoryItem(item)};if(item.icon.isNotEmpty())loadImage(item.icon){b->(l.getChildAt(0) as ImageView).setImageBitmap(b?:Bitmap.createBitmap(50,50,Bitmap.Config.ARGB_8888))}}}
-                else if(item is FavoriteItem){(h.itemView as CardView).let{c->val l=c.getChildAt(0) as LinearLayout;(l.getChildAt(1) as TextView).text="⭐ ${item.name}";c.setOnClickListener{playFavoriteItem(item)};if(item.icon.isNotEmpty())loadImage(item.icon){b->(l.getChildAt(0) as ImageView).setImageBitmap(b?:Bitmap.createBitmap(50,50,Bitmap.Config.ARGB_8888))}}}
+                else if(item is HistoryItem){(h.itemView as CardView).let{card->val l=card.getChildAt(0) as LinearLayout;(l.getChildAt(1) as TextView).text="🕐 ${item.name}";card.setOnClickListener{playHistoryItem(item)};if(item.icon.isNotEmpty())loadImage(item.icon){b->(l.getChildAt(0) as ImageView).setImageBitmap(b?:Bitmap.createBitmap(50,50,Bitmap.Config.ARGB_8888))}}}
+                else if(item is FavoriteItem){(h.itemView as CardView).let{card->val l=card.getChildAt(0) as LinearLayout;(l.getChildAt(1) as TextView).text="⭐ ${item.name}";card.setOnClickListener{playFavoriteItem(item)};if(item.icon.isNotEmpty())loadImage(item.icon){b->(l.getChildAt(0) as ImageView).setImageBitmap(b?:Bitmap.createBitmap(50,50,Bitmap.Config.ARGB_8888))}}}
             }
             override fun getItemCount()=items.size
         }
@@ -406,13 +406,13 @@ class MainActivity : AppCompatActivity() {
         val dir = File(getExternalFilesDir(Environment.DIRECTORY_MOVIES), "Recordings"); dir.mkdirs()
         val files = dir.listFiles()?.filter{it.isFile && it.name.endsWith(".ts")}?.sortedByDescending{it.lastModified()} ?: emptyList()
         if(files.isEmpty()) { Toast.makeText(this,"لا توجد تسجيلات",Toast.LENGTH_SHORT).show(); return }
-        AlertDialog.Builder(this).setTitle("📁 التسجيلات (${files.size})").setItems(files.map{it.name}.toTypedArray()){_, i ->
+        AlertDialog.Builder(this).setTitle("📁 التسجيلات (${files.size})").setItems(files.map{f->f.name}.toTypedArray()){_, i ->
             val intent = Intent(Intent.ACTION_VIEW); intent.setDataAndType(Uri.fromFile(files[i]), "video/*"); intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             try { startActivity(intent) } catch(e:Exception) { Toast.makeText(this,"لا يوجد مشغل فيديو",Toast.LENGTH_SHORT).show() }
         }.setPositiveButton("إغلاق", null).show()
     }
 
-    private fun showFavorites() { val t=themes[currentTheme]!!; rv.adapter=object:RecyclerView.Adapter<RecyclerView.ViewHolder>(){override fun onCreateViewHolder(p:ViewGroup,vt:Int):RecyclerView.ViewHolder{val c=CardView(p.context).apply{layoutParams=ViewGroup.MarginLayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT).apply{setMargins(15,6,15,6)};radius=12f;setCardBackgroundColor(t.card);cardElevation=3f};val l=LinearLayout(p.context).apply{orientation=LinearLayout.HORIZONTAL;setPadding(20,15,20,15);gravity=Gravity.CENTER_VERTICAL};l.addView(ImageView(p.context).apply{layoutParams=LinearLayout.LayoutParams(45,45);setBackgroundColor(t.activeTab)});l.addView(TextView(p.context).apply{setPadding(15,0,0,0);textSize=15f;setTextColor(t.textWhite);setTypeface(null,Typeface.BOLD);layoutParams=LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1f)});l.addView(Button(p.context).apply{text="❌";setBackgroundColor(Color.TRANSPARENT)});c.addView(l);return object:RecyclerView.ViewHolder(c){}};override fun onBindViewHolder(h:RecyclerView.ViewHolder,p:Int){val l=(h.itemView as CardView).getChildAt(0) as LinearLayout;val f=favorites[p];(l.getChildAt(1) as TextView).text="⭐ ${f.name}";h.itemView.setOnClickListener{playFavoriteItem(f)};l.getChildAt(2).setOnClickListener{removeFavorite(f);showFavorites()};if(f.icon.isNotEmpty())loadImage(f.icon){b->(l.getChildAt(0) as ImageView).setImageBitmap(b?:Bitmap.createBitmap(45,45,Bitmap.Config.ARGB_8888))}};override fun getItemCount()=favorites.size} }
+    private fun showFavorites() { val t=themes[currentTheme]!!; rv.adapter=object:RecyclerView.Adapter<RecyclerView.ViewHolder>(){override fun onCreateViewHolder(p:ViewGroup,vt:Int):RecyclerView.ViewHolder{val c=CardView(p.context).apply{layoutParams=ViewGroup.MarginLayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT).apply{setMargins(15,6,15,6)};radius=12f;setCardBackgroundColor(t.card);cardElevation=3f};val l=LinearLayout(p.context).apply{orientation=LinearLayout.HORIZONTAL;setPadding(20,15,20,15);gravity=Gravity.CENTER_VERTICAL};l.addView(ImageView(p.context).apply{layoutParams=LinearLayout.LayoutParams(45,45);setBackgroundColor(t.activeTab)});l.addView(TextView(p.context).apply{setPadding(15,0,0,0);textSize=15f;setTextColor(t.textWhite);setTypeface(null,Typeface.BOLD);layoutParams=LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1f)});l.addView(Button(p.context).apply{text="❌";setBackgroundColor(Color.TRANSPARENT)});c.addView(l);return object:RecyclerView.ViewHolder(c){}};override fun onBindViewHolder(h:RecyclerView.ViewHolder,p:Int){val l=(h.itemView as CardView).getChildAt(0) as LinearLayout;val fav=favorites[p];(l.getChildAt(1) as TextView).text="⭐ ${fav.name}";h.itemView.setOnClickListener{playFavoriteItem(fav)};l.getChildAt(2).setOnClickListener{removeFavorite(fav);showFavorites()};if(fav.icon.isNotEmpty())loadImage(fav.icon){b->(l.getChildAt(0) as ImageView).setImageBitmap(b?:Bitmap.createBitmap(45,45,Bitmap.Config.ARGB_8888))}};override fun getItemCount()=favorites.size} }
 
     private fun goBackToCategories() { isShowingCategories=true;selectedCategoryId=null;btnBack.visibility=View.GONE;when(currentCategory){"live"->showLiveCategories();"movies"->showVodCategories();"series"->showSeriesCategories()} }
 
@@ -422,36 +422,36 @@ class MainActivity : AppCompatActivity() {
 
     private fun addToFavorites(type:String,id:Int,name:String,icon:String=""){if(favorites.none{it.type==type&&it.id==id}){favorites.add(FavoriteItem(type,id,name,icon));saveFavorites();Toast.makeText(this,"⭐ تم",Toast.LENGTH_SHORT).show()}else Toast.makeText(this,"موجود",Toast.LENGTH_SHORT).show()}
     private fun removeFavorite(item:FavoriteItem){favorites.removeAll{it.type==item.type&&it.id==item.id};saveFavorites()}
-    private fun saveFavorites(){val j=JSONArray();favorites.forEach{val o=JSONObject();o.put("type",it.type);o.put("id",it.id);o.put("name",it.name);o.put("icon",it.icon);j.put(o)};prefs.edit().putString("favorites",j.toString()).apply()}
+    private fun saveFavorites(){val j=JSONArray();favorites.forEach{fav->val o=JSONObject();o.put("type",fav.type);o.put("id",fav.id);o.put("name",fav.name);o.put("icon",fav.icon);j.put(o)};prefs.edit().putString("favorites",j.toString()).apply()}
     private fun loadFavorites(){val s=prefs.getString("favorites","[]")?:return;val j=JSONArray(s);for(i in 0 until j.length()){val o=j.getJSONObject(i);favorites.add(FavoriteItem(o.getString("type"),o.getInt("id"),o.getString("name"),o.optString("icon","")))}}
     private fun addToHistory(type:String,id:Int,name:String,icon:String=""){watchHistory.removeAll{it.type==type&&it.id==id};watchHistory.add(HistoryItem(type,id,name,System.currentTimeMillis(),icon));if(watchHistory.size>20)watchHistory.removeAt(0);saveHistory()}
-    private fun saveHistory(){val j=JSONArray();watchHistory.forEach{val o=JSONObject();o.put("type",it.type);o.put("id",it.id);o.put("name",it.name);o.put("timestamp",it.timestamp);o.put("icon",it.icon);j.put(o)};prefs.edit().putString("history",j.toString()).apply()}
+    private fun saveHistory(){val j=JSONArray();watchHistory.forEach{hist->val o=JSONObject();o.put("type",hist.type);o.put("id",hist.id);o.put("name",hist.name);o.put("timestamp",hist.timestamp);o.put("icon",hist.icon);j.put(o)};prefs.edit().putString("history",j.toString()).apply()}
     private fun loadHistory(){val s=prefs.getString("history","[]")?:return;val j=JSONArray(s);for(i in 0 until j.length()){val o=j.getJSONObject(i);watchHistory.add(HistoryItem(o.getString("type"),o.getInt("id"),o.getString("name"),o.getLong("timestamp"),o.optString("icon","")))}}
     private fun playFavoriteItem(fav:FavoriteItem){when(fav.type){"live"->{val u=XtreamAPI.getStreamUrl(server!!,fav.id);playStream(u,fav.name);addToHistory("live",fav.id,fav.name,fav.icon)};"movie"->{val u=XtreamAPI.getMovieUrl(server!!,fav.id);playStream(u,fav.name);addToHistory("movie",fav.id,fav.name,fav.icon)}}}
     private fun playHistoryItem(item:HistoryItem){when(item.type){"live"->playStream(XtreamAPI.getStreamUrl(server!!,item.id),item.name);"movie"->playStream(XtreamAPI.getMovieUrl(server!!,item.id),item.name)}}
 
-    private fun loadLiveCategories(){server?.let{s->showLoading();XtreamAPI.getLiveCategories(s){liveCategories.clear();liveCategories.addAll(it);hideLoading();if(it.isEmpty())loadLiveStreams(null)else showLiveCategories()}}?:showLoginDialog()}
-    private fun loadVodCategories(){server?.let{s->showLoading();XtreamAPI.getVodCategories(s){vodCategories.clear();vodCategories.addAll(it);hideLoading();if(it.isEmpty())loadMovies(null)else showVodCategories()}}?:showLoginDialog()}
-    private fun loadSeriesCategories(){server?.let{s->showLoading();XtreamAPI.getLiveCategories(s){seriesCategories.clear();seriesCategories.addAll(it);hideLoading();if(it.isEmpty())loadSeriesList(null)else showSeriesCategories()}}?:showLoginDialog()}
+    private fun loadLiveCategories(){server?.let{srv->showLoading();XtreamAPI.getLiveCategories(srv){liveCategories.clear();liveCategories.addAll(it);hideLoading();if(it.isEmpty())loadLiveStreams(null)else showLiveCategories()}}?:showLoginDialog()}
+    private fun loadVodCategories(){server?.let{srv->showLoading();XtreamAPI.getVodCategories(srv){vodCategories.clear();vodCategories.addAll(it);hideLoading();if(it.isEmpty())loadMovies(null)else showVodCategories()}}?:showLoginDialog()}
+    private fun loadSeriesCategories(){server?.let{srv->showLoading();XtreamAPI.getLiveCategories(srv){seriesCategories.clear();seriesCategories.addAll(it);hideLoading();if(it.isEmpty())loadSeriesList(null)else showSeriesCategories()}}?:showLoginDialog()}
 
-    private fun showLiveCategories(){val t=themes[currentTheme]!!;tvTitle.text="📺 المجموعات (${liveCategories.size})";rv.adapter=createCategoryAdapter(liveCategories,"📁",t.accent){selectedCategoryId=it.categoryId;isShowingCategories=false;btnBack.visibility=View.VISIBLE;tvTitle.text="📺 ${it.categoryName}";loadLiveStreams(it.categoryId)}}
-    private fun showVodCategories(){val t=themes[currentTheme]!!;tvTitle.text="🎬 المجموعات (${vodCategories.size})";rv.adapter=createCategoryAdapter(vodCategories,"🎬",t.accent){selectedCategoryId=it.categoryId;isShowingCategories=false;btnBack.visibility=View.VISIBLE;tvTitle.text="🎬 ${it.categoryName}";loadMovies(it.categoryId)}}
-    private fun showSeriesCategories(){val t=themes[currentTheme]!!;tvTitle.text="🎭 المجموعات (${seriesCategories.size})";rv.adapter=createCategoryAdapter(seriesCategories,"📺",t.accent){selectedCategoryId=it.categoryId;isShowingCategories=false;btnBack.visibility=View.VISIBLE;tvTitle.text="🎭 ${it.categoryName}";loadSeriesList(it.categoryId)}}
+    private fun showLiveCategories(){val t=themes[currentTheme]!!;tvTitle.text="📺 المجموعات (${liveCategories.size})";rv.adapter=createCategoryAdapter(liveCategories,"📁",t.accent){cat->selectedCategoryId=cat.categoryId;isShowingCategories=false;btnBack.visibility=View.VISIBLE;tvTitle.text="📺 ${cat.categoryName}";loadLiveStreams(cat.categoryId)}}
+    private fun showVodCategories(){val t=themes[currentTheme]!!;tvTitle.text="🎬 المجموعات (${vodCategories.size})";rv.adapter=createCategoryAdapter(vodCategories,"🎬",t.accent){cat->selectedCategoryId=cat.categoryId;isShowingCategories=false;btnBack.visibility=View.VISIBLE;tvTitle.text="🎬 ${cat.categoryName}";loadMovies(cat.categoryId)}}
+    private fun showSeriesCategories(){val t=themes[currentTheme]!!;tvTitle.text="🎭 المجموعات (${seriesCategories.size})";rv.adapter=createCategoryAdapter(seriesCategories,"📺",t.accent){cat->selectedCategoryId=cat.categoryId;isShowingCategories=false;btnBack.visibility=View.VISIBLE;tvTitle.text="🎭 ${cat.categoryName}";loadSeriesList(cat.categoryId)}}
 
     private fun createCategoryAdapter(cats:List<XtreamCategory>,icon:String,color:Int,onClick:(XtreamCategory)->Unit):RecyclerView.Adapter<RecyclerView.ViewHolder>{val t=themes[currentTheme]!!;return object:RecyclerView.Adapter<RecyclerView.ViewHolder>(){override fun onCreateViewHolder(p:ViewGroup,vt:Int):RecyclerView.ViewHolder{val c=CardView(p.context).apply{layoutParams=ViewGroup.MarginLayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT).apply{setMargins(15,8,15,8)};radius=12f;setCardBackgroundColor(t.card);cardElevation=4f};val l=LinearLayout(p.context).apply{orientation=LinearLayout.HORIZONTAL;setPadding(30,25,30,25);gravity=Gravity.CENTER_VERTICAL};l.addView(TextView(p.context).apply{text=icon;textSize=24f});l.addView(TextView(p.context).apply{setPadding(20,0,0,0);textSize=16f;setTextColor(t.textWhite);setTypeface(null,Typeface.BOLD);layoutParams=LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1f)});l.addView(TextView(p.context).apply{text="→";textSize=20f;setTextColor(color)});c.addView(l);return object:RecyclerView.ViewHolder(c){}}
         override fun onBindViewHolder(h:RecyclerView.ViewHolder,p:Int){val l=(h.itemView as CardView).getChildAt(0) as LinearLayout;(l.getChildAt(1) as TextView).text=cats[p].categoryName;h.itemView.setOnClickListener{onClick(cats[p])}}
         override fun getItemCount()=cats.size}}
 
-    private fun loadLiveStreams(catId:String?){server?.let{s->showLoading();XtreamAPI.getLiveStreams(s,catId){hideLoading();liveChannels.clear();liveChannels.addAll(it);currentStreamIndex=-1;updateLiveList()}}}
-    private fun loadMovies(catId:String?){server?.let{s->showLoading();XtreamAPI.getVodStreams(s,catId){hideLoading();vodMovies.clear();vodMovies.addAll(it);currentStreamIndex=-1;updateMoviesList()}}}
-    private fun loadSeriesList(catId:String?){server?.let{s->showLoading();XtreamAPI.getSeries(s,catId){hideLoading();seriesList.clear();seriesList.addAll(it);updateSeriesList()}}}
+    private fun loadLiveStreams(catId:String?){server?.let{srv->showLoading();XtreamAPI.getLiveStreams(srv,catId){hideLoading();liveChannels.clear();liveChannels.addAll(it);currentStreamIndex=-1;updateLiveList()}}}
+    private fun loadMovies(catId:String?){server?.let{srv->showLoading();XtreamAPI.getVodStreams(srv,catId){hideLoading();vodMovies.clear();vodMovies.addAll(it);currentStreamIndex=-1;updateMoviesList()}}}
+    private fun loadSeriesList(catId:String?){server?.let{srv->showLoading();XtreamAPI.getSeries(srv,catId){hideLoading();seriesList.clear();seriesList.addAll(it);updateSeriesList()}}}
 
     private fun showLoading(){progressBar.visibility=View.VISIBLE}
     private fun hideLoading(){progressBar.visibility=View.GONE}
 
-    private fun updateLiveList(){val t=themes[currentTheme]!!;rv.adapter=createContentAdapter(liveChannels.map{Pair(it.name,it.streamIcon)},"📺",t){itemName,imgUrl->val idx=liveChannels.indexOfFirst{it.name==itemName};currentStreamIndex=idx;currentStreamType="live";val ch=liveChannels[idx];val u=XtreamAPI.getStreamUrl(server!!,ch.streamId,ch.containerExtension);addToHistory("live",ch.streamId,ch.name,imgUrl);playStream(u,ch.name)}}
-    private fun updateMoviesList(){val t=themes[currentTheme]!!;rv.adapter=createContentAdapter(vodMovies.map{Pair(it.name,it.streamIcon)},"🎬",t){itemName,imgUrl->val idx=vodMovies.indexOfFirst{it.name==itemName};currentStreamIndex=idx;currentStreamType="movie";val m=vodMovies[idx];val u=XtreamAPI.getMovieUrl(server!!,m.streamId,m.containerExtension);addToHistory("movie",m.streamId,m.name,imgUrl);playStream(u,m.name)}}
-    private fun updateSeriesList(){val t=themes[currentTheme]!!;rv.adapter=createContentAdapter(seriesList.map{Pair(it.name,it.cover)},"📺",t){itemName,_->val s=seriesList.find{it.name==itemName}!!;XtreamAPI.getSeriesInfo(server!!,s.seriesId){showEpisodesDialog(s.name,it)}}}
+    private fun updateLiveList(){val t=themes[currentTheme]!!;rv.adapter=createContentAdapter(liveChannels.map{ch->Pair(ch.name,ch.streamIcon)},"📺",t){itemName,imgUrl->val idx=liveChannels.indexOfFirst{ch->ch.name==itemName};currentStreamIndex=idx;currentStreamType="live";val ch=liveChannels[idx];val u=XtreamAPI.getStreamUrl(server!!,ch.streamId,ch.containerExtension);addToHistory("live",ch.streamId,ch.name,imgUrl);playStream(u,ch.name)}}
+    private fun updateMoviesList(){val t=themes[currentTheme]!!;rv.adapter=createContentAdapter(vodMovies.map{m->Pair(m.name,m.streamIcon)},"🎬",t){itemName,imgUrl->val idx=vodMovies.indexOfFirst{m->m.name==itemName};currentStreamIndex=idx;currentStreamType="movie";val m=vodMovies[idx];val u=XtreamAPI.getMovieUrl(server!!,m.streamId,m.containerExtension);addToHistory("movie",m.streamId,m.name,imgUrl);playStream(u,m.name)}}
+    private fun updateSeriesList(){val t=themes[currentTheme]!!;rv.adapter=createContentAdapter(seriesList.map{s->Pair(s.name,s.cover)},"📺",t){itemName,_->val s=seriesList.find{sr->sr.name==itemName}!!;XtreamAPI.getSeriesInfo(server!!,s.seriesId){showEpisodesDialog(s.name,it)}}}
 
     private fun createContentAdapter(items:List<Pair<String,String>>,icon:String,theme:ThemeColors,onClick:(String,String)->Unit):RecyclerView.Adapter<RecyclerView.ViewHolder>{
         return object:RecyclerView.Adapter<RecyclerView.ViewHolder>(){
