@@ -57,12 +57,16 @@ class MainActivity : AppCompatActivity() {
     private fun play(id: String) {
         val pv = findViewById<PlayerView>(R.id.playerView)
         pv.visibility = View.VISIBLE
+        
+        player?.stop()
         player?.release()
-        // إعداد المشغل مع User Agent لتخطي حماية السيرفرات
-        val dataSourceFactory = DefaultHttpDataSource.Factory().setUserAgent("Mozilla/5.0")
+        
         player = ExoPlayer.Builder(this).build()
         pv.player = player
-        val mediaItem = MediaItem.fromUri("${baseUrl}live/${username}/${password}/${id}.m3u8")
+        
+        val url = "${baseUrl}live/${username}/${password}/${id}.m3u8"
+        val mediaItem = MediaItem.fromUri(url)
+        
         player?.setMediaItem(mediaItem)
         player?.prepare()
         player?.playWhenReady = true

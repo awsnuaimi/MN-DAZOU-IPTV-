@@ -10,10 +10,9 @@ interface XtreamApi {
 
     @GET("player_api.php")
     fun getVodStreams(@Query("username") u: String, @Query("password") p: String, @Query("action") a: String = "get_vod_streams"): Call<List<StreamModel>>
+
+    @GET("player_api.php")
+    fun getSeriesStreams(@Query("username") u: String, @Query("password") p: String, @Query("action") a: String = "get_series"): Call<List<StreamModel>>
 }
 
-data class StreamModel(
-    val stream_id: String,
-    val name: String,
-    val stream_icon: String?
-)
+data class StreamModel(val stream_id: String?, val series_id: String?, val name: String)
