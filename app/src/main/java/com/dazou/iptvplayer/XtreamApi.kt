@@ -19,7 +19,6 @@ data class XtreamEpisode(val id: Int, val episodeNum: Int, val seasonNum: Int, v
 object XtreamAPI {
     private const val TAG = "XtreamAPI"
 
-    // تخزين آخر خطأ للعرض في الواجهة
     var lastErrorMessage: String = ""
     var lastJsonSnippet: String = ""
 
@@ -151,20 +150,37 @@ object XtreamAPI {
         return response.toString()
     }
 
+    // ----------- الدالة الذكية الجديدة -----------
     private fun extractJsonArray(json: String): JSONArray? {
         val trimmed = json.trim()
-        return try {
-            when {
-                trimmed.startsWith("[") -> JSONArray(trimmed)
-                trimmed.startsWith("{") -> {
-                    val obj = JSONObject(trimmed)
-                    obj.optJSONArray("data") ?: obj.optJSONArray("result") ?: obj.optJSONArray("items")
-                    ?: obj.optJSONArray("channels") ?: obj.optJSONArray("movies") ?: obj.optJSONArray("series")
+        // 1. النص بالكامل مصفوفة
+        if (trimmed.startsWith("[")) return try { JSONArray(trimmed) } catch (_: Exception) { null }
+
+        // 2. النص كائن JSON
+        if (trimmed.startsWith("{")) {
+            return try {
+                val obj = JSONObject(trimmed)
+
+                // 2.1 البحث في المفاتيح الشائعة أولاً
+                val commonKeys = arrayOf("data", "result", "items", "channels", "movies", "series", "live", "vod", "streams")
+                for (key in commonKeys) {
+                    val arr = obj.optJSONArray(key)
+                    if (arr != null) return arr
                 }
-                else -> null
-            }
-        } catch (e: Exception) { null }
+
+                // 2.2 لم نجدها؟ نمسح جميع المفاتيح ونأخذ أول JSONArray
+                val keys = obj.keys()
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    val value = obj.opt(key)
+                    if (value is JSONArray) return value
+                }
+                null
+            } catch (_: Exception) { null }
+        }
+        return null
     }
+    // -------------------------------------------
 
     private fun parseCategories(json: String): List<XtreamCategory> {
         val list = mutableListOf<XtreamCategory>()
