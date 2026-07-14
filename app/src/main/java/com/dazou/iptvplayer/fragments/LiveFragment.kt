@@ -10,9 +10,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.dazou.iptvplayer.adapter.ChannelAdapter
 import com.dazou.iptvplayer.databinding.FragmentLiveBinding
-import com.dazou.iptvplayer.model.XtreamChannel
 import com.dazou.iptvplayer.player.PlayerCallback
 import com.dazou.iptvplayer.viewmodel.LiveViewModel
+import com.dazou.iptvplayer.api.XtreamAPI
 
 class LiveFragment : Fragment() {
 
@@ -34,7 +34,7 @@ class LiveFragment : Fragment() {
 
         viewModel.channels.observe(viewLifecycleOwner) { channels ->
             binding.rvLive.adapter = ChannelAdapter(channels) { channel ->
-                val url = com.dazou.iptvplayer.api.XtreamAPI.getStreamUrl(
+                val url = XtreamAPI.getStreamUrl(
                     viewModel.getServer(), channel.streamId, channel.containerExtension
                 )
                 callback?.playStream(url, channel.name, "live")

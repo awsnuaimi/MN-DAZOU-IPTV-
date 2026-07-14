@@ -1,21 +1,14 @@
-package com.dazou.iptvplayer
+package com.dazou.iptvplayer.api
 
 import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
+import com.dazou.iptvplayer.model.*
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.concurrent.thread
-
-data class XtreamServer(val url: String, val username: String, val password: String)
-data class XtreamCategory(val categoryId: String, val categoryName: String, val parentId: Int)
-data class XtreamChannel(val streamId: Int, val name: String, val streamType: String, val streamIcon: String, val epgChannelId: String, val added: String, val categoryId: String, val containerExtension: String)
-data class XtreamMovie(val streamId: Int, val name: String, val containerExtension: String, val streamIcon: String, val plot: String, val cast: String, val director: String, val genre: String, val rating: String, val year: String)
-data class XtreamSeries(val seriesId: Int, val name: String, val cover: String, val plot: String, val cast: String, val director: String, val genre: String, val rating: String, val year: String)
-data class XtreamEpisode(val id: Int, val episodeNum: Int, val seasonNum: Int, val title: String, val containerExtension: String, val info: String)
-data class EpgProgram(val channelId: String, val title: String, val startTime: String, val endTime: String, val description: String)
 
 object XtreamAPI {
     private const val TAG = "XtreamAPI"
@@ -133,39 +126,6 @@ object XtreamAPI {
                 runOnUiThread { callback(episodes) }
             } catch (e: Exception) {
                 Log.e(TAG, "series info error", e)
-                runOnUiThread { callback(emptyList()) }
-            }
-        }
-    }
-
-    // ✅ دالة EPG الجديدة
-    fun getEpg(server: XtreamServer, streamId: Int? = null, callback: (List<EpgProgram>) -> Unit) {
-        thread {
-            try {
-                var url = "${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_short_epg"
-                if (streamId != null) url += "&stream_id=$streamId"
-                lastRequestUrl = url
-                val json = fetchJson(url)
-                lastResponseBody = json.take(1000)
-                val epgList = mutableListOf<EpgProgram>()
-                val jsonArray = extractJsonArray(json)
-                if (jsonArray != null) {
-                    for (i in 0 until jsonArray.length()) {
-                        val obj = jsonArray.getJSONObject(i)
-                        epgList.add(EpgProgram(
-                            channelId = obj.optString("epg_id", ""),
-                            title = obj.optString("title", ""),
-                            startTime = obj.optString("start", ""),
-                            endTime = obj.optString("end", ""),
-                            description = obj.optString("description", "")
-                        ))
-                    }
-                }
-                lastItemCount = epgList.size
-                runOnUiThread { callback(epgList) }
-            } catch (e: Exception) {
-                Log.e(TAG, "EPG error", e)
-                lastErrorMessage = e.message ?: "خطأ"
                 runOnUiThread { callback(emptyList()) }
             }
         }
