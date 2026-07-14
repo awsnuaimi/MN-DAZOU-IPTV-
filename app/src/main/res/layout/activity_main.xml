@@ -2,13 +2,16 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:focusable="true"
+    android:focusableInTouchMode="true">
 
     <androidx.media3.ui.PlayerView
         android:id="@+id/playerView"
         android:layout_width="match_parent"
         android:layout_height="@dimen/player_height"
-        android:background="#000000" />
+        android:background="#000000"
+        android:focusable="false" />
 
     <FrameLayout
         android:id="@+id/fragmentContainer"
@@ -24,11 +27,76 @@
         android:background="@color/bottom_bar"
         android:gravity="center">
 
-        <Button android:id="@+id/btnHome" style="@style/TabButton" android:text="🏠 الرئيسية" />
-        <Button android:id="@+id/btnLive" style="@style/TabButton" android:text="📺 مباشر" />
-        <Button android:id="@+id/btnMovies" style="@style/TabButton" android:text="🎬 أفلام" />
-        <Button android:id="@+id/btnSeries" style="@style/TabButton" android:text="🎭 مسلسلات" />
-        <Button android:id="@+id/btnFavorites" style="@style/TabButton" android:text="⭐ مفضلة" />
-        <Button android:id="@+id/btnAccounts" style="@style/TabButton" android:text="👤 حسابات" />
+        <Button android:id="@+id/btnHome"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="🏠 الرئيسية"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:clickable="true"
+            android:background="@drawable/tab_selector"
+            android:textColor="@color/text_gray"
+            android:textSize="@dimen/tab_text_size" />
+
+        <Button android:id="@+id/btnLive"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="📺 مباشر"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:clickable="true"
+            android:background="@drawable/tab_selector"
+            android:textColor="@color/text_gray"
+            android:textSize="@dimen/tab_text_size" />
+
+        <Button android:id="@+id/btnMovies"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="🎬 أفلام"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:clickable="true"
+            android:background="@drawable/tab_selector"
+            android:textColor="@color/text_gray"
+            android:textSize="@dimen/tab_text_size" />
+
+        <Button android:id="@+id/btnSeries"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="🎭 مسلسلات"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:clickable="true"
+            android:background="@drawable/tab_selector"
+            android:textColor="@color/text_gray"
+            android:textSize="@dimen/tab_text_size" />
+
+        <Button android:id="@+id/btnFavorites"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="⭐ مفضلة"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:clickable="true"
+            android:background="@drawable/tab_selector"
+            android:textColor="@color/text_gray"
+            android:textSize="@dimen/tab_text_size" />
+
+        <Button android:id="@+id/btnAccounts"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="👤 حسابات"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:clickable="true"
+            android:background="@drawable/tab_selector"
+            android:textColor="@color/text_gray"
+            android:textSize="@dimen/tab_text_size" />
     </LinearLayout>
 </LinearLayout>

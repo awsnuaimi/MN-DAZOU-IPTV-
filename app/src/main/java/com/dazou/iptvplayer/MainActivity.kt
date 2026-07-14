@@ -1,7 +1,10 @@
 package com.dazou.iptvplayer
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.KeyEvent
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.dazou.iptvplayer.databinding.ActivityMainBinding
@@ -19,6 +22,10 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // ✅ ضروري لـ Android TV
+        window.decorView.isFocusableInTouchMode = true
+        window.decorView.requestFocus()
+
         playerManager = PlayerManager(this)
         binding.playerView.player = playerManager.player
 
@@ -26,6 +33,13 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
         setupBottomNav()
         loadFragment(HomeFragment())
+
+        // ✅ طلب التركيز على أول زر
+        Handler(Looper.getMainLooper()).postDelayed({
+            binding.btnHome.isFocusable = true
+            binding.btnHome.isFocusableInTouchMode = true
+            binding.btnHome.requestFocus()
+        }, 500)
     }
 
     private fun setupBottomNav() {
@@ -47,17 +61,32 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         playerManager.play(url, name, type)
     }
 
-    override fun onNextChannel() {
-        // TODO: تنفيذ عبر ViewModel
-    }
+    override fun onNextChannel() { /* TODO */ }
+    override fun onPreviousChannel() { /* TODO */ }
 
-    override fun onPreviousChannel() {
-        // TODO: تنفيذ عبر ViewModel
+    // ✅ استقبال أحداث الريموت
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                    currentFocus?.performClick()
+                    return true
+                }
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    // التنقل بين الأزرار يتم تلقائياً
+                    return super.dispatchKeyEvent(event)
+                }
+                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
+                    playerManager.pause()
+                    return true
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         return when (keyCode) {
-            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> { playerManager.pause(); true }
             KeyEvent.KEYCODE_MEDIA_NEXT -> { onNextChannel(); true }
             KeyEvent.KEYCODE_MEDIA_PREVIOUS -> { onPreviousChannel(); true }
             else -> super.onKeyDown(keyCode, event)
