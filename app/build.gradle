@@ -12,7 +12,6 @@ android {
         minSdk 21
         targetSdk 34
 
-        // توليد versionCode تلقائياً من الوقت
         def now = (System.currentTimeMillis() / 1000).toLong()
         def startOf2024 = 1704067200L
         def buildNumber = (now - startOf2024).toInteger()
@@ -26,7 +25,6 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
-
         debug {
             minifyEnabled false
         }
@@ -40,6 +38,10 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+
+    buildFeatures {
+        viewBinding = true
+    }
 }
 
 dependencies {
@@ -50,4 +52,9 @@ dependencies {
     implementation 'androidx.media3:media3-exoplayer:1.2.0'
     implementation 'androidx.media3:media3-exoplayer-hls:1.2.0'
     implementation 'androidx.media3:media3-ui:1.2.0'
+
+    // ViewModel + LiveData + Fragment (للهيكل الجديد)
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2'
+    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.6.2'
+    implementation 'androidx.fragment:fragment-ktx:1.6.2'
 }

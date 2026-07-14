@@ -2,36 +2,33 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="10dp">
+    android:orientation="vertical">
 
-    <!-- أزرار الأقسام -->
-    <LinearLayout
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/playerView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="10dp">
-        
-        <Button android:id="@+id/btnLiveTv" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="مباشر" />
-        <Button android:id="@+id/btnMovies" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="أفلام" />
-        <Button android:id="@+id/btnSeries" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="مسلسلات" />
-    </LinearLayout>
+        android:layout_height="@dimen/player_height"
+        android:background="#000000" />
 
-    <Button android:id="@+id/btnXtream" 
-        android:layout_width="match_parent" 
-        android:layout_height="wrap_content" 
-        android:text="إعدادات Xtream" />
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvChannels"
+    <FrameLayout
+        android:id="@+id/fragmentContainer"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
 
-    <com.google.android.exoplayer2.ui.PlayerView
-        android:id="@+id/playerView"
+    <LinearLayout
+        android:id="@+id/bottomNav"
         android:layout_width="match_parent"
-        android:layout_height="200dp"
-        android:visibility="gone" />
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@color/bottom_bar"
+        android:gravity="center">
 
+        <Button android:id="@+id/btnHome" style="@style/TabButton" android:text="🏠 الرئيسية" />
+        <Button android:id="@+id/btnLive" style="@style/TabButton" android:text="📺 مباشر" />
+        <Button android:id="@+id/btnMovies" style="@style/TabButton" android:text="🎬 أفلام" />
+        <Button android:id="@+id/btnSeries" style="@style/TabButton" android:text="🎭 مسلسلات" />
+        <Button android:id="@+id/btnFavorites" style="@style/TabButton" android:text="⭐ مفضلة" />
+        <Button android:id="@+id/btnAccounts" style="@style/TabButton" android:text="👤 حسابات" />
+    </LinearLayout>
 </LinearLayout>
