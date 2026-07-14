@@ -12,7 +12,7 @@ android {
         minSdk 21
         targetSdk 34
         // ✅ تلقائي: يولّد versionCode من تاريخ ووقت البناء
-        def buildDate = new Date().format("yyMMddHHmm").toInteger()
+        def buildDate = new Date().format("yyMMddHHmm").tolong()
         versionCode buildDate
         versionName "1.0." + buildDate
     }
