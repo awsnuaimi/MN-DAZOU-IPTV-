@@ -17,6 +17,7 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -175,6 +176,16 @@ class MainActivity : AppCompatActivity() {
 
             setContentView(root)
 
+            // ✅ تفعيل دعم الريموت الكامل
+            setupFullDpadSupport()
+
+            // ✅ زر الرجوع عبر OnBackPressedDispatcher
+            onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    if (!isShowingCategories) { goBack() } else { finish() }
+                }
+            })
+
             player = ExoPlayer.Builder(this).build()
             playerView.player = player
             player.addListener(object : Player.Listener {
@@ -197,121 +208,107 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun createCtrlButton(text: String, size: Float, onClick: () -> Unit) = Button(this).apply { this.text = text; textSize = size; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.WHITE); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f); setOnClickListener { onClick() } }
-    private fun createTabButton(text: String, onClick: () -> Unit) = Button(this).apply { this.text = text; textSize = dimenSp(R.dimen.tab_text_size); setTextColor(themes[currentTheme]!!.textGray); setBackgroundColor(Color.TRANSPARENT); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f); setOnClickListener { onClick() } }
+    
+    private fun createTabButton(text: String, onClick: () -> Unit): Button {
+        val t = themes[currentTheme]!!
+        return Button(this).apply { 
+            this.text = text; textSize = dimenSp(R.dimen.tab_text_size)
+            setTextColor(t.textGray); setBackgroundColor(Color.TRANSPARENT)
+            setTypeface(null, Typeface.BOLD)
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            isFocusable = true; isFocusableInTouchMode = true
+            setOnFocusChangeListener { _, hasFocus ->
+                if (hasFocus) { setBackgroundColor(t.activeTab); setTextColor(t.textWhite) }
+                else { setBackgroundColor(Color.TRANSPARENT); setTextColor(t.textGray) }
+            }
+            setOnClickListener { onClick() }
+        }
+    }
+
+    // ===== دعم الريموت الكامل =====
+    private fun setupFullDpadSupport() {
+        val allButtons = listOf(btnHome, btnLive, btnMovies, btnSeries, btnFavorites, btnAccounts,
+            btnPrevChannel, btnPlayPause, btnNextChannel, btnEpg,
+            btnAspectRatio, btnToggleFullscreen, btnRecord, btnShare, btnDownload, btnBack)
+        
+        for (button in allButtons) {
+            button.isFocusable = true
+            button.isFocusableInTouchMode = true
+        }
+        rv.isFocusable = true
+        rv.isFocusableInTouchMode = true
+    }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         return when (keyCode) {
             KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_NEXT -> { playNextChannel(); true }
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_PREVIOUS -> { playPreviousChannel(); true }
-            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> { togglePlayPause(); true }
-            KeyEvent.KEYCODE_BACK -> { if (!isShowingCategories) { goBack(); true } else super.onKeyDown(keyCode, event) }
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
+                // الضغط على مركز الريموت: إذا كان هناك عنصر في المنتصف، اضغطه
+                val focusedView = rv.findFocus()
+                if (focusedView != null) { focusedView.performClick(); true }
+                else { togglePlayPause(); true }
+            }
+            KeyEvent.KEYCODE_DPAD_UP -> { navigateListUp(); true }
+            KeyEvent.KEYCODE_DPAD_DOWN -> { navigateListDown(); true }
+            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> { true } // منع التمرير الأفقي غير المرغوب
             else -> super.onKeyDown(keyCode, event)
         }
     }
 
+    private fun navigateListUp() {
+        rv.requestFocus()
+        val lm = rv.layoutManager as LinearLayoutManager
+        val current = lm.findFirstVisibleItemPosition()
+        if (current > 0) { rv.smoothScrollToPosition(current - 1); rv.postDelayed({ focusFirstVisibleItem() }, 200) }
+    }
+
+    private fun navigateListDown() {
+        rv.requestFocus()
+        val lm = rv.layoutManager as LinearLayoutManager
+        val current = lm.findLastVisibleItemPosition()
+        val total = (rv.adapter?.itemCount ?: 1) - 1
+        if (current < total) { rv.smoothScrollToPosition(current + 1); rv.postDelayed({ focusFirstVisibleItem() }, 200) }
+    }
+
+    private fun focusFirstVisibleItem() {
+        val firstVisible = (rv.layoutManager as LinearLayoutManager).findFirstVisibleItemPosition()
+        val view = rv.layoutManager?.findViewByPosition(firstVisible)
+        view?.requestFocus()
+    }
+
+    // ===== باقي الدوال (بدون تغيير) =====
     private fun showSettingsDialog() {
         AlertDialog.Builder(this).setTitle("⚙️ الإعدادات").setItems(arrayOf(
-            "🎨 تغيير الثيم", 
-            "👤 إدارة الحسابات", 
-            "📋 EPG", 
-            "💾 نسخ احتياطي", 
-            "📥 استعادة النسخة", 
-            "🗑️ مسح البيانات"
+            "🎨 تغيير الثيم", "👤 إدارة الحسابات", "📋 EPG", "💾 نسخ احتياطي", "📥 استعادة النسخة", "🗑️ مسح البيانات"
         )) { _, w ->
             when (w) { 
-                0 -> showThemeDialog()
-                1 -> showAccountsDialog()
-                2 -> showEpgForCurrentChannel()
-                3 -> backupData()
-                4 -> restoreData()
-                5 -> { prefs.edit().clear().apply(); accounts.clear(); recreate() }
+                0 -> showThemeDialog(); 1 -> showAccountsDialog(); 2 -> showEpgForCurrentChannel()
+                3 -> backupData(); 4 -> restoreData(); 5 -> { prefs.edit().clear().apply(); accounts.clear(); recreate() }
             }
         }.show()
     }
 
     private fun backupData() {
-        try {
-            val data = JSONObject()
-            data.put("favorites", prefs.getString("favorites", "[]"))
-            data.put("history", prefs.getString("history", "[]"))
-            data.put("accounts", prefs.getString("accounts", "[]"))
-            data.put("theme", prefs.getString("theme", "dark"))
-            val file = File(getExternalFilesDir(null), "MN-DAZOU_backup.json")
-            file.writeText(data.toString())
-            Toast.makeText(this, "✅ تم النسخ الاحتياطي: ${file.absolutePath}", Toast.LENGTH_LONG).show()
-        } catch (e: Exception) {
-            Toast.makeText(this, "❌ فشل النسخ: ${e.message}", Toast.LENGTH_LONG).show()
-        }
+        try { val data = JSONObject(); data.put("favorites", prefs.getString("favorites", "[]")); data.put("history", prefs.getString("history", "[]")); data.put("accounts", prefs.getString("accounts", "[]")); data.put("theme", prefs.getString("theme", "dark")); val file = File(getExternalFilesDir(null), "MN-DAZOU_backup.json"); file.writeText(data.toString()); Toast.makeText(this, "✅ تم النسخ الاحتياطي: ${file.absolutePath}", Toast.LENGTH_LONG).show() } catch (e: Exception) { Toast.makeText(this, "❌ فشل النسخ: ${e.message}", Toast.LENGTH_LONG).show() }
     }
 
     private fun restoreData() {
-        try {
-            val file = File(getExternalFilesDir(null), "MN-DAZOU_backup.json")
-            if (!file.exists()) { Toast.makeText(this, "لا توجد نسخة احتياطية", Toast.LENGTH_SHORT).show(); return }
-            AlertDialog.Builder(this)
-                .setTitle("📥 استعادة النسخة الاحتياطية")
-                .setMessage("سيتم استبدال جميع البيانات الحالية. هل تريد المتابعة؟")
-                .setPositiveButton("نعم") { _, _ ->
-                    val data = JSONObject(file.readText())
-                    prefs.edit()
-                        .putString("favorites", data.optString("favorites", "[]"))
-                        .putString("history", data.optString("history", "[]"))
-                        .putString("accounts", data.optString("accounts", "[]"))
-                        .putString("theme", data.optString("theme", "dark"))
-                        .apply()
-                    loadFavorites(); loadHistory(); loadAccounts()
-                    currentTheme = prefs.getString("theme", "dark") ?: "dark"
-                    Toast.makeText(this, "✅ تمت الاستعادة. أعد تشغيل التطبيق", Toast.LENGTH_LONG).show()
-                }.setNegativeButton("إلغاء", null).show()
-        } catch (e: Exception) {
-            Toast.makeText(this, "❌ فشل الاستعادة: ${e.message}", Toast.LENGTH_LONG).show()
-        }
+        try { val file = File(getExternalFilesDir(null), "MN-DAZOU_backup.json"); if (!file.exists()) { Toast.makeText(this, "لا توجد نسخة احتياطية", Toast.LENGTH_SHORT).show(); return }; AlertDialog.Builder(this).setTitle("📥 استعادة النسخة الاحتياطية").setMessage("سيتم استبدال جميع البيانات الحالية. هل تريد المتابعة؟").setPositiveButton("نعم") { _, _ -> val data = JSONObject(file.readText()); prefs.edit().putString("favorites", data.optString("favorites", "[]")).putString("history", data.optString("history", "[]")).putString("accounts", data.optString("accounts", "[]")).putString("theme", data.optString("theme", "dark")).apply(); loadFavorites(); loadHistory(); loadAccounts(); currentTheme = prefs.getString("theme", "dark") ?: "dark"; Toast.makeText(this, "✅ تمت الاستعادة. أعد تشغيل التطبيق", Toast.LENGTH_LONG).show() }.setNegativeButton("إلغاء", null).show() } catch (e: Exception) { Toast.makeText(this, "❌ فشل الاستعادة: ${e.message}", Toast.LENGTH_LONG).show() }
     }
 
     private fun saveAccounts() { val j = JSONArray(); accounts.forEach { val o = JSONObject(); o.put("url", it.url); o.put("username", it.username); o.put("password", it.password); j.put(o) }; prefs.edit().putString("accounts", j.toString()).apply() }
     private fun loadAccounts() { try { val s = prefs.getString("accounts", "[]") ?: "[]"; val j = JSONArray(s); accounts.clear(); for (i in 0 until j.length()) { val o = j.getJSONObject(i); accounts.add(XtreamServer(o.getString("url"), o.getString("username"), o.getString("password"))) } } catch (_: Exception) { accounts.clear() } }
 
-    private fun showAccountsDialog() {
-        if (accounts.isEmpty()) { showLoginDialog(); return }
-        val names = accounts.mapIndexed { i, a -> "👤 حساب ${i+1}: ${a.username}" }.toTypedArray()
-        AlertDialog.Builder(this).setTitle("👤 إدارة الحسابات (${accounts.size})").setItems(names + arrayOf("➕ إضافة حساب", "🗑️ حذف الكل")) { _, w ->
-            when {
-                w < accounts.size -> { currentAccountIndex = w; server = accounts[w]; prefs.edit().putInt("current_account", w).apply(); switchTab("home"); Toast.makeText(this, "✅ تم التبديل", Toast.LENGTH_SHORT).show() }
-                w == accounts.size -> showLoginDialog()
-                w == accounts.size + 1 -> { accounts.clear(); saveAccounts(); server = null; showLoginDialog() }
-            }
-        }.show()
-    }
+    private fun showAccountsDialog() { if (accounts.isEmpty()) { showLoginDialog(); return }; val names = accounts.mapIndexed { i, a -> "👤 حساب ${i+1}: ${a.username}" }.toTypedArray(); AlertDialog.Builder(this).setTitle("👤 إدارة الحسابات (${accounts.size})").setItems(names + arrayOf("➕ إضافة حساب", "🗑️ حذف الكل")) { _, w -> when { w < accounts.size -> { currentAccountIndex = w; server = accounts[w]; prefs.edit().putInt("current_account", w).apply(); switchTab("home"); Toast.makeText(this, "✅ تم التبديل", Toast.LENGTH_SHORT).show() } w == accounts.size -> showLoginDialog(); w == accounts.size + 1 -> { accounts.clear(); saveAccounts(); server = null; showLoginDialog() } } }.show() }
 
-    private fun showEpgForCurrentChannel() {
-        server?.let { srv ->
-            val streamId = if (currentStreamType == "live" && currentStreamIndex in liveChannels.indices) liveChannels[currentStreamIndex].streamId else null
-            showLoading()
-            XtreamAPI.getEpg(srv, streamId) { epgList ->
-                hideLoading()
-                if (epgList.isNotEmpty()) showEpgDialog(epgList)
-                else Toast.makeText(this, "لا توجد بيانات EPG", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    private fun showEpgDialog(epgList: List<EpgProgram>) {
-        val items = epgList.map { "${it.startTime} - ${it.endTime}: ${it.title}" }.toTypedArray()
-        AlertDialog.Builder(this).setTitle("📋 دليل البرامج (${epgList.size})").setItems(items) { _, i ->
-            val epg = epgList[i]
-            AlertDialog.Builder(this).setTitle(epg.title).setMessage("🕐 ${epg.startTime} - ${epg.endTime}\n\n${epg.description}").setPositiveButton("إغلاق", null).show()
-        }.setNegativeButton("إغلاق", null).show()
-    }
+    private fun showEpgForCurrentChannel() { server?.let { srv -> val streamId = if (currentStreamType == "live" && currentStreamIndex in liveChannels.indices) liveChannels[currentStreamIndex].streamId else null; showLoading(); XtreamAPI.getEpg(srv, streamId) { epgList -> hideLoading(); if (epgList.isNotEmpty()) showEpgDialog(epgList) else Toast.makeText(this, "لا توجد بيانات EPG", Toast.LENGTH_SHORT).show() } } }
+    private fun showEpgDialog(epgList: List<EpgProgram>) { val items = epgList.map { "${it.startTime} - ${it.endTime}: ${it.title}" }.toTypedArray(); AlertDialog.Builder(this).setTitle("📋 دليل البرامج (${epgList.size})").setItems(items) { _, i -> val epg = epgList[i]; AlertDialog.Builder(this).setTitle(epg.title).setMessage("🕐 ${epg.startTime} - ${epg.endTime}\n\n${epg.description}").setPositiveButton("إغلاق", null).show() }.setNegativeButton("إغلاق", null).show() }
 
     private fun togglePlayPause() { if (player.isPlaying) player.pause() else player.play() }
     private fun playNextChannel() { val list = when (currentStreamType) { "live" -> liveChannels; "movie" -> vodMovies; else -> emptyList() }; if (list.isEmpty()) return; playChannelAtIndex((currentStreamIndex + 1) % list.size) }
     private fun playPreviousChannel() { val list = when (currentStreamType) { "live" -> liveChannels; "movie" -> vodMovies; else -> emptyList() }; if (list.isEmpty()) return; playChannelAtIndex(if (currentStreamIndex - 1 < 0) list.size - 1 else currentStreamIndex - 1) }
-    private fun playChannelAtIndex(index: Int) {
-        when (currentStreamType) {
-            "live" -> { if (index in liveChannels.indices) { currentStreamIndex = index; val ch = liveChannels[index]; playStream(XtreamAPI.getStreamUrl(server!!, ch.streamId, ch.containerExtension), ch.name, "live") } }
-            "movie" -> { if (index in vodMovies.indices) { currentStreamIndex = index; val m = vodMovies[index]; playStream(XtreamAPI.getMovieUrl(server!!, m.streamId, m.containerExtension), m.name, "movie") } }
-        }
-    }
+    private fun playChannelAtIndex(index: Int) { when (currentStreamType) { "live" -> { if (index in liveChannels.indices) { currentStreamIndex = index; val ch = liveChannels[index]; playStream(XtreamAPI.getStreamUrl(server!!, ch.streamId, ch.containerExtension), ch.name, "live") } } "movie" -> { if (index in vodMovies.indices) { currentStreamIndex = index; val m = vodMovies[index]; playStream(XtreamAPI.getMovieUrl(server!!, m.streamId, m.containerExtension), m.name, "movie") } } } }
     private fun changeAspectRatio() { aspectRatioMode = (aspectRatioMode + 1) % 3; playerView.resizeMode = when (aspectRatioMode) { 0 -> AspectRatioFrameLayout.RESIZE_MODE_FIT; 1 -> AspectRatioFrameLayout.RESIZE_MODE_FILL; else -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM }; Toast.makeText(this, "📐 ${arrayOf("ملائم", "ملء", "تكبير")[aspectRatioMode]}", Toast.LENGTH_SHORT).show() }
     private fun toggleFullscreen() { if (playerView.layoutParams.height == ViewGroup.LayoutParams.MATCH_PARENT) { playerView.layoutParams.height = dimen(R.dimen.player_height); Toast.makeText(this, "📱 الوضع العادي", Toast.LENGTH_SHORT).show() } else { playerView.layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT; Toast.makeText(this, "⛶ ملء الشاشة", Toast.LENGTH_SHORT).show() }; playerView.requestLayout() }
     private fun toggleRecording() { if (isRecording) stopRecording() else startRecording() }
@@ -319,57 +316,20 @@ class MainActivity : AppCompatActivity() {
     private fun stopRecording() { isRecording = false; btnRecord.text = "🔴"; btnRecord.setTextColor(Color.WHITE); recordingThread?.interrupt(); recordingFile?.let { val intent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE); intent.data = Uri.fromFile(it); sendBroadcast(intent); Toast.makeText(this, "✅ تم حفظ التسجيل: ${it.name}", Toast.LENGTH_LONG).show() } }
     private fun shareCurrentStream() { currentStreamName?.let { name -> val text = "شاهد معي على MN-DAZOU IPTV:\n📺 $name\n🔗 ${currentStreamUrl ?: ""}"; startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, text) }, "مشاركة عبر")) } ?: Toast.makeText(this, "لا يوجد محتوى للمشاركة", Toast.LENGTH_SHORT).show() }
     private fun downloadCurrentStream() { currentStreamUrl?.let { url -> try { val request = DownloadManager.Request(Uri.parse(url)).setTitle("MN-DAZOU IPTV").setDescription(currentStreamName ?: "فيديو").setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED).setDestinationInExternalPublicDir(Environment.DIRECTORY_MOVIES, "MN-DAZOU_${System.currentTimeMillis()}.mp4"); downloadId = downloadManager.enqueue(request); Toast.makeText(this, "⬇️ جاري التحميل...", Toast.LENGTH_SHORT).show() } catch (e: Exception) { Toast.makeText(this, "❌ فشل التحميل", Toast.LENGTH_SHORT).show() } } ?: Toast.makeText(this, "لا يوجد فيديو للتحميل", Toast.LENGTH_SHORT).show() }
-
-    private fun registerDownloadReceiver() {
-        val receiver = object : BroadcastReceiver() { override fun onReceive(context: Context?, intent: Intent?) { if (intent?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1) == downloadId) Toast.makeText(this@MainActivity, "✅ تم التحميل بنجاح", Toast.LENGTH_SHORT).show() } }
-        ContextCompat.registerReceiver(this, receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), ContextCompat.RECEIVER_NOT_EXPORTED)
-    }
-
+    private fun registerDownloadReceiver() { val receiver = object : BroadcastReceiver() { override fun onReceive(context: Context?, intent: Intent?) { if (intent?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1) == downloadId) Toast.makeText(this@MainActivity, "✅ تم التحميل بنجاح", Toast.LENGTH_SHORT).show() } }; ContextCompat.registerReceiver(this, receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), ContextCompat.RECEIVER_NOT_EXPORTED) }
     private fun playStream(url: String, name: String, type: String = "live") { try { currentStreamUrl = url; currentStreamName = name; currentStreamType = type; player.setMediaItem(MediaItem.fromUri(Uri.parse(url))); player.prepare(); player.play(); tvChannelInfo.text = "🎬 $name"; Toast.makeText(this, "▶️ $name", Toast.LENGTH_SHORT).show() } catch (e: Exception) { Toast.makeText(this, "❌ ${e.message}", Toast.LENGTH_LONG).show() } }
-
     private fun showThemeDialog() { AlertDialog.Builder(this).setTitle("🎨 اختر الثيم").setItems(themes.values.map { it.name }.toTypedArray()) { _, w -> prefs.edit().putString("theme", themes.keys.toList()[w]).apply(); Toast.makeText(this, "🔄 أعد تشغيل التطبيق", Toast.LENGTH_LONG).show() }.show() }
 
-    private fun switchTab(tab: String) {
-        currentCategory = tab; selectedCategoryId = null; isShowingCategories = true; btnBack.visibility = View.GONE; searchLayout.visibility = View.GONE
-        val t = themes[currentTheme]!!
-        btnHome.setTextColor(t.textGray); btnLive.setTextColor(t.textGray); btnMovies.setTextColor(t.textGray); btnSeries.setTextColor(t.textGray); btnFavorites.setTextColor(t.textGray)
-        when (tab) {
-            "home" -> { btnHome.setTextColor(t.accent); tvTitle.text = "🏠 MN-DAZOU IPTV"; showHomeScreen() }
-            "live" -> { btnLive.setTextColor(t.accent); tvTitle.text = "📺 البث المباشر"; searchLayout.visibility = View.VISIBLE; loadLiveCategories() }
-            "movies" -> { btnMovies.setTextColor(t.accent); tvTitle.text = "🎬 الأفلام"; searchLayout.visibility = View.VISIBLE; loadVodCategories() }
-            "series" -> { btnSeries.setTextColor(t.accent); tvTitle.text = "🎭 المسلسلات"; searchLayout.visibility = View.VISIBLE; loadSeriesCategories() }
-            "favorites" -> { btnFavorites.setTextColor(t.accent); tvTitle.text = "⭐ المفضلة"; showFavorites() }
-        }
-    }
-
+    private fun switchTab(tab: String) { currentCategory = tab; selectedCategoryId = null; isShowingCategories = true; btnBack.visibility = View.GONE; searchLayout.visibility = View.GONE; val t = themes[currentTheme]!!; btnHome.setTextColor(t.textGray); btnLive.setTextColor(t.textGray); btnMovies.setTextColor(t.textGray); btnSeries.setTextColor(t.textGray); btnFavorites.setTextColor(t.textGray); when (tab) { "home" -> { btnHome.setTextColor(t.accent); tvTitle.text = "🏠 MN-DAZOU IPTV"; showHomeScreen() } "live" -> { btnLive.setTextColor(t.accent); tvTitle.text = "📺 البث المباشر"; searchLayout.visibility = View.VISIBLE; loadLiveCategories() } "movies" -> { btnMovies.setTextColor(t.accent); tvTitle.text = "🎬 الأفلام"; searchLayout.visibility = View.VISIBLE; loadVodCategories() } "series" -> { btnSeries.setTextColor(t.accent); tvTitle.text = "🎭 المسلسلات"; searchLayout.visibility = View.VISIBLE; loadSeriesCategories() } "favorites" -> { btnFavorites.setTextColor(t.accent); tvTitle.text = "⭐ المفضلة"; showFavorites() } } }
     private fun goBack() { isShowingCategories = true; selectedCategoryId = null; btnBack.visibility = View.GONE; when (currentCategory) { "live" -> showLiveCategories(); "movies" -> showVodCategories(); "series" -> showSeriesCategories() } }
 
-    private fun showHomeScreen() {
-        val t = themes[currentTheme]!!; val items = mutableListOf<Any>()
-        if (watchHistory.isNotEmpty()) { items.add("section_history"); items.addAll(watchHistory.takeLast(5).reversed()) }
-        if (favorites.isNotEmpty()) { items.add("section_favorites"); items.addAll(favorites.take(5)) }
-        items.add("section_quick"); items.add("quick_live"); items.add("quick_movies"); items.add("quick_series"); items.add("quick_favorites")
-        rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-            override fun getItemViewType(pos: Int): Int = if (items[pos] is String) 0 else 1
-            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-                if (viewType == 0) { val tv = TextView(parent.context).apply { setPadding(dimen(R.dimen.item_padding_h), dimen(R.dimen.item_padding_v), dimen(R.dimen.item_padding_h), dimen(R.dimen.item_padding_v) / 2); textSize = dimenSp(R.dimen.category_text_size); setTextColor(t.accent); setTypeface(null, Typeface.BOLD) }; return object : RecyclerView.ViewHolder(tv) {} }
-                else { val l = LinearLayout(parent.context).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dimen(R.dimen.item_padding_h), dimen(R.dimen.item_padding_v), dimen(R.dimen.item_padding_h), dimen(R.dimen.item_padding_v)); gravity = Gravity.CENTER_VERTICAL; setBackgroundColor(t.card) }; val icon = ImageView(parent.context).apply { layoutParams = LinearLayout.LayoutParams(dimen(R.dimen.category_icon_size).toInt(), dimen(R.dimen.category_icon_size).toInt()); setBackgroundColor(t.activeTab) }; l.addView(icon); l.addView(TextView(parent.context).apply { setPadding(12, 0, 0, 0); textSize = dimenSp(R.dimen.item_text_size); setTextColor(t.textWhite); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) }); return object : RecyclerView.ViewHolder(l) {} }
-            }
-            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, pos: Int) {
-                val item = items[pos]
-                if (item is String) { val tv = holder.itemView as TextView; when (item) { "section_history" -> tv.text = "🕐 آخر المشاهدات"; "section_favorites" -> tv.text = "⭐ المفضلة"; "section_quick" -> tv.text = "🚀 وصول سريع" } }
-                else if (item is HistoryItem) { val l = holder.itemView as LinearLayout; (l.getChildAt(1) as TextView).text = "🕐 ${item.name}"; l.setOnClickListener { playHistoryItem(item) } }
-                else if (item is FavoriteItem) { val l = holder.itemView as LinearLayout; (l.getChildAt(1) as TextView).text = "⭐ ${item.name}"; l.setOnClickListener { playFavoriteItem(item) } }
-            }
-            override fun getItemCount() = items.size
-        }
-    }
+    private fun showHomeScreen() { val t = themes[currentTheme]!!; val items = mutableListOf<Any>(); if (watchHistory.isNotEmpty()) { items.add("section_history"); items.addAll(watchHistory.takeLast(5).reversed()) }; if (favorites.isNotEmpty()) { items.add("section_favorites"); items.addAll(favorites.take(5)) }; items.add("section_quick"); items.add("quick_live"); items.add("quick_movies"); items.add("quick_series"); items.add("quick_favorites"); rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() { override fun getItemViewType(pos: Int): Int = if (items[pos] is String) 0 else 1; override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder { if (viewType == 0) { val tv = TextView(parent.context).apply { setPadding(dimen(R.dimen.item_padding_h), dimen(R.dimen.item_padding_v), dimen(R.dimen.item_padding_h), dimen(R.dimen.item_padding_v) / 2); textSize = dimenSp(R.dimen.category_text_size); setTextColor(t.accent); setTypeface(null, Typeface.BOLD) }; return object : RecyclerView.ViewHolder(tv) {} } else { val l = LinearLayout(parent.context).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dimen(R.dimen.item_padding_h), dimen(R.dimen.item_padding_v), dimen(R.dimen.item_padding_h), dimen(R.dimen.item_padding_v)); gravity = Gravity.CENTER_VERTICAL; setBackgroundColor(t.card) }; val icon = ImageView(parent.context).apply { layoutParams = LinearLayout.LayoutParams(dimen(R.dimen.category_icon_size).toInt(), dimen(R.dimen.category_icon_size).toInt()); setBackgroundColor(t.activeTab) }; l.addView(icon); l.addView(TextView(parent.context).apply { setPadding(12, 0, 0, 0); textSize = dimenSp(R.dimen.item_text_size); setTextColor(t.textWhite); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) }); return object : RecyclerView.ViewHolder(l) {} } }; override fun onBindViewHolder(holder: RecyclerView.ViewHolder, pos: Int) { val item = items[pos]; if (item is String) { val tv = holder.itemView as TextView; when (item) { "section_history" -> tv.text = "🕐 آخر المشاهدات"; "section_favorites" -> tv.text = "⭐ المفضلة"; "section_quick" -> tv.text = "🚀 وصول سريع" } } else if (item is HistoryItem) { val l = holder.itemView as LinearLayout; (l.getChildAt(1) as TextView).text = "🕐 ${item.name}"; l.setOnClickListener { playHistoryItem(item) } } else if (item is FavoriteItem) { val l = holder.itemView as LinearLayout; (l.getChildAt(1) as TextView).text = "⭐ ${item.name}"; l.setOnClickListener { playFavoriteItem(item) } } }; override fun getItemCount() = items.size }; rv.requestFocus() }
 
     private fun addToFavorites(type: String, id: Int, name: String) { if (favorites.none { it.type == type && it.id == id }) { favorites.add(FavoriteItem(type, id, name)); saveFavorites(); Toast.makeText(this, "⭐ تم", Toast.LENGTH_SHORT).show() } }
     private fun removeFavorite(item: FavoriteItem) { favorites.removeAll { it.type == item.type && it.id == item.id }; saveFavorites() }
     private fun saveFavorites() { val j = JSONArray(); favorites.forEach { val o = JSONObject(); o.put("type", it.type); o.put("id", it.id); o.put("name", it.name); j.put(o) }; prefs.edit().putString("favorites", j.toString()).apply() }
     private fun loadFavorites() { try { favorites.clear(); val s = prefs.getString("favorites", "[]") ?: "[]"; val j = JSONArray(s); for (i in 0 until j.length()) { val o = j.getJSONObject(i); favorites.add(FavoriteItem(o.getString("type"), o.getInt("id"), o.getString("name"))) } } catch (_: Exception) { favorites.clear() } }
-    private fun showFavorites() { isShowingCategories = true; val t = themes[currentTheme]!!; rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() { override fun onCreateViewHolder(p: ViewGroup, vt: Int): RecyclerView.ViewHolder { val l = LinearLayout(p.context).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dimen(R.dimen.item_padding_h), dimen(R.dimen.item_padding_v), dimen(R.dimen.item_padding_h), dimen(R.dimen.item_padding_v)); gravity = Gravity.CENTER_VERTICAL; setBackgroundColor(t.card) }; l.addView(TextView(p.context).apply { textSize = dimenSp(R.dimen.item_text_size); setTextColor(t.textWhite); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) }); l.addView(Button(p.context).apply { text = "❌"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.RED); textSize = dimenSp(R.dimen.item_fav_icon_size) }); return object : RecyclerView.ViewHolder(l) {} } override fun onBindViewHolder(h: RecyclerView.ViewHolder, p: Int) { val l = (h.itemView as LinearLayout); val fav = favorites[p]; (l.getChildAt(0) as TextView).text = "⭐ ${fav.name}"; l.setOnClickListener { playFavoriteItem(fav) }; l.getChildAt(1).setOnClickListener { removeFavorite(fav); showFavorites() } } override fun getItemCount() = favorites.size } }
+    private fun showFavorites() { isShowingCategories = true; val t = themes[currentTheme]!!; rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() { override fun onCreateViewHolder(p: ViewGroup, vt: Int): RecyclerView.ViewHolder { val l = LinearLayout(p.context).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dimen(R.dimen.item_padding_h), dimen(R.dimen.item_padding_v), dimen(R.dimen.item_padding_h), dimen(R.dimen.item_padding_v)); gravity = Gravity.CENTER_VERTICAL; setBackgroundColor(t.card); isFocusable = true; isFocusableInTouchMode = true; setOnFocusChangeListener { view, hasFocus -> view.setBackgroundColor(if (hasFocus) t.activeTab else t.card) } }; l.addView(TextView(p.context).apply { textSize = dimenSp(R.dimen.item_text_size); setTextColor(t.textWhite); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) }); l.addView(Button(p.context).apply { text = "❌"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.RED); textSize = dimenSp(R.dimen.item_fav_icon_size) }); return object : RecyclerView.ViewHolder(l) {} }; override fun onBindViewHolder(h: RecyclerView.ViewHolder, p: Int) { val l = (h.itemView as LinearLayout); val fav = favorites[p]; (l.getChildAt(0) as TextView).text = "⭐ ${fav.name}"; l.setOnClickListener { playFavoriteItem(fav) }; l.getChildAt(1).setOnClickListener { removeFavorite(fav); showFavorites() } }; override fun getItemCount() = favorites.size }; rv.requestFocus() }
 
     private fun addToHistory(type: String, id: Int, name: String) { watchHistory.removeAll { it.type == type && it.id == id }; watchHistory.add(HistoryItem(type, id, name, System.currentTimeMillis())); if (watchHistory.size > 20) watchHistory.removeAt(0); saveHistory() }
     private fun saveHistory() { val j = JSONArray(); watchHistory.forEach { val o = JSONObject(); o.put("type", it.type); o.put("id", it.id); o.put("name", it.name); o.put("timestamp", it.timestamp); j.put(o) }; prefs.edit().putString("history", j.toString()).apply() }
@@ -377,32 +337,9 @@ class MainActivity : AppCompatActivity() {
     private fun playFavoriteItem(fav: FavoriteItem) { when (fav.type) { "live" -> { val url = XtreamAPI.getStreamUrl(server!!, fav.id); playStream(url, fav.name, "live"); addToHistory("live", fav.id, fav.name) } "movie" -> { val url = XtreamAPI.getMovieUrl(server!!, fav.id); playStream(url, fav.name, "movie"); addToHistory("movie", fav.id, fav.name) } } }
     private fun playHistoryItem(item: HistoryItem) { when (item.type) { "live" -> playStream(XtreamAPI.getStreamUrl(server!!, item.id), item.name, "live") "movie" -> playStream(XtreamAPI.getMovieUrl(server!!, item.id), item.name, "movie") } }
 
-    private fun performSearch() {
-        val q = etSearch.text.toString().lowercase(); if (q.isEmpty()) return
-        when (currentCategory) {
-            "live" -> { val filtered = liveChannels.filter { it.name.lowercase().contains(q) }; if (filtered.isNotEmpty()) { liveChannels.clear(); liveChannels.addAll(filtered); updateLiveList(); tvTitle.text = "🔍 $q (${filtered.size})" } else Toast.makeText(this, "لا نتائج", Toast.LENGTH_SHORT).show() }
-            "movies" -> { val filtered = vodMovies.filter { it.name.lowercase().contains(q) }; if (filtered.isNotEmpty()) { vodMovies.clear(); vodMovies.addAll(filtered); updateMoviesList(); tvTitle.text = "🔍 $q (${filtered.size})" } else Toast.makeText(this, "لا نتائج", Toast.LENGTH_SHORT).show() }
-            "series" -> { val filtered = seriesList.filter { it.name.lowercase().contains(q) }; if (filtered.isNotEmpty()) { seriesList.clear(); seriesList.addAll(filtered); updateSeriesList(); tvTitle.text = "🔍 $q (${filtered.size})" } else Toast.makeText(this, "لا نتائج", Toast.LENGTH_SHORT).show() }
-        }
-    }
+    private fun performSearch() { val q = etSearch.text.toString().lowercase(); if (q.isEmpty()) return; when (currentCategory) { "live" -> { val filtered = liveChannels.filter { it.name.lowercase().contains(q) }; if (filtered.isNotEmpty()) { liveChannels.clear(); liveChannels.addAll(filtered); updateLiveList(); tvTitle.text = "🔍 $q (${filtered.size})" } else Toast.makeText(this, "لا نتائج", Toast.LENGTH_SHORT).show() } "movies" -> { val filtered = vodMovies.filter { it.name.lowercase().contains(q) }; if (filtered.isNotEmpty()) { vodMovies.clear(); vodMovies.addAll(filtered); updateMoviesList(); tvTitle.text = "🔍 $q (${filtered.size})" } else Toast.makeText(this, "لا نتائج", Toast.LENGTH_SHORT).show() } "series" -> { val filtered = seriesList.filter { it.name.lowercase().contains(q) }; if (filtered.isNotEmpty()) { seriesList.clear(); seriesList.addAll(filtered); updateSeriesList(); tvTitle.text = "🔍 $q (${filtered.size})" } else Toast.makeText(this, "لا نتائج", Toast.LENGTH_SHORT).show() } } }
 
-    private fun showLoginDialog() {
-        val t = themes[currentTheme]!!; val dlgSize = dimenSp(R.dimen.dialog_title_size); val inpSize = dimenSp(R.dimen.dialog_input_size); val pad = dimen(R.dimen.dialog_input_padding); val labelSize = dimenSp(R.dimen.dialog_label_size)
-        val sv = ScrollView(this).apply { setPadding(30, 30, 30, 30) }
-        val d = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(t.card) }
-        d.addView(TextView(this).apply { text = "⚙️ إضافة حساب Xtream"; textSize = dlgSize; setTextColor(t.accent); setTypeface(null, Typeface.BOLD); gravity = Gravity.CENTER; setPadding(0, 0, 0, 25) })
-        d.addView(TextView(this).apply { text = "رابط السيرفر:"; textSize = labelSize; setTextColor(t.textGray); setPadding(0, 8, 0, 4) })
-        val es = EditText(this).apply { hint = "http://..."; setHintTextColor(t.textGray); setTextColor(t.textWhite); setBackgroundColor(t.bg); setPadding(pad, pad, pad, pad); setText("http://"); textSize = inpSize }
-        d.addView(es)
-        d.addView(TextView(this).apply { text = "اسم المستخدم:"; textSize = labelSize; setTextColor(t.textGray); setPadding(0, 12, 0, 4) })
-        val eu = EditText(this).apply { hint = "username"; setHintTextColor(t.textGray); setTextColor(t.textWhite); setBackgroundColor(t.bg); setPadding(pad, pad, pad, pad); textSize = inpSize }
-        d.addView(eu)
-        d.addView(TextView(this).apply { text = "كلمة المرور:"; textSize = labelSize; setTextColor(t.textGray); setPadding(0, 12, 0, 4) })
-        val ep = EditText(this).apply { hint = "password"; setHintTextColor(t.textGray); setTextColor(t.textWhite); setBackgroundColor(t.bg); setPadding(pad, pad, pad, pad); textSize = inpSize }
-        d.addView(ep)
-        sv.addView(d)
-        AlertDialog.Builder(this).setView(sv).setPositiveButton("حفظ واتصال") { _, _ -> server = XtreamServer(es.text.toString().trimEnd('/'), eu.text.toString(), ep.text.toString()); prefs.edit().putString("server_url", server!!.url).putString("server_username", server!!.username).putString("server_password", server!!.password).apply(); switchTab("home") }.setNegativeButton("إلغاء", null).show()
-    }
+    private fun showLoginDialog() { val t = themes[currentTheme]!!; val dlgSize = dimenSp(R.dimen.dialog_title_size); val inpSize = dimenSp(R.dimen.dialog_input_size); val pad = dimen(R.dimen.dialog_input_padding); val labelSize = dimenSp(R.dimen.dialog_label_size); val sv = ScrollView(this).apply { setPadding(30, 30, 30, 30) }; val d = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(t.card) }; d.addView(TextView(this).apply { text = "⚙️ إضافة حساب Xtream"; textSize = dlgSize; setTextColor(t.accent); setTypeface(null, Typeface.BOLD); gravity = Gravity.CENTER; setPadding(0, 0, 0, 25) }); d.addView(TextView(this).apply { text = "رابط السيرفر:"; textSize = labelSize; setTextColor(t.textGray); setPadding(0, 8, 0, 4) }); val es = EditText(this).apply { hint = "http://..."; setHintTextColor(t.textGray); setTextColor(t.textWhite); setBackgroundColor(t.bg); setPadding(pad, pad, pad, pad); setText("http://"); textSize = inpSize }; d.addView(es); d.addView(TextView(this).apply { text = "اسم المستخدم:"; textSize = labelSize; setTextColor(t.textGray); setPadding(0, 12, 0, 4) }); val eu = EditText(this).apply { hint = "username"; setHintTextColor(t.textGray); setTextColor(t.textWhite); setBackgroundColor(t.bg); setPadding(pad, pad, pad, pad); textSize = inpSize }; d.addView(eu); d.addView(TextView(this).apply { text = "كلمة المرور:"; textSize = labelSize; setTextColor(t.textGray); setPadding(0, 12, 0, 4) }); val ep = EditText(this).apply { hint = "password"; setHintTextColor(t.textGray); setTextColor(t.textWhite); setBackgroundColor(t.bg); setPadding(pad, pad, pad, pad); textSize = inpSize }; d.addView(ep); sv.addView(d); AlertDialog.Builder(this).setView(sv).setPositiveButton("حفظ واتصال") { _, _ -> server = XtreamServer(es.text.toString().trimEnd('/'), eu.text.toString(), ep.text.toString()); prefs.edit().putString("server_url", server!!.url).putString("server_username", server!!.username).putString("server_password", server!!.password).apply(); switchTab("home") }.setNegativeButton("إلغاء", null).show() }
 
     private fun loadLiveCategories() { server?.let { srv -> showLoading(); XtreamAPI.getLiveCategories(srv) { cats -> hideLoading(); if (cats.isNotEmpty()) { liveCategories.clear(); liveCategories.addAll(cats); showLiveCategories() } else loadLiveStreams(null) } } ?: showLoginDialog() }
     private fun showLiveCategories() { isShowingCategories = true; tvTitle.text = "📺 المجموعات (${liveCategories.size})"; rv.adapter = createCategoryAdapter(liveCategories) { cat -> selectedCategoryId = cat.categoryId; isShowingCategories = false; btnBack.visibility = View.VISIBLE; tvTitle.text = "📺 ${cat.categoryName}"; loadLiveStreams(cat.categoryId) } }
@@ -419,22 +356,25 @@ class MainActivity : AppCompatActivity() {
     private fun loadSeriesList(catId: String?) { server?.let { srv -> showLoading(); XtreamAPI.getSeries(srv, catId) { series -> hideLoading(); seriesList.clear(); seriesList.addAll(series); if (series.isNotEmpty()) updateSeriesList() else showEmptyError("لم يتم العثور على مسلسلات") } } }
     private fun updateSeriesList() { tvTitle.text = "${tvTitle.text} (${seriesList.size})"; rv.adapter = createChannelAdapter(seriesList.map { it.name }) { name -> val s = seriesList.find { it.name == name }!!; XtreamAPI.getSeriesInfo(server!!, s.seriesId) { episodes -> showEpisodesDialog(s.name, episodes) } } }
 
-    private fun showEmptyError(message: String) {
-        val report = buildString { appendLine("❌ $message"); if (XtreamAPI.lastRequestUrl.isNotEmpty()) { appendLine("🔗 الرابط:"); appendLine(XtreamAPI.lastRequestUrl) }; if (XtreamAPI.lastErrorMessage.isNotEmpty()) { appendLine("⚠️ الخطأ:"); appendLine(XtreamAPI.lastErrorMessage) }; appendLine("📊 عدد العناصر: ${XtreamAPI.lastItemCount}"); if (XtreamAPI.lastResponseBody.isNotEmpty()) { appendLine("📄 الاستجابة (أول 1000 حرف):"); appendLine(XtreamAPI.lastResponseBody.take(1000)) } }
-        tvTitle.text = "❌ خطأ"
-        rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder { val sv = ScrollView(parent.context); val l = LinearLayout(parent.context).apply { orientation = LinearLayout.VERTICAL; setPadding(20, 20, 20, 20); gravity = Gravity.CENTER }; l.addView(TextView(parent.context).apply { text = report; textSize = 12f; setTextColor(Color.parseColor("#FF6B6B")); gravity = Gravity.START }); l.addView(Button(parent.context).apply { text = "🔄 إعادة المحاولة"; setBackgroundColor(Color.parseColor("#2D2D5E")); setTextColor(Color.WHITE); setOnClickListener { refreshCurrentTab() } }); sv.addView(l); return object : RecyclerView.ViewHolder(sv) {} }
-            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, pos: Int) {}
-            override fun getItemCount() = 1
-        }
-    }
-
+    private fun showEmptyError(message: String) { val report = buildString { appendLine("❌ $message"); if (XtreamAPI.lastRequestUrl.isNotEmpty()) { appendLine("🔗 الرابط:"); appendLine(XtreamAPI.lastRequestUrl) }; if (XtreamAPI.lastErrorMessage.isNotEmpty()) { appendLine("⚠️ الخطأ:"); appendLine(XtreamAPI.lastErrorMessage) }; appendLine("📊 عدد العناصر: ${XtreamAPI.lastItemCount}"); if (XtreamAPI.lastResponseBody.isNotEmpty()) { appendLine("📄 الاستجابة (أول 1000 حرف):"); appendLine(XtreamAPI.lastResponseBody.take(1000)) } }; tvTitle.text = "❌ خطأ"; rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() { override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder { val sv = ScrollView(parent.context); val l = LinearLayout(parent.context).apply { orientation = LinearLayout.VERTICAL; setPadding(20, 20, 20, 20); gravity = Gravity.CENTER }; l.addView(TextView(parent.context).apply { text = report; textSize = 12f; setTextColor(Color.parseColor("#FF6B6B")); gravity = Gravity.START }); l.addView(Button(parent.context).apply { text = "🔄 إعادة المحاولة"; setBackgroundColor(Color.parseColor("#2D2D5E")); setTextColor(Color.WHITE); setOnClickListener { refreshCurrentTab() } }); sv.addView(l); return object : RecyclerView.ViewHolder(sv) {} }; override fun onBindViewHolder(holder: RecyclerView.ViewHolder, pos: Int) {}; override fun getItemCount() = 1 } }
     private fun refreshCurrentTab() { switchTab(currentCategory) }
 
+    // ===== ADAPTERS WITH FULL DPAD SUPPORT =====
     private fun createCategoryAdapter(cats: List<XtreamCategory>, onClick: (XtreamCategory) -> Unit): RecyclerView.Adapter<RecyclerView.ViewHolder> {
         val t = themes[currentTheme]!!; val catPadH = dimen(R.dimen.category_padding_h); val catPadV = dimen(R.dimen.category_padding_v); val catIconSize = dimenSp(R.dimen.category_icon_size); val catTextSize = dimenSp(R.dimen.category_text_size); val catArrowSize = dimenSp(R.dimen.category_arrow_size)
         return object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-            override fun onCreateViewHolder(p: ViewGroup, vt: Int): RecyclerView.ViewHolder { val l = LinearLayout(p.context).apply { orientation = LinearLayout.HORIZONTAL; setPadding(catPadH, catPadV, catPadH, catPadV); gravity = Gravity.CENTER_VERTICAL; setBackgroundColor(t.card) }; l.addView(TextView(p.context).apply { text = "📁"; textSize = catIconSize }); l.addView(TextView(p.context).apply { setPadding(12, 0, 0, 0); textSize = catTextSize; setTextColor(t.textWhite); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) }); l.addView(TextView(p.context).apply { text = "→"; textSize = catArrowSize; setTextColor(t.accent) }); return object : RecyclerView.ViewHolder(l) {} }
+            override fun onCreateViewHolder(p: ViewGroup, vt: Int): RecyclerView.ViewHolder {
+                val l = LinearLayout(p.context).apply {
+                    orientation = LinearLayout.HORIZONTAL; setPadding(catPadH, catPadV, catPadH, catPadV)
+                    gravity = Gravity.CENTER_VERTICAL; setBackgroundColor(t.card)
+                    isFocusable = true; isFocusableInTouchMode = true
+                    setOnFocusChangeListener { view, hasFocus -> view.setBackgroundColor(if (hasFocus) t.activeTab else t.card) }
+                }
+                l.addView(TextView(p.context).apply { text = "📁"; textSize = catIconSize })
+                l.addView(TextView(p.context).apply { setPadding(12, 0, 0, 0); textSize = catTextSize; setTextColor(t.textWhite); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) })
+                l.addView(TextView(p.context).apply { text = "→"; textSize = catArrowSize; setTextColor(t.accent) })
+                return object : RecyclerView.ViewHolder(l) {}
+            }
             override fun onBindViewHolder(h: RecyclerView.ViewHolder, pos: Int) { val l = (h.itemView as LinearLayout); (l.getChildAt(1) as TextView).text = cats[pos].categoryName; l.setOnClickListener { onClick(cats[pos]) } }
             override fun getItemCount() = cats.size
         }
@@ -443,7 +383,17 @@ class MainActivity : AppCompatActivity() {
     private fun createChannelAdapter(names: List<String>, onClick: (String) -> Unit): RecyclerView.Adapter<RecyclerView.ViewHolder> {
         val t = themes[currentTheme]!!; val chPadH = dimen(R.dimen.item_padding_h); val chPadV = dimen(R.dimen.item_padding_v); val chTextSize = dimenSp(R.dimen.item_text_size); val chFavSize = dimenSp(R.dimen.item_fav_icon_size)
         return object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-            override fun onCreateViewHolder(p: ViewGroup, vt: Int): RecyclerView.ViewHolder { val l = LinearLayout(p.context).apply { orientation = LinearLayout.HORIZONTAL; setPadding(chPadH, chPadV, chPadH, chPadV); gravity = Gravity.CENTER_VERTICAL; setBackgroundColor(t.card) }; l.addView(TextView(p.context).apply { textSize = chTextSize; setTextColor(t.textWhite); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) }); l.addView(Button(p.context).apply { text = "⭐"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.parseColor("#FFD93D")); textSize = chFavSize }); return object : RecyclerView.ViewHolder(l) {} }
+            override fun onCreateViewHolder(p: ViewGroup, vt: Int): RecyclerView.ViewHolder {
+                val l = LinearLayout(p.context).apply {
+                    orientation = LinearLayout.HORIZONTAL; setPadding(chPadH, chPadV, chPadH, chPadV)
+                    gravity = Gravity.CENTER_VERTICAL; setBackgroundColor(t.card)
+                    isFocusable = true; isFocusableInTouchMode = true
+                    setOnFocusChangeListener { view, hasFocus -> view.setBackgroundColor(if (hasFocus) t.activeTab else t.card) }
+                }
+                l.addView(TextView(p.context).apply { textSize = chTextSize; setTextColor(t.textWhite); setTypeface(null, Typeface.BOLD); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) })
+                l.addView(Button(p.context).apply { text = "⭐"; setBackgroundColor(Color.TRANSPARENT); setTextColor(Color.parseColor("#FFD93D")); textSize = chFavSize })
+                return object : RecyclerView.ViewHolder(l) {}
+            }
             override fun onBindViewHolder(h: RecyclerView.ViewHolder, pos: Int) { val l = (h.itemView as LinearLayout); val name = names[pos]; (l.getChildAt(0) as TextView).text = name; l.setOnClickListener { onClick(name) }; l.getChildAt(1).setOnClickListener { val type = if (currentCategory == "movies") "movie" else "live"; val id = if (type == "live") liveChannels.getOrNull(pos)?.streamId ?: 0 else vodMovies.getOrNull(pos)?.streamId ?: 0; addToFavorites(type, id, name) } }
             override fun getItemCount() = names.size
         }
