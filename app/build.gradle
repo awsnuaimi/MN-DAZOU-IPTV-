@@ -11,10 +11,13 @@ android {
         applicationId "com.dazou.iptvplayer"
         minSdk 21
         targetSdk 34
-        // توليد versionCode من الوقت (عدد الثواني منذ 1 يناير 2024)
-        def now = System.currentTimeMillis() / 1000
-        def startOf2024 = 1704067200
-        versionCode (now - startOf2024).toInteger()
+
+        // توليد versionCode تلقائياً من الوقت
+        def now = (System.currentTimeMillis() / 1000).toLong()
+        def startOf2024 = 1704067200L
+        def buildNumber = (now - startOf2024).toInteger()
+
+        versionCode buildNumber
         versionName "1.0"
     }
 
@@ -22,6 +25,10 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+
+        debug {
+            minifyEnabled false
         }
     }
 
@@ -39,7 +46,7 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.recyclerview:recyclerview:1.3.0'
-    
+
     implementation 'androidx.media3:media3-exoplayer:1.2.0'
     implementation 'androidx.media3:media3-exoplayer-hls:1.2.0'
     implementation 'androidx.media3:media3-ui:1.2.0'
