@@ -11,9 +11,11 @@ android {
         applicationId "com.dazou.iptvplayer"
         minSdk 21
         targetSdk 34
-        def buildNumber = (System.currentTimeMillis() / 1000).toInteger()
-        versionCode buildNumber
-        versionName "1.0." + buildNumber
+        // توليد versionCode من الوقت (عدد الثواني منذ 1 يناير 2024)
+        def now = System.currentTimeMillis() / 1000
+        def startOf2024 = 1704067200
+        versionCode (now - startOf2024).toInteger()
+        versionName "1.0"
     }
 
     buildTypes {
