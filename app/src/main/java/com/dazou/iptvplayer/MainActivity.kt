@@ -210,7 +210,73 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showSettingsDialog() {
+  private fun showSettingsDialog() {
+    AlertDialog.Builder(this).setTitle("⚙️ الإعدادات").setItems(arrayOf(
+        "🎨 تغيير الثيم", 
+        "👤 إدارة الحسابات", 
+        "📋 EPG", 
+        "💾 نسخ احتياطي", 
+        "📥 استعادة النسخة", 
+        "🗑️ مسح البيانات"
+    )) { _, w ->
+        when (w) { 
+            0 -> showThemeDialog()
+            1 -> showAccountsDialog()
+            2 -> showEpgForCurrentChannel()
+            3 -> backupData()
+            4 -> restoreData()
+            5 -> { prefs.edit().clear().apply(); accounts.clear(); recreate() }
+        }
+    }.show()
+}
+
+// دالة النسخ الاحتياطي
+private fun backupData() {
+    try {
+        val data = JSONObject()
+        data.put("favorites", prefs.getString("favorites", "[]"))
+        data.put("history", prefs.getString("history", "[]"))
+        data.put("accounts", prefs.getString("accounts", "[]"))
+        data.put("theme", prefs.getString("theme", "dark"))
+        
+        val file = File(getExternalFilesDir(null), "MN-DAZOU_backup.json")
+        file.writeText(data.toString())
+        Toast.makeText(this, "✅ تم النسخ الاحتياطي: ${file.absolutePath}", Toast.LENGTH_LONG).show()
+    } catch (e: Exception) {
+        Toast.makeText(this, "❌ فشل النسخ: ${e.message}", Toast.LENGTH_LONG).show()
+    }
+}
+
+// دالة الاستعادة
+private fun restoreData() {
+    try {
+        val file = File(getExternalFilesDir(null), "MN-DAZOU_backup.json")
+        if (!file.exists()) { Toast.makeText(this, "لا توجد نسخة احتياطية", Toast.LENGTH_SHORT).show(); return }
+        
+        AlertDialog.Builder(this)
+            .setTitle("📥 استعادة النسخة الاحتياطية")
+            .setMessage("سيتم استبدال جميع البيانات الحالية. هل تريد المتابعة؟")
+            .setPositiveButton("نعم") { _, _ ->
+                val data = JSONObject(file.readText())
+                prefs.edit()
+                    .putString("favorites", data.optString("favorites", "[]"))
+                    .putString("history", data.optString("history", "[]"))
+                    .putString("accounts", data.optString("accounts", "[]"))
+                    .putString("theme", data.optString("theme", "dark"))
+                    .apply()
+                loadFavorites()
+                loadHistory()
+                loadAccounts()
+                currentTheme = prefs.getString("theme", "dark") ?: "dark"
+                Toast.makeText(this, "✅ تمت الاستعادة بنجاح. أعد تشغيل التطبيق", Toast.LENGTH_LONG).show()
+            }
+            .setNegativeButton("إلغاء", null)
+            .show()
+    } catch (e: Exception) {
+        Toast.makeText(this, "❌ فشل الاستعادة: ${e.message}", Toast.LENGTH_LONG).show()
+    }
+}
+   {
         AlertDialog.Builder(this).setTitle("⚙️ الإعدادات").setItems(arrayOf("🎨 تغيير الثيم", "👤 إدارة الحسابات", "📋 EPG", "🗑️ مسح البيانات")) { _, w ->
             when (w) { 0 -> showThemeDialog(); 1 -> showAccountsDialog(); 2 -> showEpgForCurrentChannel(); 3 -> { prefs.edit().clear().apply(); accounts.clear(); recreate() } }
         }.show()
