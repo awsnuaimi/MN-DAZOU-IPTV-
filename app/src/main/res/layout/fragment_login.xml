@@ -8,27 +8,82 @@
     android:padding="20dp">
 
 
-    <EditText
-        android:id="@+id/etUrl"
+    <RadioGroup
+        android:id="@+id/accountType"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+
+        <RadioButton
+            android:id="@+id/radioXtream"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Xtream Codes"
+            android:checked="true"/>
+
+
+        <RadioButton
+            android:id="@+id/radioM3u"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="M3U Playlist"/>
+
+    </RadioGroup>
+
+
+    <!-- بيانات Xtream -->
+
+    <LinearLayout
+        android:id="@+id/layoutXtream"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="رابط السيرفر"
-        android:inputType="textUri"/>
+        android:orientation="vertical">
 
 
-    <EditText
-        android:id="@+id/etUser"
+        <EditText
+            android:id="@+id/etUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="رابط السيرفر"
+            android:inputType="textUri"/>
+
+
+        <EditText
+            android:id="@+id/etUser"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="اسم المستخدم"/>
+
+
+        <EditText
+            android:id="@+id/etPass"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="كلمة المرور"
+            android:inputType="textPassword"/>
+
+    </LinearLayout>
+
+
+
+    <!-- بيانات M3U -->
+
+    <LinearLayout
+        android:id="@+id/layoutM3u"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="اسم المستخدم"/>
+        android:orientation="vertical"
+        android:visibility="gone">
 
 
-    <EditText
-        android:id="@+id/etPass"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="كلمة المرور"
-        android:inputType="textPassword"/>
+        <EditText
+            android:id="@+id/etM3uUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="رابط قائمة M3U"
+            android:inputType="textUri"/>
+
+    </LinearLayout>
 
 
 </LinearLayout>
