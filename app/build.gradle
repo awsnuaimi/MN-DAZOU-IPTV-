@@ -11,10 +11,9 @@ android {
         applicationId "com.dazou.iptvplayer"
         minSdk 21
         targetSdk 34
-        // ✅ تلقائي: يولّد versionCode من تاريخ ووقت البناء
-        def buildDate = Long.parseLong(new Date().format("yyMMddHHmm"))
-        versionCode buildDate
-        versionName "1.0." + buildDate
+        def buildNumber = (System.currentTimeMillis() / 1000).toInteger()
+        versionCode buildNumber
+        versionName "1.0." + buildNumber
     }
 
     buildTypes {
