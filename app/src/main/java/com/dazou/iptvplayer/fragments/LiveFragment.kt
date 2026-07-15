@@ -14,21 +14,41 @@ import com.dazou.iptvplayer.databinding.FragmentLiveBinding
 import com.dazou.iptvplayer.player.PlayerCallback
 import com.dazou.iptvplayer.viewmodel.LiveViewModel
 
+
 class LiveFragment : Fragment() {
 
+
     private var _binding: FragmentLiveBinding? = null
+
     private val binding get() = _binding!!
 
+
     private lateinit var viewModel: LiveViewModel
+
+
     private var playerCallback: PlayerCallback? = null
 
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+
+
+
+    override fun onCreate(
+        savedInstanceState: Bundle?
+    ) {
+
         super.onCreate(savedInstanceState)
 
-        viewModel = ViewModelProvider(requireActivity())
-            .get(LiveViewModel::class.java)
+
+        viewModel =
+            ViewModelProvider(requireActivity())
+                .get(LiveViewModel::class.java)
+
     }
+
+
+
+
+
 
 
     override fun onCreateView(
@@ -38,48 +58,94 @@ class LiveFragment : Fragment() {
     ): View {
 
 
-        _binding = FragmentLiveBinding.inflate(
-            inflater,
-            container,
-            false
-        )
+        _binding =
+            FragmentLiveBinding.inflate(
+                inflater,
+                container,
+                false
+            )
 
 
-        playerCallback = requireActivity() as? PlayerCallback
+
+        playerCallback =
+            requireActivity() as? PlayerCallback
+
+
 
 
         binding.rvLive.layoutManager =
-            LinearLayoutManager(requireContext())
+            LinearLayoutManager(
+                requireContext()
+            )
 
 
-        viewModel.channels.observe(viewLifecycleOwner) { channels ->
 
 
-            if (channels.isEmpty()) {
+
+
+        viewModel.channels.observe(
+            viewLifecycleOwner
+        ) { channels ->
+
+
+
+            if(channels.isEmpty()){
+
 
                 Toast.makeText(
                     requireContext(),
-                    "لم يتم العثور على قنوات",
+                    "لا توجد قنوات أو لم يتم اختيار حساب",
                     Toast.LENGTH_LONG
                 ).show()
 
+
+
                 return@observe
+
             }
 
 
+
+
+
             binding.rvLive.adapter =
-                ChannelAdapter(channels) { channel ->
+                ChannelAdapter(channels){ channel ->
 
 
-                    val server = viewModel.getServer()
+
+                    val server =
+                        viewModel.getServer()
 
 
-                    val url = XtreamAPI.getStreamUrl(
-                        server,
-                        channel.streamId,
-                        channel.containerExtension,
-                        "live"
-                    )
+
+                    if(server == null){
+
+
+                        Toast.makeText(
+                            requireContext(),
+                            "اختر حساب IPTV أولاً",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+
+                        return@ChannelAdapter
+
+                    }
+
+
+
+
+
+                    val url =
+                        XtreamAPI.getStreamUrl(
+                            server,
+                            channel.streamId,
+                            channel.containerExtension,
+                            "live"
+                        )
+
+
+
 
 
                     playerCallback?.playStream(
@@ -88,6 +154,7 @@ class LiveFragment : Fragment() {
                         "live"
                     )
 
+
                 }
 
 
@@ -95,18 +162,31 @@ class LiveFragment : Fragment() {
 
 
 
+
+
+
+
         viewModel.loadAllChannels()
 
 
+
         return binding.root
+
     }
 
 
 
-    override fun onDestroyView() {
+
+
+
+
+    override fun onDestroyView(){
 
         super.onDestroyView()
 
         _binding = null
+
     }
+
+
 }
