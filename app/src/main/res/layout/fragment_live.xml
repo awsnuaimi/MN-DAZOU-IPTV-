@@ -11,22 +11,32 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="8dp">
+        android:gravity="center_vertical"
+        android:padding="4dp">
 
         <EditText
             android:id="@+id/etSearch"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="36dp"
             android:layout_weight="1"
             android:hint="🔍 بحث..."
             android:background="@color/card_dark"
             android:textColor="@color/text_white"
-            android:padding="8dp" />
+            android:textSize="13sp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:minHeight="0dp" />
 
         <Button
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginStart="4dp"
             android:text="بحث"
+            android:textSize="13sp"
+            android:minHeight="0dp"
+            android:minWidth="0dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
             android:background="@color/accent"
             android:textColor="#000" />
     </LinearLayout>
