@@ -21,7 +21,7 @@ class LiveViewModel(
 
 
     private val accountManager =
-        AccountManager(application)
+    (application as com.dazou.iptvplayer.App).accountManager
 
 
 
