@@ -6,9 +6,8 @@ import com.dazou.iptvplayer.api.XtreamAPI
 import com.dazou.iptvplayer.model.*
 
 class XtreamRepository(
-    private val server: XtreamServer
+    val server: XtreamServer     // <-- لاحظ عدم وجود private
 ) {
-
 
     val liveCategories =
         MutableLiveData<List<XtreamCategory>>()
@@ -31,200 +30,52 @@ class XtreamRepository(
     val episodes =
         MutableLiveData<List<XtreamEpisode>>()
 
-
-
-
-
     fun loadLiveCategories() {
-
-
-        Log.d(
-            "XtreamRepository",
-            "Loading live categories from ${server.url}"
-        )
-
-
+        Log.d("XtreamRepository", "Loading live categories from ${server.url}")
         XtreamAPI.getLiveCategories(server) {
-
-
-            Log.d(
-                "XtreamRepository",
-                "Live categories count = ${it.size}"
-            )
-
-
+            Log.d("XtreamRepository", "Live categories count = ${it.size}")
             liveCategories.postValue(it)
-
         }
-
     }
 
-
-
-
-
-    fun loadLiveStreams(
-        categoryId:String? = null
-    ) {
-
-
-        Log.d(
-            "XtreamRepository",
-            "Loading live streams"
-        )
-
-
-        XtreamAPI.getLiveStreams(
-            server,
-            categoryId
-        ){
-
-
-            Log.d(
-                "XtreamRepository",
-                "Live channels count = ${it.size}"
-            )
-
-
+    fun loadLiveStreams(categoryId: String? = null) {
+        Log.d("XtreamRepository", "Loading live streams")
+        XtreamAPI.getLiveStreams(server, categoryId) {
+            Log.d("XtreamRepository", "Live channels count = ${it.size}")
             liveChannels.postValue(it)
-
         }
-
     }
-
-
-
-
-
 
     fun loadVodCategories() {
-
-
-        XtreamAPI.getVodCategories(server){
-
-
-            Log.d(
-                "XtreamRepository",
-                "VOD categories = ${it.size}"
-            )
-
-
+        XtreamAPI.getVodCategories(server) {
+            Log.d("XtreamRepository", "VOD categories = ${it.size}")
             vodCategories.postValue(it)
-
-
         }
-
-
     }
 
-
-
-
-
-
-
-    fun loadMovies(
-        categoryId:String? = null
-    ) {
-
-
-        XtreamAPI.getVodStreams(
-            server,
-            categoryId
-        ){
-
-
-            Log.d(
-                "XtreamRepository",
-                "Movies count = ${it.size}"
-            )
-
-
+    fun loadMovies(categoryId: String? = null) {
+        XtreamAPI.getVodStreams(server, categoryId) {
+            Log.d("XtreamRepository", "Movies count = ${it.size}")
             vodMovies.postValue(it)
-
-
         }
-
-
     }
-
-
-
-
-
-
 
     fun loadSeriesCategories() {
-
-
-        XtreamAPI.getVodCategories(server){
-
-
+        XtreamAPI.getVodCategories(server) {
             seriesCategories.postValue(it)
-
-
         }
-
-
     }
 
-
-
-
-
-
-
-    fun loadSeries(
-        categoryId:String? = null
-    ) {
-
-
-        XtreamAPI.getSeries(
-            server,
-            categoryId
-        ){
-
-
-            Log.d(
-                "XtreamRepository",
-                "Series count = ${it.size}"
-            )
-
-
+    fun loadSeries(categoryId: String? = null) {
+        XtreamAPI.getSeries(server, categoryId) {
+            Log.d("XtreamRepository", "Series count = ${it.size}")
             series.postValue(it)
-
-
         }
-
-
     }
 
-
-
-
-
-
-
-    fun loadEpisodes(
-        seriesId:Int
-    ) {
-
-
-        XtreamAPI.getSeriesInfo(
-            server,
-            seriesId
-        ){
-
-
+    fun loadEpisodes(seriesId: Int) {
+        XtreamAPI.getSeriesInfo(server, seriesId) {
             episodes.postValue(it)
-
-
         }
-
-
     }
-
-
-}class XtreamRepository(
-    val server: XtreamServer
-) {
+}
