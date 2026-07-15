@@ -1,244 +1,55 @@
 package com.dazou.iptvplayer.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Observer
-import com.dazou.iptvplayer.data.AccountManager
+import androidx.lifecycle.ViewModel
 import com.dazou.iptvplayer.data.XtreamRepository
 import com.dazou.iptvplayer.model.XtreamCategory
 import com.dazou.iptvplayer.model.XtreamChannel
 import com.dazou.iptvplayer.model.XtreamServer
 
+class LiveViewModel(private val repository: XtreamRepository?) : ViewModel() {
 
-class LiveViewModel(
-    application: Application
-) : AndroidViewModel(application) {
+    private val _categories = MutableLiveData<List<XtreamCategory>>()
+    val categories: LiveData<List<XtreamCategory>> get() = _categories
 
-
-    private var repository: XtreamRepository? = null
-
-
-    private val accountManager =
-    (application as com.dazou.iptvplayer.App).accountManager
-
-
-
-    private val _categories =
-        MutableLiveData<List<XtreamCategory>>()
-
-    val categories: LiveData<List<XtreamCategory>>
-        get() = _categories
-
-
-
-    private val _channels =
-        MutableLiveData<List<XtreamChannel>>()
-
-
-    val channels: LiveData<List<XtreamChannel>>
-        get() = _channels
-
-
-
-    private var categoriesObserver:
-            Observer<List<XtreamCategory>>? = null
-
-
-    private var channelsObserver:
-            Observer<List<XtreamChannel>>? = null
-
-
-    var currentCategoryName: String = ""
-
-
-
-
+    private val _channels = MutableLiveData<List<XtreamChannel>>()
+    val channels: LiveData<List<XtreamChannel>> get() = _channels
 
     fun loadCategories() {
-
-
-        val server =
-            accountManager.getActiveAccount()
-
-
-        if (server == null) {
-
-            _categories.value =
-                emptyList()
-
+        val repo = repository
+        if (repo == null) {
+            Log.e("LiveViewModel", "Repository is null! No active account.")
+            _categories.value = emptyList()
             return
-
         }
-
-
-        if (repository == null) {
-
-            repository =
-                XtreamRepository(server)
-
+        Log.d("LiveViewModel", "Loading categories with server: ${repo.server.url}")
+        repo.liveCategories.observeForever { cats ->
+            Log.d("LiveViewModel", "Categories received: ${cats.size}")
+            _categories.postValue(cats)
         }
-
-
-        categoriesObserver =
-            Observer {
-
-                _categories.postValue(it)
-
-            }
-
-
-        repository!!
-            .liveCategories
-            .observeForever(
-                categoriesObserver!!
-            )
-
-
-        repository!!
-            .loadLiveCategories()
-
+        repo.loadLiveCategories()
     }
 
-
-
-
-
-    fun loadChannels(
-        categoryId: String? = null
-    ) {
-
-
-        val server =
-            accountManager.getActiveAccount()
-
-
-
-        if (server == null) {
-
-
-            _channels.value =
-                emptyList()
-
-
+    fun loadChannels(categoryId: String? = null) {
+        val repo = repository
+        if (repo == null) {
+            _channels.value = emptyList()
             return
-
         }
-
-
-        if (repository == null) {
-
-            repository =
-                XtreamRepository(server)
-
+        repo.liveChannels.observeForever { ch ->
+            Log.d("LiveViewModel", "Channels received: ${ch.size}")
+            _channels.postValue(ch)
         }
-
-
-
-
-        channelsObserver =
-            Observer {
-
-
-                _channels.postValue(it)
-
-
-            }
-
-
-
-
-        repository!!
-            .liveChannels
-            .observeForever(
-                channelsObserver!!
-            )
-
-
-
-        repository!!
-            .loadLiveStreams(categoryId)
-
-
+        repo.loadLiveStreams(categoryId)
     }
 
-
-
-
-
-    fun loadAllChannels() {
-
-        loadChannels(null)
-
-    }
-
-
-
-
-
-
-
-    fun getServer(): XtreamServer? {
-
-
-        return accountManager
-            .getActiveAccount()
-
-
-    }
-
-
-
-
-
-
-
-    fun setServer(
-        server: XtreamServer
-    ) {
-
-
-        repository =
-            XtreamRepository(server)
-
-
-    }
-
-
-
-
-
-
-
+    fun getServer(): XtreamServer? = repository?.server
 
     override fun onCleared() {
-
-
         super.onCleared()
-
-
-        categoriesObserver?.let {
-
-            repository
-                ?.liveCategories
-                ?.removeObserver(it)
-
-        }
-
-
-        channelsObserver?.let {
-
-
-            repository
-                ?.liveChannels
-                ?.removeObserver(it)
-
-
-        }
-
-
+        repository?.liveCategories?.removeObserver { }
+        repository?.liveChannels?.removeObserver { }
     }
-
-
 }
