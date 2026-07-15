@@ -1,102 +1,167 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:focusable="true"
-    android:focusableInTouchMode="true">
+    android:background="@color/bg_dark">
+
 
     <androidx.media3.ui.PlayerView
+
         android:id="@+id/playerView"
+
         android:layout_width="match_parent"
-        android:layout_height="@dimen/player_height"
+
+        android:layout_height="220dp"
+
         android:background="#000000"
-        android:focusable="false" />
+
+        android:focusable="false"
+
+        android:clickable="false"
+
+        android:useController="false" />
+
+
 
     <FrameLayout
+
         android:id="@+id/fragmentContainer"
+
         android:layout_width="match_parent"
+
         android:layout_height="0dp"
+
         android:layout_weight="1" />
 
+
+
     <LinearLayout
+
         android:id="@+id/bottomNav"
+
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+
+        android:layout_height="60dp"
+
         android:orientation="horizontal"
-        android:background="@color/bottom_bar"
-        android:gravity="center">
 
-        <Button android:id="@+id/btnHome"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="🏠 الرئيسية"
-            android:focusable="true"
-            android:focusableInTouchMode="true"
-            android:clickable="true"
-            android:background="@drawable/tab_selector"
-            android:textColor="@color/text_gray"
-            android:textSize="@dimen/tab_text_size" />
+        android:gravity="center"
 
-        <Button android:id="@+id/btnLive"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="📺 مباشر"
-            android:focusable="true"
-            android:focusableInTouchMode="true"
-            android:clickable="true"
-            android:background="@drawable/tab_selector"
-            android:textColor="@color/text_gray"
-            android:textSize="@dimen/tab_text_size" />
+        android:background="@color/bottom_bar">
 
-        <Button android:id="@+id/btnMovies"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="🎬 أفلام"
-            android:focusable="true"
-            android:focusableInTouchMode="true"
-            android:clickable="true"
-            android:background="@drawable/tab_selector"
-            android:textColor="@color/text_gray"
-            android:textSize="@dimen/tab_text_size" />
 
-        <Button android:id="@+id/btnSeries"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="🎭 مسلسلات"
-            android:focusable="true"
-            android:focusableInTouchMode="true"
-            android:clickable="true"
-            android:background="@drawable/tab_selector"
-            android:textColor="@color/text_gray"
-            android:textSize="@dimen/tab_text_size" />
 
-        <Button android:id="@+id/btnFavorites"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="⭐ مفضلة"
-            android:focusable="true"
-            android:focusableInTouchMode="true"
-            android:clickable="true"
-            android:background="@drawable/tab_selector"
-            android:textColor="@color/text_gray"
-            android:textSize="@dimen/tab_text_size" />
+        <Button
 
-        <Button android:id="@+id/btnAccounts"
+            android:id="@+id/btnHome"
+
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+
+            android:layout_height="match_parent"
+
             android:layout_weight="1"
-            android:text="👤 حسابات"
+
+            android:text="🏠"
+
             android:focusable="true"
-            android:focusableInTouchMode="true"
-            android:clickable="true"
-            android:background="@drawable/tab_selector"
-            android:textColor="@color/text_gray"
-            android:textSize="@dimen/tab_text_size" />
+
+            android:clickable="true"/>
+
+
+
+        <Button
+
+            android:id="@+id/btnLive"
+
+            android:layout_width="0dp"
+
+            android:layout_height="match_parent"
+
+            android:layout_weight="1"
+
+            android:text="📺"
+
+            android:focusable="true"
+
+            android:clickable="true"/>
+
+
+
+        <Button
+
+            android:id="@+id/btnMovies"
+
+            android:layout_width="0dp"
+
+            android:layout_height="match_parent"
+
+            android:layout_weight="1"
+
+            android:text="🎬"
+
+            android:focusable="true"
+
+            android:clickable="true"/>
+
+
+
+        <Button
+
+            android:id="@+id/btnSeries"
+
+            android:layout_width="0dp"
+
+            android:layout_height="match_parent"
+
+            android:layout_weight="1"
+
+            android:text="🎭"
+
+            android:focusable="true"
+
+            android:clickable="true"/>
+
+
+
+        <Button
+
+            android:id="@+id/btnFavorites"
+
+            android:layout_width="0dp"
+
+            android:layout_height="match_parent"
+
+            android:layout_weight="1"
+
+            android:text="⭐"
+
+            android:focusable="true"
+
+            android:clickable="true"/>
+
+
+
+        <Button
+
+            android:id="@+id/btnAccounts"
+
+            android:layout_width="0dp"
+
+            android:layout_height="match_parent"
+
+            android:layout_weight="1"
+
+            android:text="👤"
+
+            android:focusable="true"
+
+            android:clickable="true"/>
+
+
     </LinearLayout>
+
+
 </LinearLayout>

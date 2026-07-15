@@ -1,9 +1,8 @@
 package com.dazou.iptvplayer
 
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.KeyEvent
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.dazou.iptvplayer.databinding.ActivityMainBinding
@@ -11,8 +10,6 @@ import com.dazou.iptvplayer.fragments.*
 import com.dazou.iptvplayer.model.XtreamServer
 import com.dazou.iptvplayer.player.PlayerCallback
 import com.dazou.iptvplayer.player.PlayerManager
-import com.dazou.iptvplayer.viewmodel.LiveViewModel
-import androidx.lifecycle.ViewModelProvider
 
 
 class MainActivity : AppCompatActivity(), PlayerCallback {
@@ -22,26 +19,29 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     lateinit var playerManager: PlayerManager
 
-    // الحساب الحالي
+
     var currentServer: XtreamServer? = null
-
-
-    private lateinit var liveViewModel: LiveViewModel
 
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
         super.onCreate(savedInstanceState)
 
 
         binding = ActivityMainBinding.inflate(layoutInflater)
+
         setContentView(binding.root)
 
 
 
-        // دعم Android TV والريموت
-        window.decorView.isFocusableInTouchMode = true
-        window.decorView.requestFocus()
+        // منع المشغل من خطف اللمس والتركيز
+        binding.playerView.apply {
+
+            useController = false
+            isFocusable = false
+            isClickable = false
+        }
 
 
 
@@ -53,43 +53,11 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
 
 
-        playerManager.setOnPlaybackEndedListener {
-
-            onNextChannel()
-
-        }
-
-
-
-        liveViewModel =
-            ViewModelProvider(this)
-                .get(LiveViewModel::class.java)
-
-
-
         setupBottomNav()
 
 
+        loadFragment(HomeFragment())
 
-        loadFragment(
-            HomeFragment()
-        )
-
-
-
-        // أول تركيز للريموت
-        Handler(Looper.getMainLooper())
-            .postDelayed({
-
-                binding.btnHome.apply {
-
-                    isFocusable = true
-                    isFocusableInTouchMode = true
-                    requestFocus()
-
-                }
-
-            },500)
 
     }
 
@@ -107,54 +75,41 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
 
 
-
         binding.btnLive.setOnClickListener {
-
 
             loadFragment(LiveFragment())
 
         }
 
 
-
         binding.btnMovies.setOnClickListener {
-
 
             loadFragment(MoviesFragment())
 
         }
 
 
-
         binding.btnSeries.setOnClickListener {
-
 
             loadFragment(SeriesFragment())
 
         }
 
 
-
         binding.btnFavorites.setOnClickListener {
-
 
             loadFragment(FavoritesFragment())
 
         }
 
 
-
         binding.btnAccounts.setOnClickListener {
-
 
             loadFragment(AccountsFragment())
 
         }
 
-
     }
-
-
 
 
 
@@ -171,10 +126,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             )
             .commit()
 
-
     }
-
-
 
 
 
@@ -185,10 +137,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         name:String,
         type:String
     ){
-
-
-        binding.playerView.requestFocus()
-
 
         playerManager.play(
             url,
@@ -201,28 +149,15 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
 
 
-
-
-
     override fun onNextChannel(){
 
-        // سيتم ربط تغيير القناة لاحقاً
-
     }
-
-
-
-
 
 
 
     override fun onPreviousChannel(){
 
-        // سيتم ربط تغيير القناة لاحقاً
-
     }
-
-
 
 
 
@@ -233,60 +168,20 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     ): Boolean {
 
 
-        if(event.action ==
-            KeyEvent.ACTION_DOWN){
+        if(event.action == KeyEvent.ACTION_DOWN){
 
 
             when(event.keyCode){
 
 
-                KeyEvent.KEYCODE_DPAD_CENTER,
-                KeyEvent.KEYCODE_ENTER -> {
-
-
-                    val focused =
-                        currentFocus
-
-
-                    focused?.performClick()
-
-
-                    return true
-
-                }
-
-
-
                 KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
 
-
                     playerManager.pause()
-
-
                     return true
-
-                }
-
-
-
-                KeyEvent.KEYCODE_BACK -> {
-
-
-                    if(binding.playerView.hasFocus()){
-
-
-                        binding.playerView.clearFocus()
-
-
-                        return true
-
-                    }
-
 
                 }
 
             }
-
 
         }
 
@@ -298,66 +193,12 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
 
 
-
-
-
-    override fun onKeyDown(
-        keyCode:Int,
-        event:KeyEvent?
-    ):Boolean {
-
-
-        return when(keyCode){
-
-
-
-            KeyEvent.KEYCODE_MEDIA_NEXT -> {
-
-
-                onNextChannel()
-
-                true
-
-            }
-
-
-
-            KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
-
-
-                onPreviousChannel()
-
-                true
-
-            }
-
-
-
-            else -> super.onKeyDown(
-                keyCode,
-                event
-            )
-
-        }
-
-    }
-
-
-
-
-
-
-
     override fun onDestroy(){
-
 
         playerManager.release()
 
-
         super.onDestroy()
 
-
     }
-
 
 }
