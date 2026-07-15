@@ -3,52 +3,15 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:background="@color/bg_dark"
     android:focusable="true"
     android:focusableInTouchMode="true">
 
-    <FrameLayout
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/playerView"
         android:layout_width="match_parent"
-        android:layout_height="@dimen/player_height">
-
-        <androidx.media3.ui.PlayerView
-            android:id="@+id/playerView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#000000" />
-
-        <TextView
-            android:id="@+id/tvChannelInfo"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:background="@color/player_info_bg"
-            android:textColor="@color/text_white"
-            android:textSize="@dimen/player_info_text_size"
-            android:visibility="gone"
-            android:padding="8dp" />
-
-        <LinearLayout
-            android:id="@+id/controlsLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:background="@color/control_bg"
-            android:visibility="gone"
-            android:layout_gravity="bottom"
-            android:padding="4dp">
-
-            <Button android:id="@+id/btnPrevChannel" style="@style/PlayerControlButton" android:text="⏪" />
-            <Button android:id="@+id/btnPlayPause" style="@style/PlayerControlButton" android:text="▶️" />
-            <Button android:id="@+id/btnNextChannel" style="@style/PlayerControlButton" android:text="⏩" />
-            <Button android:id="@+id/btnEpg" style="@style/PlayerControlButton" android:text="📋" />
-            <Button android:id="@+id/btnAspectRatio" style="@style/PlayerControlButton" android:text="🔲" />
-            <Button android:id="@+id/btnToggleFullscreen" style="@style/PlayerControlButton" android:text="⛶" />
-            <Button android:id="@+id/btnRecord" style="@style/PlayerControlButton" android:text="🔴" />
-            <Button android:id="@+id/btnShare" style="@style/PlayerControlButton" android:text="📤" />
-            <Button android:id="@+id/btnDownload" style="@style/PlayerControlButton" android:text="⬇️" />
-        </LinearLayout>
-    </FrameLayout>
+        android:layout_height="@dimen/player_height"
+        android:background="#000000" />
 
     <FrameLayout
         android:id="@+id/fragmentContainer"
@@ -64,11 +27,11 @@
         android:background="@color/bottom_bar"
         android:gravity="center">
 
-        <Button android:id="@+id/btnHome" style="@style/TabButton" android:text="🏠 الرئيسية" />
-        <Button android:id="@+id/btnLive" style="@style/TabButton" android:text="📺 مباشر" />
-        <Button android:id="@+id/btnMovies" style="@style/TabButton" android:text="🎬 أفلام" />
-        <Button android:id="@+id/btnSeries" style="@style/TabButton" android:text="🎭 مسلسلات" />
-        <Button android:id="@+id/btnFavorites" style="@style/TabButton" android:text="⭐ مفضلة" />
-        <Button android:id="@+id/btnAccounts" style="@style/TabButton" android:text="👤 حسابات" />
+        <Button android:id="@+id/btnHome" style="@style/TabButton" android:text="🏠" />
+        <Button android:id="@+id/btnLive" style="@style/TabButton" android:text="📺" />
+        <Button android:id="@+id/btnMovies" style="@style/TabButton" android:text="🎬" />
+        <Button android:id="@+id/btnSeries" style="@style/TabButton" android:text="🎭" />
+        <Button android:id="@+id/btnFavorites" style="@style/TabButton" android:text="⭐" />
+        <Button android:id="@+id/btnAccounts" style="@style/TabButton" android:text="👤" />
     </LinearLayout>
 </LinearLayout>

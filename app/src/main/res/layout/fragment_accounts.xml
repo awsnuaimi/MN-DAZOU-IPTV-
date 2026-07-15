@@ -27,6 +27,7 @@
         android:focusableInTouchMode="true"
         android:descendantFocusability="afterDescendants" />
 
+    <!-- الزر الأحمر مع جميع خصائص التركيز والضغط -->
     <Button
         android:id="@+id/btnAddAccount"
         android:layout_width="match_parent"
