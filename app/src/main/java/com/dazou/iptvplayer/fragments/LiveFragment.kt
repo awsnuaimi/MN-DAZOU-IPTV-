@@ -94,21 +94,6 @@ class LiveFragment : Fragment() {
         }
 
 
-        viewModel.error.observe(viewLifecycleOwner) { error ->
-
-            if (!error.isNullOrEmpty()) {
-
-                Toast.makeText(
-                    requireContext(),
-                    error,
-                    Toast.LENGTH_LONG
-                ).show()
-
-            }
-
-        }
-
-
 
         viewModel.loadAllChannels()
 
