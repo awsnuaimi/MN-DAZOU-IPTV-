@@ -7,11 +7,48 @@
     android:focusable="true"
     android:focusableInTouchMode="true">
 
+    <TextView
+        android:id="@+id/tvAccountsTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="👤 إدارة الحسابات"
+        android:textSize="@dimen/header_text_size"
+        android:textColor="@color/accent"
+        android:gravity="center"
+        android:padding="12dp"
+        android:background="@color/bottom_bar" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvAccounts"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:focusable="true"
         android:focusableInTouchMode="true"
         android:descendantFocusability="afterDescendants" />
+
+    <Button
+        android:id="@+id/btnAddAccount"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="➕ إضافة حساب جديد"
+        android:textSize="@dimen/tab_text_size"
+        android:textColor="@color/text_white"
+        android:background="@color/accent"
+        android:padding="16dp"
+        android:layout_margin="8dp"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:clickable="true" />
+
+    <TextView
+        android:id="@+id/tvNoAccounts"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:text="لا توجد حسابات محفوظة\nاضغط على الزر أدناه لإضافة حساب"
+        android:textSize="16sp"
+        android:textColor="@color/text_gray"
+        android:gravity="center"
+        android:visibility="gone" />
 </LinearLayout>

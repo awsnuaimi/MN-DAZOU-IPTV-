@@ -77,3 +77,8 @@ class LiveFragment : Fragment() {
 
     override fun onDestroyView() { super.onDestroyView(); _binding = null }
 }
+fun refreshData() {
+    viewModel = ViewModelProvider(this, ViewModelFactory((requireActivity().application as App).container.currentRepository))
+        .get(LiveViewModel::class.java)
+    showCategories()
+}
