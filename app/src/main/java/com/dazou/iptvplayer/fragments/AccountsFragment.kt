@@ -41,45 +41,58 @@ class AccountsFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
 
+        try {
 
-        val view =
-            inflater.inflate(
-                R.layout.fragment_accounts,
-                container,
-                false
-            )
-
-
-
-        listAccounts =
-            view.findViewById(
-                R.id.listAccounts
-            )
+            val view =
+                inflater.inflate(
+                    R.layout.fragment_accounts,
+                    container,
+                    false
+                )
 
 
 
-        val btnAdd =
-            view.findViewById<Button>(
-                R.id.btnAddAccount
-            )
+            listAccounts =
+                view.findViewById(
+                    R.id.listAccounts
+                )
 
 
 
-        btnAdd.setOnClickListener {
+            val btnAdd =
+                view.findViewById<Button>(
+                    R.id.btnAddAccount
+                )
 
 
-            showAddDialog()
 
+            btnAdd.setOnClickListener {
+
+
+                showAddDialog()
+
+
+            }
+
+
+
+            loadAccounts()
+
+
+
+            return view
+
+        } catch (e: Exception) {
+
+            Toast.makeText(
+                requireContext(),
+                "خطأ: ${e.message}",
+                Toast.LENGTH_LONG
+            ).show()
+
+            return View(requireContext())
 
         }
-
-
-
-        loadAccounts()
-
-
-
-        return view
 
     }
 
