@@ -38,10 +38,11 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         // منع المشغل من خطف اللمس والتركيز
         binding.playerView.apply {
 
-            useController = false
-            isFocusable = false
-            isClickable = false
-        }
+    useController = true
+    isFocusable = true
+    isClickable = true
+    controllerShowTimeoutMs = 3000
+}
 
 
 

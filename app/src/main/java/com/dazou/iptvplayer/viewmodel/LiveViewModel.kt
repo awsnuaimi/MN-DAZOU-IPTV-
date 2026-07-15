@@ -7,6 +7,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import com.dazou.iptvplayer.data.AccountManager
 import com.dazou.iptvplayer.data.XtreamRepository
+import com.dazou.iptvplayer.model.XtreamCategory
 import com.dazou.iptvplayer.model.XtreamChannel
 import com.dazou.iptvplayer.model.XtreamServer
 
@@ -24,6 +25,14 @@ class LiveViewModel(
 
 
 
+    private val _categories =
+        MutableLiveData<List<XtreamCategory>>()
+
+    val categories: LiveData<List<XtreamCategory>>
+        get() = _categories
+
+
+
     private val _channels =
         MutableLiveData<List<XtreamChannel>>()
 
@@ -33,14 +42,72 @@ class LiveViewModel(
 
 
 
+    private var categoriesObserver:
+            Observer<List<XtreamCategory>>? = null
+
+
     private var channelsObserver:
             Observer<List<XtreamChannel>>? = null
 
 
+    var currentCategoryName: String = ""
 
 
 
-    fun loadAllChannels() {
+
+
+    fun loadCategories() {
+
+
+        val server =
+            accountManager.getActiveAccount()
+
+
+        if (server == null) {
+
+            _categories.value =
+                emptyList()
+
+            return
+
+        }
+
+
+        if (repository == null) {
+
+            repository =
+                XtreamRepository(server)
+
+        }
+
+
+        categoriesObserver =
+            Observer {
+
+                _categories.postValue(it)
+
+            }
+
+
+        repository!!
+            .liveCategories
+            .observeForever(
+                categoriesObserver!!
+            )
+
+
+        repository!!
+            .loadLiveCategories()
+
+    }
+
+
+
+
+
+    fun loadChannels(
+        categoryId: String? = null
+    ) {
 
 
         val server =
@@ -60,9 +127,12 @@ class LiveViewModel(
         }
 
 
+        if (repository == null) {
 
-        repository =
-            XtreamRepository(server)
+            repository =
+                XtreamRepository(server)
+
+        }
 
 
 
@@ -88,8 +158,18 @@ class LiveViewModel(
 
 
         repository!!
-            .loadLiveStreams()
+            .loadLiveStreams(categoryId)
 
+
+    }
+
+
+
+
+
+    fun loadAllChannels() {
+
+        loadChannels(null)
 
     }
 
@@ -137,6 +217,14 @@ class LiveViewModel(
 
         super.onCleared()
 
+
+        categoriesObserver?.let {
+
+            repository
+                ?.liveCategories
+                ?.removeObserver(it)
+
+        }
 
 
         channelsObserver?.let {
