@@ -1,8 +1,8 @@
 package com.dazou.iptvplayer
 
 import android.app.Application
-import com.dazou.iptvplayer.data.AccountManager
+import com.dazou.iptvplayer.data.AppContainer
 
 class App : Application() {
-    val accountManager: AccountManager by lazy { AccountManager(this) }
+    val container by lazy { AppContainer(this) }
 }

@@ -28,9 +28,8 @@ class LiveFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val app = requireActivity().application as App
-        // نستخدم دائمًا repository الحالي المرتبط بآخر حساب نشط
-        val repository = app.container.currentRepository
-        viewModel = ViewModelProvider(this, ViewModelFactory(repository)).get(LiveViewModel::class.java)
+        viewModel = ViewModelProvider(this, ViewModelFactory(app.container.currentRepository))
+            .get(LiveViewModel::class.java)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {

@@ -225,4 +225,6 @@ class XtreamRepository(
     }
 
 
-}
+}class XtreamRepository(
+    val server: XtreamServer
+) {

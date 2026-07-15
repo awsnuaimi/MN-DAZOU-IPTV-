@@ -24,7 +24,7 @@ class LiveViewModel(private val repository: XtreamRepository?) : ViewModel() {
             _categories.value = emptyList()
             return
         }
-        Log.d("LiveViewModel", "Loading categories with server: ${repo.server.url}")
+        Log.d("LiveViewModel", "Loading categories from ${repo.server.url}")
         repo.liveCategories.observeForever { cats ->
             Log.d("LiveViewModel", "Categories received: ${cats.size}")
             _categories.postValue(cats)
