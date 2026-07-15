@@ -2,6 +2,7 @@ package com.dazou.iptvplayer.fragments
 
 import android.app.AlertDialog
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -15,7 +16,7 @@ import com.dazou.iptvplayer.model.XtreamServer
 class AccountsFragment : Fragment() {
 
 
-    private lateinit var accountManager: AccountManager
+    private var accountManager: AccountManager? = null
 
     private lateinit var listAccounts: LinearLayout
 
@@ -26,8 +27,16 @@ class AccountsFragment : Fragment() {
     ) {
         super.onCreate(savedInstanceState)
 
-        accountManager =
-            AccountManager(requireContext())
+        try {
+
+            accountManager =
+                AccountManager(requireContext())
+
+        } catch (e: Exception) {
+
+            Log.e("AccountsFragment", "خطأ onCreate: ${e.message}", e)
+
+        }
 
     }
 
@@ -86,11 +95,16 @@ class AccountsFragment : Fragment() {
 
             Toast.makeText(
                 requireContext(),
-                "خطأ: ${e.message}",
+                "خطأ onCreateView: ${e.message}",
                 Toast.LENGTH_LONG
             ).show()
 
-            return View(requireContext())
+            Log.e("AccountsFragment", "خطأ onCreateView", e)
+
+            return TextView(requireContext()).apply {
+                text = "خطأ: ${e.message}"
+                setTextColor(android.graphics.Color.WHITE)
+            }
 
         }
 
@@ -104,55 +118,68 @@ class AccountsFragment : Fragment() {
 
     private fun loadAccounts(){
 
+        try {
 
-        listAccounts.removeAllViews()
-
-
-
-        val accounts =
-            accountManager.getAccounts()
+            listAccounts.removeAllViews()
 
 
 
-        accounts.forEachIndexed { index, account ->
+            val accounts =
+                accountManager?.getAccounts() ?: emptyList()
 
 
 
-            val button =
-                Button(requireContext())
+            accounts.forEachIndexed { index, account ->
 
 
 
-            button.text =
-                "${account.username}\n${account.url}"
+                val button =
+                    Button(requireContext())
 
 
 
-            button.setOnClickListener {
+                button.text =
+                    "${account.username}\n${account.url}"
 
 
 
-                accountManager.setActiveAccount(
-                    index
+                button.setOnClickListener {
+
+
+
+                    accountManager?.setActiveAccount(
+                        index
+                    )
+
+
+
+                    Toast.makeText(
+                        requireContext(),
+                        "تم اختيار الحساب",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+
+                }
+
+
+
+                listAccounts.addView(
+                    button
                 )
-
-
-
-                Toast.makeText(
-                    requireContext(),
-                    "تم اختيار الحساب",
-                    Toast.LENGTH_SHORT
-                ).show()
 
 
             }
 
+        } catch (e: Exception) {
 
+            Toast.makeText(
+                requireContext(),
+                "خطأ loadAccounts: ${e.message}",
+                Toast.LENGTH_LONG
+            ).show()
 
-            listAccounts.addView(
-                button
-            )
-
+            Log.e("AccountsFragment", "خطأ loadAccounts", e)
 
         }
 
@@ -167,130 +194,143 @@ class AccountsFragment : Fragment() {
 
     private fun showAddDialog(){
 
+        try {
 
-        val dialogView =
-            layoutInflater.inflate(
-                R.layout.fragment_login,
-                null
+            val dialogView =
+                layoutInflater.inflate(
+                    R.layout.fragment_login,
+                    null
+                )
+
+
+
+            val etUrl =
+                dialogView.findViewById<EditText>(
+                    R.id.etUrl
+                )
+
+
+            val etUser =
+                dialogView.findViewById<EditText>(
+                    R.id.etUser
+                )
+
+
+            val etPass =
+                dialogView.findViewById<EditText>(
+                    R.id.etPass
+                )
+
+
+
+
+
+            AlertDialog.Builder(
+                requireContext()
             )
 
+                .setTitle(
+                    "إضافة حساب Xtream"
+                )
 
 
-        val etUrl =
-            dialogView.findViewById<EditText>(
-                R.id.etUrl
-            )
+                .setView(
+                    dialogView
+                )
 
 
-        val etUser =
-            dialogView.findViewById<EditText>(
-                R.id.etUser
-            )
-
-
-        val etPass =
-            dialogView.findViewById<EditText>(
-                R.id.etPass
-            )
+                .setPositiveButton(
+                    "حفظ"
+                ){ _, _ ->
 
 
 
-
-
-        AlertDialog.Builder(
-            requireContext()
-        )
-
-            .setTitle(
-                "إضافة حساب Xtream"
-            )
-
-
-            .setView(
-                dialogView
-            )
-
-
-            .setPositiveButton(
-                "حفظ"
-            ){ _, _ ->
+                    val url =
+                        etUrl.text.toString()
+                            .trim()
 
 
 
-                val url =
-                    etUrl.text.toString()
-                        .trim()
+                    val user =
+                        etUser.text.toString()
+                            .trim()
 
 
 
-                val user =
-                    etUser.text.toString()
-                        .trim()
-
-
-
-                val pass =
-                    etPass.text.toString()
-                        .trim()
+                    val pass =
+                        etPass.text.toString()
+                            .trim()
 
 
 
 
-                if(
-                    url.isNotEmpty() &&
-                    user.isNotEmpty() &&
-                    pass.isNotEmpty()
-                ){
+                    if(
+                        url.isNotEmpty() &&
+                        user.isNotEmpty() &&
+                        pass.isNotEmpty()
+                    ){
 
 
 
-                    accountManager.saveAccount(
+                        accountManager?.saveAccount(
 
-                        XtreamServer(
-                            url,
-                            user,
-                            pass
+                            XtreamServer(
+                                url,
+                                user,
+                                pass
+                            )
+
                         )
 
-                    )
+
+
+                        Toast.makeText(
+                            requireContext(),
+                            "تم حفظ الحساب",
+                            Toast.LENGTH_SHORT
+                        ).show()
 
 
 
-                    Toast.makeText(
-                        requireContext(),
-                        "تم حفظ الحساب",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                        loadAccounts()
 
 
-
-                    loadAccounts()
-
-
-                }else{
+                    }else{
 
 
-                    Toast.makeText(
-                        requireContext(),
-                        "املأ جميع الحقول",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                        Toast.makeText(
+                            requireContext(),
+                            "املأ جميع الحقول",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+
+                    }
+
 
 
                 }
 
 
 
-            }
+                .setNegativeButton(
+                    "إلغاء",
+                    null
+                )
 
+                .show()
 
+        } catch (e: Exception) {
 
-            .setNegativeButton(
-                "إلغاء",
-                null
-            )
+            Toast.makeText(
+                requireContext(),
+                "خطأ showAddDialog: ${e.message}",
+                Toast.LENGTH_LONG
+            ).show()
 
-            .show()
+            Log.e("AccountsFragment", "خطأ showAddDialog", e)
+
+        }
 
 
 
