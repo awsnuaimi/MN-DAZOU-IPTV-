@@ -11,6 +11,8 @@ import com.dazou.iptvplayer.fragments.*
 import com.dazou.iptvplayer.model.XtreamServer
 import com.dazou.iptvplayer.player.PlayerCallback
 import com.dazou.iptvplayer.player.PlayerManager
+import com.dazou.iptvplayer.viewmodel.LiveViewModel
+import androidx.lifecycle.ViewModelProvider
 
 
 class MainActivity : AppCompatActivity(), PlayerCallback {
@@ -20,34 +22,30 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     lateinit var playerManager: PlayerManager
 
-
     // الحساب الحالي
     var currentServer: XtreamServer? = null
 
 
+    private lateinit var liveViewModel: LiveViewModel
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
-
         super.onCreate(savedInstanceState)
 
 
-        binding =
-            ActivityMainBinding.inflate(layoutInflater)
-
-
+        binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
 
 
-        // Android TV Focus
+        // دعم Android TV والريموت
         window.decorView.isFocusableInTouchMode = true
         window.decorView.requestFocus()
 
 
 
-        playerManager =
-            PlayerManager(this)
-
+        playerManager = PlayerManager(this)
 
 
         binding.playerView.player =
@@ -63,7 +61,14 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
 
 
+        liveViewModel =
+            ViewModelProvider(this)
+                .get(LiveViewModel::class.java)
+
+
+
         setupBottomNav()
+
 
 
         loadFragment(
@@ -72,20 +77,22 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
 
 
+        // أول تركيز للريموت
         Handler(Looper.getMainLooper())
             .postDelayed({
 
+                binding.btnHome.apply {
 
-                binding.btnHome.isFocusable = true
+                    isFocusable = true
+                    isFocusableInTouchMode = true
+                    requestFocus()
 
-                binding.btnHome.isFocusableInTouchMode = true
-
-                binding.btnHome.requestFocus()
-
+                }
 
             },500)
 
     }
+
 
 
 
@@ -103,6 +110,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
         binding.btnLive.setOnClickListener {
 
+
             loadFragment(LiveFragment())
 
         }
@@ -110,6 +118,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
 
         binding.btnMovies.setOnClickListener {
+
 
             loadFragment(MoviesFragment())
 
@@ -119,6 +128,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
         binding.btnSeries.setOnClickListener {
 
+
             loadFragment(SeriesFragment())
 
         }
@@ -126,6 +136,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
 
         binding.btnFavorites.setOnClickListener {
+
 
             loadFragment(FavoritesFragment())
 
@@ -135,9 +146,11 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
         binding.btnAccounts.setOnClickListener {
 
+
             loadFragment(AccountsFragment())
 
         }
+
 
     }
 
@@ -145,7 +158,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
 
 
-    // تم جعلها عامة لكي تستخدم من Fragments
+
+
     fun loadFragment(fragment: Fragment){
 
 
@@ -157,7 +171,10 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             )
             .commit()
 
+
     }
+
+
 
 
 
@@ -168,6 +185,10 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         name:String,
         type:String
     ){
+
+
+        binding.playerView.requestFocus()
+
 
         playerManager.play(
             url,
@@ -181,20 +202,26 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
 
 
+
+
     override fun onNextChannel(){
 
-        // سيتم ربطها لاحقاً
+        // سيتم ربط تغيير القناة لاحقاً
 
     }
+
+
+
 
 
 
 
     override fun onPreviousChannel(){
 
-        // سيتم ربطها لاحقاً
+        // سيتم ربط تغيير القناة لاحقاً
 
     }
+
 
 
 
@@ -217,7 +244,12 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                 KeyEvent.KEYCODE_ENTER -> {
 
 
-                    currentFocus?.performClick()
+                    val focused =
+                        currentFocus
+
+
+                    focused?.performClick()
+
 
                     return true
 
@@ -230,12 +262,31 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
                     playerManager.pause()
 
+
                     return true
 
                 }
 
 
+
+                KeyEvent.KEYCODE_BACK -> {
+
+
+                    if(binding.playerView.hasFocus()){
+
+
+                        binding.playerView.clearFocus()
+
+
+                        return true
+
+                    }
+
+
+                }
+
             }
+
 
         }
 
@@ -248,16 +299,20 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
 
 
+
+
     override fun onKeyDown(
         keyCode:Int,
         event:KeyEvent?
-    ):Boolean{
+    ):Boolean {
 
 
         return when(keyCode){
 
 
+
             KeyEvent.KEYCODE_MEDIA_NEXT -> {
+
 
                 onNextChannel()
 
@@ -291,12 +346,18 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
 
 
+
+
     override fun onDestroy(){
+
 
         playerManager.release()
 
+
         super.onDestroy()
 
+
     }
+
 
 }
