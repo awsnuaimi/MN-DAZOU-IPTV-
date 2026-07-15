@@ -1,21 +1,25 @@
 package com.dazou.iptvplayer.fragments
 
 import android.app.AlertDialog
+import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
-import android.widget.LinearLayout
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.dazou.iptvplayer.App
-import com.dazou.iptvplayer.R
 import com.dazou.iptvplayer.adapter.AccountsAdapter
 import com.dazou.iptvplayer.databinding.FragmentAccountsBinding
 import com.dazou.iptvplayer.model.XtreamServer
+import com.dazou.iptvplayer.viewmodel.LiveViewModel
+import com.dazou.iptvplayer.viewmodel.ViewModelFactory
+import org.json.JSONArray
+import org.json.JSONObject
 
 class AccountsFragment : Fragment() {
 
@@ -63,83 +67,54 @@ class AccountsFragment : Fragment() {
     }
 
     private fun showAddAccountDialog() {
-        val t = com.dazou.iptvplayer.model.ThemeColors
-        val dlgSize = 18f
-        val inpSize = 14f
-        val pad = 24
-
-        val scrollView = android.widget.ScrollView(requireContext()).apply {
-            setPadding(40, 40, 40, 40)
-        }
-        val d = LinearLayout(requireContext()).apply {
+        val scrollView = ScrollView(requireContext()).apply { setPadding(40, 40, 40, 40) }
+        val layout = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(android.graphics.Color.parseColor("#1A1A35"))
+            setBackgroundColor(Color.parseColor("#1A1A35"))
         }
 
-        d.addView(TextView(requireContext()).apply {
+        layout.addView(TextView(requireContext()).apply {
             text = "⚙️ إضافة حساب Xtream"
-            textSize = dlgSize
-            setTextColor(android.graphics.Color.parseColor("#FF6B6B"))
-            setTypeface(null, android.graphics.Typeface.BOLD)
-            gravity = android.view.Gravity.CENTER
+            textSize = 18f
+            setTextColor(Color.parseColor("#FF6B6B"))
+            setTypeface(null, Typeface.BOLD)
+            gravity = Gravity.CENTER
             setPadding(0, 0, 0, 24)
         })
 
-        val labels = arrayOf("رابط السيرفر:", "اسم المستخدم:", "كلمة المرور:")
-        val hints = arrayOf("http://example.com:8080", "username", "password")
-        val fields = mutableListOf<EditText>()
+        val etUrl = createEditText("http://example.com:8080", "http://")
+        val etUsername = createEditText("username", "")
+        val etPassword = createEditText("password", "")
 
-        for ((index, label) in labels.withIndex()) {
-            d.addView(TextView(requireContext()).apply {
-                text = label
-                textSize = 12f
-                setTextColor(android.graphics.Color.parseColor("#AAAAAA"))
-                setPadding(0, 8, 0, 4)
-            })
-            val editText = EditText(requireContext()).apply {
-                hint = hints[index]
-                setHintTextColor(android.graphics.Color.parseColor("#AAAAAA"))
-                setTextColor(android.graphics.Color.WHITE)
-                setBackgroundColor(android.graphics.Color.parseColor("#0F0F1A"))
-                setPadding(pad, pad, pad, pad)
-                textSize = inpSize
-                if (index == 0) setText("http://")
-            }
-            d.addView(editText)
-            fields.add(editText)
-            if (index < labels.size - 1) {
-                d.addView(View(requireContext()).apply {
-                    layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 10)
-                })
-            }
-        }
+        layout.addView(createLabel("رابط السيرفر:"))
+        layout.addView(etUrl)
+        layout.addView(createSpacer(12))
+        layout.addView(createLabel("اسم المستخدم:"))
+        layout.addView(etUsername)
+        layout.addView(createSpacer(12))
+        layout.addView(createLabel("كلمة المرور:"))
+        layout.addView(etPassword)
 
-        scrollView.addView(d)
+        scrollView.addView(layout)
 
         AlertDialog.Builder(requireContext())
             .setView(scrollView)
             .setPositiveButton("حفظ") { _, _ ->
-                val url = fields[0].text.toString().trim().trimEnd('/')
-                val username = fields[1].text.toString().trim()
-                val password = fields[2].text.toString().trim()
+                val url = etUrl.text.toString().trim().trimEnd('/')
+                val username = etUsername.text.toString().trim()
+                val password = etPassword.text.toString().trim()
 
                 if (url.isEmpty() || username.isEmpty() || password.isEmpty()) {
                     Toast.makeText(requireContext(), "الرجاء ملء جميع الحقول", Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
 
-                val server = XtreamServer(url, username, password)
-                accountManager.saveAccount(server)
+                accountManager.saveAccount(XtreamServer(url, username, password))
                 val accounts = accountManager.getAccounts()
                 accountManager.setActiveAccount(accounts.size - 1)
                 loadAccounts()
+                refreshLiveChannels()
                 Toast.makeText(requireContext(), "✅ تم حفظ الحساب", Toast.LENGTH_SHORT).show()
-
-                // إعادة تحميل القنوات
-                val liveFragment = parentFragmentManager.findFragmentByTag("live")
-                if (liveFragment is LiveFragment) {
-                    liveFragment.refreshData()
-                }
             }
             .setNegativeButton("إلغاء", null)
             .setCancelable(false)
@@ -147,47 +122,78 @@ class AccountsFragment : Fragment() {
     }
 
     private fun showAccountOptionsDialog(account: XtreamServer, position: Int) {
-        val items = arrayOf("✅ تعيين كحساب نشط", "🗑️ حذف الحساب")
         AlertDialog.Builder(requireContext())
             .setTitle("${account.username} @ ${account.url}")
-            .setItems(items) { _, which ->
+            .setItems(arrayOf("✅ تعيين كحساب نشط", "🗑️ حذف الحساب")) { _, which ->
                 when (which) {
                     0 -> {
                         accountManager.setActiveAccount(position)
+                        refreshLiveChannels()
                         Toast.makeText(requireContext(), "✅ تم تعيين الحساب النشط", Toast.LENGTH_SHORT).show()
-                        // إعادة تحميل القنوات
-                        val liveFragment = parentFragmentManager.findFragmentByTag("live")
-                        if (liveFragment is LiveFragment) {
-                            liveFragment.refreshData()
-                        }
                     }
-                    1 -> {
-                        AlertDialog.Builder(requireContext())
-                            .setTitle("تأكيد الحذف")
-                            .setMessage("هل أنت متأكد من حذف هذا الحساب؟")
-                            .setPositiveButton("نعم") { _, _ ->
-                                val accounts = accountManager.getAccounts().toMutableList()
-                                accounts.removeAt(position)
-                                // إعادة حفظ القائمة بدون الحساب المحذوف
-                                val prefs = requireContext().getSharedPreferences("iptv_accounts", 0)
-                                val json = org.json.JSONArray()
-                                accounts.forEach {
-                                    val obj = org.json.JSONObject()
-                                    obj.put("url", it.url)
-                                    obj.put("username", it.username)
-                                    obj.put("password", it.password)
-                                    json.put(obj)
-                                }
-                                prefs.edit().putString("accounts", json.toString()).apply()
-                                loadAccounts()
-                                Toast.makeText(requireContext(), "🗑️ تم حذف الحساب", Toast.LENGTH_SHORT).show()
-                            }
-                            .setNegativeButton("إلغاء", null)
-                            .show()
-                    }
+                    1 -> deleteAccount(position)
                 }
             }
             .show()
+    }
+
+    private fun deleteAccount(position: Int) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("تأكيد الحذف")
+            .setMessage("هل أنت متأكد من حذف هذا الحساب؟")
+            .setPositiveButton("نعم") { _, _ ->
+                val accounts = accountManager.getAccounts().toMutableList()
+                accounts.removeAt(position)
+                saveAccountsList(accounts)
+                loadAccounts()
+                Toast.makeText(requireContext(), "🗑️ تم حذف الحساب", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("إلغاء", null)
+            .show()
+    }
+
+    private fun saveAccountsList(accounts: List<XtreamServer>) {
+        val json = JSONArray()
+        accounts.forEach {
+            val obj = JSONObject()
+            obj.put("url", it.url); obj.put("username", it.username); obj.put("password", it.password)
+            json.put(obj)
+        }
+        requireContext().getSharedPreferences("iptv_accounts", 0)
+            .edit().putString("accounts", json.toString()).apply()
+    }
+
+    private fun refreshLiveChannels() {
+        try {
+            val app = requireActivity().application as App
+            val repository = app.container.currentRepository
+            val viewModel = ViewModelProvider(requireActivity(), ViewModelFactory(repository))
+                .get(LiveViewModel::class.java)
+            viewModel.loadCategories()
+        } catch (e: Exception) {
+            // تجاهل إذا لم يكن LiveFragment نشطاً
+        }
+    }
+
+    private fun createLabel(text: String) = TextView(requireContext()).apply {
+        this.text = text
+        textSize = 12f
+        setTextColor(Color.parseColor("#AAAAAA"))
+        setPadding(0, 8, 0, 4)
+    }
+
+    private fun createEditText(hint: String, defaultText: String) = EditText(requireContext()).apply {
+        this.hint = hint
+        setHintTextColor(Color.parseColor("#AAAAAA"))
+        setTextColor(Color.WHITE)
+        setBackgroundColor(Color.parseColor("#0F0F1A"))
+        setPadding(24, 24, 24, 24)
+        textSize = 14f
+        setText(defaultText)
+    }
+
+    private fun createSpacer(height: Int) = View(requireContext()).apply {
+        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height)
     }
 
     override fun onDestroyView() {
