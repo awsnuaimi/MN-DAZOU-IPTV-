@@ -1,16 +1,13 @@
 package com.dazou.iptvplayer.fragments
 
 import android.app.AlertDialog
+import android.content.Context
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.widget.Button
-import android.widget.EditText
-import android.widget.RadioButton
+import android.view.*
+import android.widget.*
 import androidx.fragment.app.Fragment
-import android.widget.Toast
 import com.dazou.iptvplayer.R
+import com.dazou.iptvplayer.model.XtreamServer
 
 
 class AccountsFragment : Fragment() {
@@ -30,9 +27,8 @@ class AccountsFragment : Fragment() {
         )
 
 
-        val btnAddAccount = view.findViewById<Button>(
-            R.id.btnAddAccount
-        )
+        val btnAddAccount =
+            view.findViewById<Button>(R.id.btnAddAccount)
 
 
         btnAddAccount.setOnClickListener {
@@ -56,108 +52,66 @@ class AccountsFragment : Fragment() {
         )
 
 
-        val radioXtream = dialogView.findViewById<RadioButton>(
-            R.id.radioXtream
-        )
+        val etUrl =
+            dialogView.findViewById<EditText>(R.id.etUrl)
 
+        val etUser =
+            dialogView.findViewById<EditText>(R.id.etUser)
 
-        val radioM3u = dialogView.findViewById<RadioButton>(
-            R.id.radioM3u
-        )
-
-
-        val layoutXtream = dialogView.findViewById<View>(
-            R.id.layoutXtream
-        )
-
-
-        val layoutM3u = dialogView.findViewById<View>(
-            R.id.layoutM3u
-        )
-
-
-        val etUrl = dialogView.findViewById<EditText>(
-            R.id.etUrl
-        )
-
-
-        val etUser = dialogView.findViewById<EditText>(
-            R.id.etUser
-        )
-
-
-        val etPass = dialogView.findViewById<EditText>(
-            R.id.etPass
-        )
-
-
-        val etM3uUrl = dialogView.findViewById<EditText>(
-            R.id.etM3uUrl
-        )
-
-
-
-        radioXtream.setOnClickListener {
-
-            layoutXtream.visibility = View.VISIBLE
-            layoutM3u.visibility = View.GONE
-
-        }
-
-
-
-        radioM3u.setOnClickListener {
-
-            layoutXtream.visibility = View.GONE
-            layoutM3u.visibility = View.VISIBLE
-
-        }
+        val etPass =
+            dialogView.findViewById<EditText>(R.id.etPass)
 
 
 
         AlertDialog.Builder(requireContext())
 
-            .setTitle("إضافة حساب IPTV")
+            .setTitle("إضافة حساب Xtream")
 
             .setView(dialogView)
 
             .setPositiveButton("حفظ") { _, _ ->
 
 
-                if (radioXtream.isChecked) {
+                val url =
+                    etUrl.text.toString().trim()
+
+                val user =
+                    etUser.text.toString().trim()
+
+                val pass =
+                    etPass.text.toString().trim()
 
 
-                    val server = etUrl.text.toString()
-                    val username = etUser.text.toString()
-                    val password = etPass.text.toString()
 
-
-                    Toast.makeText(
-                        requireContext(),
-                        "Xtream تم حفظه: $username",
-                        Toast.LENGTH_SHORT
-                    ).show()
-
-
-                    // هنا سنربط تسجيل الدخول Xtream لاحقاً
-
-
-                } else {
-
-
-                    val playlist = etM3uUrl.text.toString()
+                if(url.isEmpty() || user.isEmpty() || pass.isEmpty()){
 
 
                     Toast.makeText(
                         requireContext(),
-                        "M3U تم حفظه",
+                        "املأ جميع الحقول",
                         Toast.LENGTH_SHORT
                     ).show()
 
-
-                    // هنا سنربط تحميل قائمة M3U لاحقاً
-
+                    return@setPositiveButton
                 }
+
+
+
+                saveAccount(
+                    XtreamServer(
+                        url,
+                        user,
+                        pass
+                    )
+                )
+
+
+
+                Toast.makeText(
+                    requireContext(),
+                    "تم حفظ الحساب",
+                    Toast.LENGTH_SHORT
+                ).show()
 
 
             }
@@ -168,10 +122,31 @@ class AccountsFragment : Fragment() {
                 null
             )
 
-
             .show()
 
+    }
+
+
+
+
+    private fun saveAccount(server: XtreamServer){
+
+
+        val pref =
+            requireContext()
+                .getSharedPreferences(
+                    "iptv_account",
+                    Context.MODE_PRIVATE
+                )
+
+
+        pref.edit()
+            .putString("url",server.url)
+            .putString("username",server.username)
+            .putString("password",server.password)
+            .apply()
 
     }
+
 
 }
