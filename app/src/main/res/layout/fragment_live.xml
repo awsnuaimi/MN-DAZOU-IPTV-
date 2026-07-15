@@ -8,72 +8,64 @@
     android:focusableInTouchMode="true">
 
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:padding="4dp">
-
-        <EditText
-            android:id="@+id/etSearch"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_weight="1"
-            android:hint="🔍 بحث..."
-            android:background="@color/card_dark"
-            android:textColor="@color/text_white"
-            android:textSize="13sp"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:minHeight="0dp" />
-
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginStart="4dp"
-            android:text="بحث"
-            android:textSize="13sp"
-            android:minHeight="0dp"
-            android:minWidth="0dp"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:background="@color/accent"
-            android:textColor="#000" />
-    </LinearLayout>
-
-    <LinearLayout
         android:id="@+id/headerRow"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
+        android:padding="8dp"
         android:gravity="center_vertical"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp"
         android:visibility="gone">
 
         <Button
             android:id="@+id/btnBackToCategories"
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:text="⬅ رجوع"
-            android:textSize="13sp"
-            android:minHeight="0dp"
-            android:minWidth="0dp"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:background="@color/card_dark"
-            android:textColor="@color/text_white" />
+            android:layout_height="wrap_content"
+            android:text="⬅️ رجوع"
+            android:background="@android:color/transparent"
+            android:textColor="@color/text_white"
+            android:textSize="@dimen/tab_text_size" />
 
         <TextView
             android:id="@+id/tvCategoryTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="10dp"
             android:text=""
-            android:textSize="16sp"
-            android:textColor="@color/text_white" />
+            android:textSize="@dimen/header_text_size"
+            android:textColor="@color/accent"
+            android:gravity="center" />
+    </LinearLayout>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:background="@color/bottom_bar">
+
+        <EditText
+            android:id="@+id/etSearch"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="🔍 بحث..."
+            android:background="@drawable/search_bg"
+            android:textColor="@color/text_white"
+            android:textColorHint="@color/text_gray"
+            android:padding="8dp"
+            android:inputType="text"
+            android:imeOptions="actionSearch" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="بحث"
+            android:background="@color/accent"
+            android:textColor="@color/text_white"
+            android:textSize="@dimen/tab_text_size"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:layout_marginLeft="8dp" />
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView

@@ -4,21 +4,14 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@color/bg_dark"
-    android:gravity="center">
+    android:focusable="true"
+    android:focusableInTouchMode="true">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="🏠 مرحباً بك في MN-DAZOU IPTV"
-        android:textSize="18sp"
-        android:textColor="@color/text_white" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="الواجهة قيد التطوير"
-        android:textSize="14sp"
-        android:textColor="@color/text_gray"
-        android:layout_marginTop="16dp" />
-
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvHome"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:descendantFocusability="afterDescendants" />
 </LinearLayout>
