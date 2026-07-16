@@ -1,124 +1,253 @@
-package com.dazou.iptvplayer
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_dark">
 
-import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.view.KeyEvent
-import android.view.View
-import android.widget.Button
-import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.Fragment
-import androidx.media3.ui.PlayerView
-import com.dazou.iptvplayer.databinding.ActivityMainBinding
-import com.dazou.iptvplayer.fragments.*
-import com.dazou.iptvplayer.player.PlayerCallback
-import com.dazou.iptvplayer.player.PlayerManager
+    <!-- ===================== المحتوى الرئيسي (وضع عادي) ===================== -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/main_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="visible">
 
-class MainActivity : AppCompatActivity(), PlayerCallback {
+        <!-- خط توجيه عمودي عند 40% من عرض الشاشة -->
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideline_player_end"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintGuide_percent="0.4" />
 
-    private lateinit var binding: ActivityMainBinding
-    lateinit var playerManager: PlayerManager
-    private var isFullscreen = false
+        <!-- حاوية المشغل -->
+        <FrameLayout
+            android:id="@+id/player_container"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:background="@android:color/black"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/guideline_player_end">
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+            <androidx.media3.ui.PlayerView
+                android:id="@+id/player_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:use_controller="false" />
+        </FrameLayout>
 
-        // ضروري لـ Android TV
-        window.decorView.isFocusableInTouchMode = true
-        window.decorView.requestFocus()
+        <!-- طبقة التحكم بالمشغل (تحت المشغل مباشرة) -->
+        <LinearLayout
+            android:id="@+id/controls_layout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@color/panel_dark"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/player_container"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/guideline_player_end">
 
-        playerManager = PlayerManager(this)
-        binding.playerView.player = playerManager.player
-        binding.fullscreenPlayerView.player = playerManager.player
+            <TextView
+                android:id="@+id/tv_channel_info"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:textColor="@color/text_white"
+                android:textSize="14sp"
+                android:visibility="gone"
+                tools:text="🎬 Channel Name" />
 
-        playerManager.setOnPlaybackEndedListener { onNextChannel() }
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
 
-        setupBottomNav()
-        setupPlayerControls()
-        loadFragment(HomeFragment())
+                <Button
+                    android:id="@+id/btn_prev_channel"
+                    style="@style/PlayerControlButton"
+                    android:text="⏮" />
 
-        // ضبط ارتفاع المشغل (نسبة 16:9 من عرض 30%)
-        binding.playerView.post {
-            val width = binding.playerContainer.width
-            val height = (width * 9 / 16)
-            binding.playerView.layoutParams.height = height
-            binding.playerView.requestLayout()
-        }
+                <Button
+                    android:id="@+id/btn_play_pause"
+                    style="@style/PlayerControlButton"
+                    android:text="⏯" />
 
-        // طلب التركيز على أول زر
-        Handler(Looper.getMainLooper()).postDelayed({
-            binding.btnHome.isFocusable = true
-            binding.btnHome.isFocusableInTouchMode = true
-            binding.btnHome.requestFocus()
-        }, 500)
-    }
+                <Button
+                    android:id="@+id/btn_next_channel"
+                    style="@style/PlayerControlButton"
+                    android:text="⏭" />
 
-    private fun setupPlayerControls() {
-        binding.btnPrevChannel.setOnClickListener { onPreviousChannel() }
-        binding.btnPlayPause.setOnClickListener { togglePlayPause() }
-        binding.btnNextChannel.setOnClickListener { onNextChannel() }
-        binding.btnEpg.setOnClickListener { /* TODO: EPG */ }
-        binding.btnFullscreen.setOnClickListener { toggleFullscreen() }
-        binding.btnExitFullscreen.setOnClickListener { toggleFullscreen() }
-    }
+                <Button
+                    android:id="@+id/btn_epg"
+                    style="@style/PlayerControlButton"
+                    android:text="EPG" />
 
-    private fun setupBottomNav() {
-        binding.btnHome.setOnClickListener { loadFragment(HomeFragment()) }
-        binding.btnLive.setOnClickListener { loadFragment(LiveFragment()) }
-        binding.btnMovies.setOnClickListener { loadFragment(MoviesFragment()) }
-        binding.btnSeries.setOnClickListener { loadFragment(SeriesFragment()) }
-        binding.btnFavorites.setOnClickListener { loadFragment(FavoritesFragment()) }
-        binding.btnAccounts.setOnClickListener { loadFragment(AccountsFragment()) }
-    }
+                <Button
+                    android:id="@+id/btn_fullscreen"
+                    style="@style/PlayerControlButton"
+                    android:text="⛶" />
 
-    private fun loadFragment(fragment: Fragment) {
-        supportFragmentManager.beginTransaction()
-            .replace(binding.fragmentContainer.id, fragment)
-            .commit()
-    }
+            </LinearLayout>
+        </LinearLayout>
 
-    // ✅ وضع ملء الشاشة
-    private fun toggleFullscreen() {
-        if (isFullscreen) {
-            // الرجوع من ملء الشاشة
-            binding.fullscreenContainer.visibility = View.GONE
-            binding.mainContent.visibility = View.VISIBLE
-            binding.playerView.player = playerManager.player
-        } else {
-            // الدخول إلى ملء الشاشة
-            binding.fullscreenContainer.visibility = View.VISIBLE
-            binding.mainContent.visibility = View.GONE
-            binding.fullscreenPlayerView.player = playerManager.player
-            binding.btnExitFullscreen.requestFocus()
-        }
-        isFullscreen = !isFullscreen
-    }
+        <!-- حاوية الفراغمنتس: الرئيسية، البث المباشر، الأفلام... -->
+        <FrameLayout
+            android:id="@+id/fragment_container"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toEndOf="@id/guideline_player_end"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/bottom_nav" />
 
-    private fun togglePlayPause() {
-        if (playerManager.isPlaying) playerManager.pause() else playerManager.resume()
-    }
+        <!-- شريط الأزرار السفلي -->
+        <LinearLayout
+            android:id="@+id/bottom_nav"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/tv_nav_height"
+            android:orientation="horizontal"
+            android:background="@color/nav_background"
+            android:elevation="8dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
 
-    override fun playStream(url: String, name: String, type: String) {
-        playerManager.play(url, name, type)
-        binding.tvChannelInfo.text = "🎬 $name"
-        binding.tvChannelInfo.visibility = View.VISIBLE
-        binding.controlsLayout.visibility = View.VISIBLE
-    }
+            <LinearLayout
+                android:id="@+id/btn_home"
+                style="@style/TvTabButton"
+                android:nextFocusRight="@id/btn_live">
 
-    override fun onNextChannel() { /* TODO */ }
-    override fun onPreviousChannel() { /* TODO */ }
+                <ImageView
+                    android:layout_width="@dimen/tv_icon_size"
+                    android:layout_height="@dimen/tv_icon_size"
+                    android:src="@drawable/ic_home"
+                    android:contentDescription="@string/tab_home" />
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        return when (keyCode) {
-            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> { togglePlayPause(); true }
-            else -> super.onKeyDown(keyCode, event)
-        }
-    }
+                <TextView
+                    style="@style/TvTabText"
+                    android:text="@string/tab_home" />
+            </LinearLayout>
 
-    override fun onDestroy() {
-        playerManager.release()
-        super.onDestroy()
-    }
-}
+            <LinearLayout
+                android:id="@+id/btn_live"
+                style="@style/TvTabButton"
+                android:nextFocusLeft="@id/btn_home"
+                android:nextFocusRight="@id/btn_movies">
+
+                <ImageView
+                    android:layout_width="@dimen/tv_icon_size"
+                    android:layout_height="@dimen/tv_icon_size"
+                    android:src="@drawable/ic_live_tv"
+                    android:contentDescription="@string/tab_live" />
+
+                <TextView
+                    style="@style/TvTabText"
+                    android:text="@string/tab_live" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btn_movies"
+                style="@style/TvTabButton"
+                android:nextFocusLeft="@id/btn_live"
+                android:nextFocusRight="@id/btn_series">
+
+                <ImageView
+                    android:layout_width="@dimen/tv_icon_size"
+                    android:layout_height="@dimen/tv_icon_size"
+                    android:src="@drawable/ic_movies"
+                    android:contentDescription="@string/tab_movies" />
+
+                <TextView
+                    style="@style/TvTabText"
+                    android:text="@string/tab_movies" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btn_series"
+                style="@style/TvTabButton"
+                android:nextFocusLeft="@id/btn_movies"
+                android:nextFocusRight="@id/btn_favorites">
+
+                <ImageView
+                    android:layout_width="@dimen/tv_icon_size"
+                    android:layout_height="@dimen/tv_icon_size"
+                    android:src="@drawable/ic_series"
+                    android:contentDescription="@string/tab_series" />
+
+                <TextView
+                    style="@style/TvTabText"
+                    android:text="@string/tab_series" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btn_favorites"
+                style="@style/TvTabButton"
+                android:nextFocusLeft="@id/btn_series"
+                android:nextFocusRight="@id/btn_accounts">
+
+                <ImageView
+                    android:layout_width="@dimen/tv_icon_size"
+                    android:layout_height="@dimen/tv_icon_size"
+                    android:src="@drawable/ic_favorite"
+                    android:contentDescription="@string/tab_favorites" />
+
+                <TextView
+                    style="@style/TvTabText"
+                    android:text="@string/tab_favorites" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btn_accounts"
+                style="@style/TvTabButton"
+                android:nextFocusLeft="@id/btn_favorites">
+
+                <ImageView
+                    android:layout_width="@dimen/tv_icon_size"
+                    android:layout_height="@dimen/tv_icon_size"
+                    android:src="@drawable/ic_account"
+                    android:contentDescription="@string/tab_accounts" />
+
+                <TextView
+                    style="@style/TvTabText"
+                    android:text="@string/tab_accounts" />
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- ===================== وضع ملء الشاشة ===================== -->
+    <FrameLayout
+        android:id="@+id/fullscreen_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/black"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <androidx.media3.ui.PlayerView
+            android:id="@+id/fullscreen_player_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:use_controller="false" />
+
+        <Button
+            android:id="@+id/btn_exit_fullscreen"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:layout_margin="16dp"
+            android:text="✕"
+            android:background="@drawable/tv_tab_selector"
+            android:textColor="@color/text_white" />
+
+    </FrameLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
