@@ -128,4 +128,9 @@ dependencies {
     implementation 'androidx.fragment:fragment-ktx:1.6.2'
 
 
+    // Leanback - دعم التنقل بالريموت (D-pad) لشاشات التلفزيون (VerticalGridView)
+
+    implementation 'androidx.leanback:leanback:1.0.0'
+
+
 }

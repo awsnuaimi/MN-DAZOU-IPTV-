@@ -1,120 +1,188 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/rootLayout"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_dark"
-    android:focusable="true"
-    android:focusableInTouchMode="true">
+    android:background="@color/background_dark">
 
-    <!-- المحتوى الرئيسي (قائمة + أزرار تبويب) -->
+    <!-- خط توجيه عمودي عند 40% من عرض الشاشة -->
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline_player_end"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.4" />
+
+    <!-- نافذة المشغل: أعلى اليسار، 40% من العرض -->
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/player_view"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@android:color/black"
+        app:use_controller="true"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/guideline_player_end"
+        app:layout_constraintDimensionRatio="16:9" />
+
+    <!-- قائمة التصنيفات: تنفتح من الأسفل للأعلى، تحت المشغل -->
+    <FrameLayout
+        android:id="@+id/category_panel"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@color/panel_dark"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/player_view"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/guideline_player_end"
+        app:layout_constraintBottom_toTopOf="@id/bottom_nav">
+
+        <androidx.leanback.widget.VerticalGridView
+            android:id="@+id/category_recycler"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingVertical="16dp"
+            android:focusable="true"
+            android:descendantFocusability="afterDescendants" />
+    </FrameLayout>
+
+    <!-- قائمة القنوات: تنفتح جنب قائمة التصنيفات يمينًا -->
+    <FrameLayout
+        android:id="@+id/channel_panel"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@color/panel_darker"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="@id/category_panel"
+        app:layout_constraintBottom_toBottomOf="@id/category_panel"
+        app:layout_constraintStart_toEndOf="@id/guideline_player_end"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <androidx.leanback.widget.VerticalGridView
+            android:id="@+id/channel_recycler"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingVertical="16dp"
+            android:focusable="true"
+            android:descendantFocusability="afterDescendants" />
+    </FrameLayout>
+
+    <!-- شريط الأزرار السفلي -->
     <LinearLayout
-        android:id="@+id/mainContent"
+        android:id="@+id/bottom_nav"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:layout_height="@dimen/tv_nav_height"
+        android:orientation="horizontal"
+        android:background="@color/nav_background"
+        android:elevation="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
 
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:orientation="horizontal">
+            android:id="@+id/tab_home"
+            style="@style/TvTabButton"
+            android:nextFocusRight="@id/tab_live">
 
-            <!-- قائمة القنوات والمحتوى (يسار) -->
-            <FrameLayout
-                android:id="@+id/fragmentContainer"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="0.70" />
+            <ImageView
+                android:layout_width="@dimen/tv_icon_size"
+                android:layout_height="@dimen/tv_icon_size"
+                android:src="@drawable/ic_home"
+                android:contentDescription="@string/tab_home" />
 
-            <!-- مشغل الفيديو (يمين) -->
-            <FrameLayout
-                android:id="@+id/playerContainer"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="0.30"
-                android:layout_gravity="top">
-
-                <androidx.media3.ui.PlayerView
-                    android:id="@+id/playerView"
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:background="#000000" />
-
-                <TextView
-                    android:id="@+id/tvChannelInfo"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:background="#CC000000"
-                    android:textColor="@color/text_white"
-                    android:textSize="@dimen/player_info_text_size"
-                    android:visibility="gone"
-                    android:padding="4dp" />
-
-                <LinearLayout
-                    android:id="@+id/controlsLayout"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center"
-                    android:background="#CC000000"
-                    android:visibility="gone"
-                    android:layout_gravity="bottom"
-                    android:padding="2dp">
-
-                    <Button android:id="@+id/btnPrevChannel" style="@style/PlayerControlButton" android:text="⏪" />
-                    <Button android:id="@+id/btnPlayPause" style="@style/PlayerControlButton" android:text="▶️" />
-                    <Button android:id="@+id/btnNextChannel" style="@style/PlayerControlButton" android:text="⏩" />
-                    <Button android:id="@+id/btnEpg" style="@style/PlayerControlButton" android:text="📋" />
-                    <Button android:id="@+id/btnFullscreen" style="@style/PlayerControlButton" android:text="⛶" />
-                </LinearLayout>
-            </FrameLayout>
+            <TextView
+                style="@style/TvTabText"
+                android:text="@string/tab_home" />
         </LinearLayout>
 
-        <!-- أزرار التبويب السفلية -->
         <LinearLayout
-            android:id="@+id/bottomNav"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:background="@color/bottom_bar"
-            android:gravity="center">
+            android:id="@+id/tab_live"
+            style="@style/TvTabButton"
+            android:nextFocusLeft="@id/tab_home"
+            android:nextFocusRight="@id/tab_movies">
 
-            <Button android:id="@+id/btnHome" style="@style/TabButton" android:text="🏠" />
-            <Button android:id="@+id/btnLive" style="@style/TabButton" android:text="📺" />
-            <Button android:id="@+id/btnMovies" style="@style/TabButton" android:text="🎬" />
-            <Button android:id="@+id/btnSeries" style="@style/TabButton" android:text="🎭" />
-            <Button android:id="@+id/btnFavorites" style="@style/TabButton" android:text="⭐" />
-            <Button android:id="@+id/btnAccounts" style="@style/TabButton" android:text="👤" />
+            <ImageView
+                android:layout_width="@dimen/tv_icon_size"
+                android:layout_height="@dimen/tv_icon_size"
+                android:src="@drawable/ic_live_tv"
+                android:contentDescription="@string/tab_live" />
+
+            <TextView
+                style="@style/TvTabText"
+                android:text="@string/tab_live" />
         </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/tab_movies"
+            style="@style/TvTabButton"
+            android:nextFocusLeft="@id/tab_live"
+            android:nextFocusRight="@id/tab_series">
+
+            <ImageView
+                android:layout_width="@dimen/tv_icon_size"
+                android:layout_height="@dimen/tv_icon_size"
+                android:src="@drawable/ic_movies"
+                android:contentDescription="@string/tab_movies" />
+
+            <TextView
+                style="@style/TvTabText"
+                android:text="@string/tab_movies" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/tab_series"
+            style="@style/TvTabButton"
+            android:nextFocusLeft="@id/tab_movies"
+            android:nextFocusRight="@id/tab_favorites">
+
+            <ImageView
+                android:layout_width="@dimen/tv_icon_size"
+                android:layout_height="@dimen/tv_icon_size"
+                android:src="@drawable/ic_series"
+                android:contentDescription="@string/tab_series" />
+
+            <TextView
+                style="@style/TvTabText"
+                android:text="@string/tab_series" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/tab_favorites"
+            style="@style/TvTabButton"
+            android:nextFocusLeft="@id/tab_series"
+            android:nextFocusRight="@id/tab_accounts">
+
+            <ImageView
+                android:layout_width="@dimen/tv_icon_size"
+                android:layout_height="@dimen/tv_icon_size"
+                android:src="@drawable/ic_favorite"
+                android:contentDescription="@string/tab_favorites" />
+
+            <TextView
+                style="@style/TvTabText"
+                android:text="@string/tab_favorites" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/tab_accounts"
+            style="@style/TvTabButton"
+            android:nextFocusLeft="@id/tab_favorites">
+
+            <ImageView
+                android:layout_width="@dimen/tv_icon_size"
+                android:layout_height="@dimen/tv_icon_size"
+                android:src="@drawable/ic_account"
+                android:contentDescription="@string/tab_accounts" />
+
+            <TextView
+                style="@style/TvTabText"
+                android:text="@string/tab_accounts" />
+        </LinearLayout>
+
     </LinearLayout>
 
-    <!-- وضع ملء الشاشة (يظهر فوق كل شيء) -->
-    <FrameLayout
-        android:id="@+id/fullscreenContainer"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#000000"
-        android:visibility="gone">
-
-        <androidx.media3.ui.PlayerView
-            android:id="@+id/fullscreenPlayerView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-
-        <Button
-            android:id="@+id/btnExitFullscreen"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="✕"
-            android:textSize="20sp"
-            android:textColor="@color/text_white"
-            android:background="@android:color/transparent"
-            android:layout_gravity="top|end"
-            android:layout_margin="16dp"
-            android:focusable="true"
-            android:focusableInTouchMode="true"
-            android:clickable="true" />
-    </FrameLayout>
-</FrameLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

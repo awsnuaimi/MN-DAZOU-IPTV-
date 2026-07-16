@@ -10,4 +10,5 @@
     <color name="active_tab">#2D2D5E</color>
     <color name="control_bg">#CC000000</color>
     <color name="player_info_bg">#CC000000</color>
+    <color name="accent_highlight">#3399FF</color>
 </resources>
