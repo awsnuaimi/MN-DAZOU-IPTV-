@@ -4,9 +4,11 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.KeyEvent
-import android.widget.Toast
+import android.view.View
+import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
+import androidx.media3.ui.PlayerView
 import com.dazou.iptvplayer.databinding.ActivityMainBinding
 import com.dazou.iptvplayer.fragments.*
 import com.dazou.iptvplayer.player.PlayerCallback
@@ -16,6 +18,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     private lateinit var binding: ActivityMainBinding
     lateinit var playerManager: PlayerManager
+    private var isFullscreen = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,18 +31,37 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
         playerManager = PlayerManager(this)
         binding.playerView.player = playerManager.player
+        binding.fullscreenPlayerView.player = playerManager.player
 
         playerManager.setOnPlaybackEndedListener { onNextChannel() }
 
         setupBottomNav()
+        setupPlayerControls()
         loadFragment(HomeFragment())
 
-        // طلب التركيز على أول زر بعد تحميل الواجهة
+        // ضبط ارتفاع المشغل (نسبة 16:9 من عرض 30%)
+        binding.playerView.post {
+            val width = binding.playerContainer.width
+            val height = (width * 9 / 16)
+            binding.playerView.layoutParams.height = height
+            binding.playerView.requestLayout()
+        }
+
+        // طلب التركيز على أول زر
         Handler(Looper.getMainLooper()).postDelayed({
             binding.btnHome.isFocusable = true
             binding.btnHome.isFocusableInTouchMode = true
             binding.btnHome.requestFocus()
         }, 500)
+    }
+
+    private fun setupPlayerControls() {
+        binding.btnPrevChannel.setOnClickListener { onPreviousChannel() }
+        binding.btnPlayPause.setOnClickListener { togglePlayPause() }
+        binding.btnNextChannel.setOnClickListener { onNextChannel() }
+        binding.btnEpg.setOnClickListener { /* TODO: EPG */ }
+        binding.btnFullscreen.setOnClickListener { toggleFullscreen() }
+        binding.btnExitFullscreen.setOnClickListener { toggleFullscreen() }
     }
 
     private fun setupBottomNav() {
@@ -57,24 +79,40 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             .commit()
     }
 
+    // ✅ وضع ملء الشاشة
+    private fun toggleFullscreen() {
+        if (isFullscreen) {
+            // الرجوع من ملء الشاشة
+            binding.fullscreenContainer.visibility = View.GONE
+            binding.mainContent.visibility = View.VISIBLE
+            binding.playerView.player = playerManager.player
+        } else {
+            // الدخول إلى ملء الشاشة
+            binding.fullscreenContainer.visibility = View.VISIBLE
+            binding.mainContent.visibility = View.GONE
+            binding.fullscreenPlayerView.player = playerManager.player
+            binding.btnExitFullscreen.requestFocus()
+        }
+        isFullscreen = !isFullscreen
+    }
+
+    private fun togglePlayPause() {
+        if (playerManager.isPlaying) playerManager.pause() else playerManager.resume()
+    }
+
     override fun playStream(url: String, name: String, type: String) {
         playerManager.play(url, name, type)
+        binding.tvChannelInfo.text = "🎬 $name"
+        binding.tvChannelInfo.visibility = View.VISIBLE
+        binding.controlsLayout.visibility = View.VISIBLE
     }
 
-    override fun onNextChannel() {
-        // TODO: سيتم تنفيذها لاحقًا
-    }
+    override fun onNextChannel() { /* TODO */ }
+    override fun onPreviousChannel() { /* TODO */ }
 
-    override fun onPreviousChannel() {
-        // TODO: سيتم تنفيذها لاحقًا
-    }
-
-    // دعم أحداث الميديا من الريموت
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         return when (keyCode) {
-            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> { playerManager.pause(); true }
-            KeyEvent.KEYCODE_MEDIA_NEXT -> { onNextChannel(); true }
-            KeyEvent.KEYCODE_MEDIA_PREVIOUS -> { onPreviousChannel(); true }
+            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> { togglePlayPause(); true }
             else -> super.onKeyDown(keyCode, event)
         }
     }
