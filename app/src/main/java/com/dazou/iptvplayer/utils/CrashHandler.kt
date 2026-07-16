@@ -16,7 +16,7 @@ class CrashHandler(private val context: Context) : Thread.UncaughtExceptionHandl
         try {
             saveCrashLog(throwable)
         } catch (e: Exception) {
-            // تجاهل أي خطأ أثناء الحفظ نفسه
+            // حتى لو فشل الحفظ، لا نوقف رفع الكراش للنظام
         }
         defaultHandler?.uncaughtException(thread, throwable)
     }
@@ -30,7 +30,8 @@ class CrashHandler(private val context: Context) : Thread.UncaughtExceptionHandl
         val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
         val fileName = "crash_$timestamp.txt"
 
-        val dir = File(context.getExternalFilesDir(null), "crash_logs")
+        // نستخدم التخزين الداخلي (filesDir) بدل الخارجي لضمان العمل على كل أجهزة TV
+        val dir = File(context.filesDir, "crash_logs")
         if (!dir.exists()) dir.mkdirs()
 
         val file = File(dir, fileName)

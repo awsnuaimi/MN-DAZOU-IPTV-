@@ -28,7 +28,8 @@ class SettingsFragment : Fragment() {
     }
 
     private fun checkForErrors() {
-        val dir = File(requireContext().getExternalFilesDir(null), "crash_logs")
+        // ===== تم التعديل هنا =====
+        val dir = File(requireContext().filesDir, "crash_logs")  // ← تغيير المسار
         val files = dir.listFiles()?.sortedByDescending { it.lastModified() } ?: emptyList()
 
         binding.tvDiagnosticsResult.visibility = View.VISIBLE
