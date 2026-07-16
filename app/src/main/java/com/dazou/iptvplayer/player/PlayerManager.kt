@@ -25,7 +25,6 @@ class PlayerManager(context: Context) {
         })
     }
 
-    fun resume() = player.play()
     fun setOnPlaybackEndedListener(listener: () -> Unit) {
         onPlaybackEndedListener = listener
     }
