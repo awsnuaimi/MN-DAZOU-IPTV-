@@ -27,7 +27,7 @@
         android:focusableInTouchMode="true"
         android:descendantFocusability="afterDescendants" />
 
-    <!-- الزر الأحمر مع جميع خصائص التركيز والضغط -->
+    <!-- الزر معدّل ليستخدم selector مع تأثير فوكس واضح -->
     <Button
         android:id="@+id/btnAddAccount"
         android:layout_width="match_parent"
@@ -35,11 +35,12 @@
         android:text="➕ إضافة حساب جديد"
         android:textSize="@dimen/tab_text_size"
         android:textColor="@color/text_white"
-        android:background="@color/accent"
+        android:background="@drawable/tv_button_selector"
         android:padding="16dp"
         android:layout_margin="8dp"
         android:focusable="true"
         android:focusableInTouchMode="true"
+        android:stateListAnimator="@null"
         android:clickable="true" />
 
     <TextView
