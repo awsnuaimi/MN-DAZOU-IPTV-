@@ -26,11 +26,31 @@ jobs:
       with:
         gradle-version: 8.9
 
-    - name: Build with Gradle
+    - name: Decode Keystore
+      env:
+        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      run: |
+        echo "$KEYSTORE_BASE64" | base64 -d > app/dazou-release-key.jks
+
+    - name: Build Debug APK
       run: gradle assembleDebug
 
-    - name: Upload APK
+    - name: Build Release APK
+      env:
+        KEYSTORE_PATH: dazou-release-key.jks
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      run: gradle assembleRelease
+
+    - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
-        name: DAZOU-IPTV-APK
+        name: DAZOU-IPTV-DEBUG-APK
         path: app/build/outputs/apk/debug/app-debug.apk
+
+    - name: Upload Release APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: DAZOU-IPTV-RELEASE-APK
+        path: app/build/outputs/apk/release/app-release.apk
