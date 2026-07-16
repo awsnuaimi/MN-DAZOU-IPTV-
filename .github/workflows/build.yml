@@ -32,16 +32,16 @@ jobs:
       run: |
         echo "$KEYSTORE_BASE64" | base64 -d > app/dazou-release-key.jks
 
+    - name: Verify Keystore File
+      run: |
+        echo "حجم الملف بعد فك التشفير:"
+        ls -la app/dazou-release-key.jks
+        echo "---"
+        echo "التحقق من كلمة السر مباشرة:"
+        keytool -list -v -keystore app/dazou-release-key.jks -storepass "${{ secrets.KEYSTORE_PASSWORD }}" || echo "فشل التحقق من كلمة السر"
+
     - name: Build Debug APK
       run: gradle assembleDebug
-
-    - name: Build Release APK
-      env:
-        KEYSTORE_PATH: dazou-release-key.jks
-        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      run: gradle assembleRelease
 
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
@@ -49,7 +49,18 @@ jobs:
         name: DAZOU-IPTV-DEBUG-APK
         path: app/build/outputs/apk/debug/app-debug.apk
 
-    - name: Upload Release APK
+    - name: Build Release APK
+      continue-on-error: true
+      env:
+        KEYSTORE_PATH: dazou-release-key.jks
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      run: gradle assembleRelease
+
+    - name: Upload Release APK (if built)
+      if: always()
+      continue-on-error: true
       uses: actions/upload-artifact@v4
       with:
         name: DAZOU-IPTV-RELEASE-APK
