@@ -37,16 +37,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         setupPlayerControls()
         loadFragment(HomeFragment())
 
-        // ضبط ارتفاع المشغل (نسبة 16:9 من عرض 30%)
-        binding.playerView.post {
-            val width = binding.playerContainer.width
-            if (width > 0) {
-                val height = (width * 9 / 16)
-                binding.playerView.layoutParams.height = height
-                binding.playerView.requestLayout()
-            }
-        }
-
         // طلب التركيز على أول زر
         Handler(Looper.getMainLooper()).postDelayed({
             binding.btnHome.isFocusable = true
@@ -62,6 +52,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.btnEpg.setOnClickListener { /* TODO: EPG */ }
         binding.btnFullscreen.setOnClickListener { toggleFullscreen() }
         binding.btnExitFullscreen.setOnClickListener { toggleFullscreen() }
+        binding.btnClosePlayer.setOnClickListener { closeFloatingPlayer() }
     }
 
     private fun setupBottomNav() {
@@ -71,7 +62,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.btnSeries.setOnClickListener { loadFragment(SeriesFragment()) }
         binding.btnFavorites.setOnClickListener { loadFragment(FavoritesFragment()) }
         binding.btnAccounts.setOnClickListener { loadFragment(AccountsFragment()) }
-        binding.btnSettings.setOnClickListener { loadFragment(SettingsFragment()) } // ← تمت الإضافة
+        binding.btnSettings.setOnClickListener { loadFragment(SettingsFragment()) }
     }
 
     private fun loadFragment(fragment: Fragment) {
@@ -80,16 +71,23 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             .commit()
     }
 
+    // ✅ إغلاق المشغل العائم (يوقف التشغيل ويخفي البطاقة بالكامل)
+    private fun closeFloatingPlayer() {
+        playerManager.pause()
+        binding.floatingPlayerCard.visibility = View.GONE
+    }
+
+    // ✅ وضع ملء الشاشة
     private fun toggleFullscreen() {
         if (isFullscreen) {
-            // الرجوع من ملء الشاشة
+            // الرجوع من ملء الشاشة إلى المشغل العائم
             binding.fullscreenContainer.visibility = View.GONE
-            binding.mainContent.visibility = View.VISIBLE
+            binding.floatingPlayerCard.visibility = View.VISIBLE
             binding.playerView.player = playerManager.player
         } else {
             // الدخول إلى ملء الشاشة
             binding.fullscreenContainer.visibility = View.VISIBLE
-            binding.mainContent.visibility = View.GONE
+            binding.floatingPlayerCard.visibility = View.GONE
             binding.fullscreenPlayerView.player = playerManager.player
             binding.btnExitFullscreen.requestFocus()
         }
@@ -100,8 +98,10 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         if (playerManager.isPlaying) playerManager.pause() else playerManager.resume()
     }
 
+    // ✅ عند تشغيل أي قناة: يظهر المشغل العائم تلقائياً
     override fun playStream(url: String, name: String, type: String) {
         playerManager.play(url, name, type)
+        binding.floatingPlayerCard.visibility = View.VISIBLE
         binding.tvChannelInfo.text = "🎬 $name"
         binding.tvChannelInfo.visibility = View.VISIBLE
         binding.controlsLayout.visibility = View.VISIBLE
