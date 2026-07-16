@@ -7,4 +7,9 @@
     <string name="tab_series">المسلسلات</string>
     <string name="tab_favorites">المفضلة</string>
     <string name="tab_accounts">الحسابات</string>
+    <string name="tab_settings">الإعدادات</string>
+    <string name="settings_title">التشخيص والإعدادات</string>
+    <string name="btn_check_errors">🔍 فحص أخطاء التطبيق</string>
+    <string name="no_crash_logs">لا توجد أخطاء مسجّلة ✅</string>
+    <string name="crash_logs_found">تم العثور على %d خطأ مسجّل</string>
 </resources>

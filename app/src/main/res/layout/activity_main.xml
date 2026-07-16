@@ -101,6 +101,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toTopOf="@id/bottom_nav" />
 
+        <!-- =============== الشريط السفلي المحدث مع زر الإعدادات =============== -->
         <LinearLayout
             android:id="@+id/bottom_nav"
             android:layout_width="match_parent"
@@ -199,7 +200,8 @@
             <LinearLayout
                 android:id="@+id/btn_accounts"
                 style="@style/TvTabButton"
-                android:nextFocusLeft="@id/btn_favorites">
+                android:nextFocusLeft="@id/btn_favorites"
+                android:nextFocusRight="@id/btn_settings">
 
                 <ImageView
                     android:layout_width="@dimen/tv_icon_size"
@@ -210,6 +212,23 @@
                 <TextView
                     style="@style/TvTabText"
                     android:text="@string/tab_accounts" />
+            </LinearLayout>
+
+            <!-- ===== زر الإعدادات المضاف حديثاً ===== -->
+            <LinearLayout
+                android:id="@+id/btn_settings"
+                style="@style/TvTabButton"
+                android:nextFocusLeft="@id/btn_accounts">
+
+                <ImageView
+                    android:layout_width="@dimen/tv_icon_size"
+                    android:layout_height="@dimen/tv_icon_size"
+                    android:src="@drawable/ic_settings"
+                    android:contentDescription="@string/tab_settings" />
+
+                <TextView
+                    style="@style/TvTabText"
+                    android:text="@string/tab_settings" />
             </LinearLayout>
 
         </LinearLayout>

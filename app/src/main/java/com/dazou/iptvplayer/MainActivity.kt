@@ -71,6 +71,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.btnSeries.setOnClickListener { loadFragment(SeriesFragment()) }
         binding.btnFavorites.setOnClickListener { loadFragment(FavoritesFragment()) }
         binding.btnAccounts.setOnClickListener { loadFragment(AccountsFragment()) }
+        binding.btnSettings.setOnClickListener { loadFragment(SettingsFragment()) } // ← تمت الإضافة
     }
 
     private fun loadFragment(fragment: Fragment) {
