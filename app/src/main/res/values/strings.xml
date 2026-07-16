@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DAZOU IPTV</string>
+    <string name="tab_home">الرئيسية</string>
+    <string name="tab_live">البث المباشر</string>
+    <string name="tab_movies">الأفلام</string>
+    <string name="tab_series">المسلسلات</string>
+    <string name="tab_favorites">المفضلة</string>
+    <string name="tab_accounts">الحسابات</string>
+</resources>

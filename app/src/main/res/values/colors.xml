@@ -1,14 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#1A1A35</color>
-    <color name="bg_dark">#0F0F1A</color>
-    <color name="card_dark">#1A1A35</color>
-    <color name="accent">#FF6B6B</color>
-    <color name="bottom_bar">#12122A</color>
+    <color name="background_dark">#0D0D0D</color>
+    <color name="panel_dark">#1A1A1A</color>
+    <color name="panel_darker">#141414</color>
+    <color name="nav_background">#1C1C1C</color>
     <color name="text_white">#FFFFFF</color>
     <color name="text_gray">#AAAAAA</color>
-    <color name="active_tab">#2D2D5E</color>
-    <color name="control_bg">#CC000000</color>
-    <color name="player_info_bg">#CC000000</color>
     <color name="accent_highlight">#3399FF</color>
 </resources>
