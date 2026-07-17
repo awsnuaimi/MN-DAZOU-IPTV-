@@ -19,6 +19,11 @@ class ChannelAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(android.R.layout.simple_list_item_1, parent, false)
+
+        view.isFocusable = true
+        view.isClickable = true
+        view.setBackgroundResource(android.R.drawable.list_selector_background)
+
         return ViewHolder(view)
     }
 
