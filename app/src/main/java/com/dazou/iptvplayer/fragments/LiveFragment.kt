@@ -52,7 +52,8 @@ class LiveFragment : Fragment(), BackHandledFragment {
 
         viewModel.channels.observe(viewLifecycleOwner) { channels ->
             if (inChannelsMode) {
-                binding.rvLive.adapter = ChannelAdapter(channels, viewModel.getServer()) { channel ->
+                // ✅ التعديل هنا: تمرير وسيطين فقط، وتمرير الـ Server داخل الـ onChannelClick
+                binding.rvLive.adapter = ChannelAdapter(channels) { channel ->
                     val server = viewModel.getServer()
                     if (server == null) {
                         Toast.makeText(requireContext(), "اختر حساب IPTV أولاً", Toast.LENGTH_SHORT).show()
@@ -95,5 +96,8 @@ class LiveFragment : Fragment(), BackHandledFragment {
         }
     }
 
-    override fun onDestroyView() { super.onDestroyView(); _binding = null }
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
 }

@@ -26,3 +26,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         isFullscreen.value = !(isFullscreen.value ?: false)
     }
 }
+package com.dazou.iptvplayer.viewmodel
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.MutableLiveData
+import com.dazou.iptvplayer.model.XtreamChannel
+import com.dazou.iptvplayer.model.XtreamCategory // ✅ أضف هذا السطر
+
+class MainViewModel(application: Application) : AndroidViewModel(application) {
+
+    val activeChannel = MutableLiveData<XtreamChannel?>()
+    val isFullscreen = MutableLiveData(false)
+
+    val categories = MutableLiveData<List<XtreamCategory>>()
+    val channels = MutableLiveData<List<XtreamChannel>>()
+
+    fun playChannel(channel: XtreamChannel) {
+        activeChannel.value = channel
+        getApplication<Application>().getSharedPreferences("app_data", 0)
+            .edit().putInt("last_channel_id", channel.streamId).apply()
+    }
+    
+    fun toggleFullscreen() {
+        isFullscreen.value = !(isFullscreen.value ?: false)
+    }
+}
