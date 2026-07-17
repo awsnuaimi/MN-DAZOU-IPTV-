@@ -1,89 +1,199 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="20dp">
-
-
-    <RadioGroup
-        android:id="@+id/accountType"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
-
-        <RadioButton
-            android:id="@+id/radioXtream"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Xtream Codes"
-            android:checked="true"/>
-
-
-        <RadioButton
-            android:id="@+id/radioM3u"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="M3U Playlist"/>
-
-    </RadioGroup>
-
-
-    <!-- بيانات Xtream -->
+    android:layout_height="match_parent"
+    android:background="@color/background_dark"
+    android:fillViewport="true">
 
     <LinearLayout
-        android:id="@+id/layoutXtream"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
-
-
-        <EditText
-            android:id="@+id/etUrl"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="رابط السيرفر"
-            android:inputType="textUri"/>
-
-
-        <EditText
-            android:id="@+id/etUser"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="اسم المستخدم"/>
-
-
-        <EditText
-            android:id="@+id/etPass"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="كلمة المرور"
-            android:inputType="textPassword"/>
-
-    </LinearLayout>
-
-
-
-    <!-- بيانات M3U -->
-
-    <LinearLayout
-        android:id="@+id/layoutM3u"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:visibility="gone">
+        android:gravity="center_horizontal"
+        android:paddingTop="48dp"
+        android:paddingBottom="32dp">
 
+        <!-- الشعار -->
+        <FrameLayout
+            android:layout_width="96dp"
+            android:layout_height="96dp"
+            android:background="@drawable/bg_logo_circle">
+            <ImageView
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_play_logo"/>
+        </FrameLayout>
 
-        <EditText
-            android:id="@+id/etM3uUrl"
-            android:layout_width="match_parent"
+        <TextView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:hint="رابط قائمة M3U"
-            android:inputType="textUri"/>
+            android:layout_marginTop="12dp"
+            android:text="MN-DAZOU"
+            android:textColor="@color/accent"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.05"/>
+
+        <!-- بطاقة تسجيل الدخول -->
+        <LinearLayout
+            android:layout_width="400dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:orientation="vertical"
+            android:background="@drawable/bg_login_card"
+            android:padding="24dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="تسجيل الدخول"
+                android:textColor="@color/text_white"
+                android:textSize="24sp"
+                android:textStyle="bold"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:text="أدخل بيانات السيرفر للمتابعة"
+                android:textColor="@color/text_gray"
+                android:textSize="14sp"/>
+
+            <!-- رابط السيرفر -->
+            <LinearLayout
+                android:id="@+id/rowUrl"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_input_field_selector"
+                android:addStatesFromChildren="true">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_link"/>
+
+                <EditText
+                    android:id="@+id/etUrl"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:background="@null"
+                    android:hint="رابط السيرفر  http://example.com:8080"
+                    android:textColorHint="@color/text_gray"
+                    android:textColor="@color/text_white"
+                    android:textSize="15sp"
+                    android:inputType="textUri"
+                    android:singleLine="true"
+                    android:nextFocusDown="@id/etUser"/>
+            </LinearLayout>
+
+            <!-- اسم المستخدم -->
+            <LinearLayout
+                android:id="@+id/rowUser"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_input_field_selector"
+                android:addStatesFromChildren="true">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_person_field"/>
+
+                <EditText
+                    android:id="@+id/etUser"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:background="@null"
+                    android:hint="اسم المستخدم"
+                    android:textColorHint="@color/text_gray"
+                    android:textColor="@color/text_white"
+                    android:textSize="15sp"
+                    android:singleLine="true"
+                    android:nextFocusUp="@id/etUrl"
+                    android:nextFocusDown="@id/etPass"/>
+            </LinearLayout>
+
+            <!-- كلمة المرور -->
+            <LinearLayout
+                android:id="@+id/rowPass"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_input_field_selector"
+                android:addStatesFromChildren="true">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_lock"/>
+
+                <EditText
+                    android:id="@+id/etPass"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:background="@null"
+                    android:hint="كلمة المرور"
+                    android:textColorHint="@color/text_gray"
+                    android:textColor="@color/text_white"
+                    android:textSize="15sp"
+                    android:inputType="textPassword"
+                    android:singleLine="true"
+                    android:nextFocusUp="@id/etUser"
+                    android:nextFocusDown="@id/btnLogin"/>
+            </LinearLayout>
+
+            <!-- زر الدخول -->
+            <TextView
+                android:id="@+id/btnLogin"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:paddingVertical="14dp"
+                android:gravity="center"
+                android:text="دخول"
+                android:textColor="@color/text_white"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:background="@drawable/bg_button_pink_selector"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:clickable="true"
+                android:nextFocusUp="@id/etPass"/>
+
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="بياناتك تُحفظ على هذا الجهاز فقط"
+            android:textColor="@color/text_gray"
+            android:textSize="12sp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="بحاجة للمساعدة؟ تواصل مع الدعم"
+            android:textColor="@color/accent"
+            android:textSize="13sp"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:clickable="true"/>
 
     </LinearLayout>
-
-
-</LinearLayout>
+</ScrollView>
