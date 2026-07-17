@@ -1,6 +1,7 @@
 package com.dazou.iptvplayer.fragments
 
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -18,12 +19,13 @@ import com.dazou.iptvplayer.player.PlayerCallback
 import com.dazou.iptvplayer.viewmodel.LiveViewModel
 import com.dazou.iptvplayer.viewmodel.ViewModelFactory
 
-class LiveFragment : Fragment() {
+class LiveFragment : Fragment(), BackHandledFragment {
 
     private var _binding: FragmentLiveBinding? = null
     private val binding get() = _binding!!
     private lateinit var viewModel: LiveViewModel
     private var inChannelsMode = false
+    private var lastCategories: List<XtreamCategory> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,7 +38,32 @@ class LiveFragment : Fragment() {
         _binding = FragmentLiveBinding.inflate(inflater, container, false)
         binding.rvLive.layoutManager = LinearLayoutManager(requireContext())
 
+        // زر الرجوع من القنوات إلى المجموعات
+        binding.btnBackToCategories.setOnClickListener { showCategories() }
+
+        // دعم أسهم الريموت يمين/يسار للتنقل بين المجموعات والقنوات
+        binding.rvLive.setOnKeyListener { _, keyCode, event ->
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                when (keyCode) {
+                    KeyEvent.KEYCODE_DPAD_LEFT -> {
+                        if (inChannelsMode) {
+                            showCategories()
+                            true
+                        } else false
+                    }
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                        if (!inChannelsMode) {
+                            binding.rvLive.focusedChild?.performClick()
+                            true
+                        } else false
+                    }
+                    else -> false
+                }
+            } else false
+        }
+
         viewModel.categories.observe(viewLifecycleOwner) { categories ->
+            lastCategories = categories
             if (!inChannelsMode) {
                 if (categories.isEmpty()) {
                     Toast.makeText(requireContext(), "لا توجد مجموعات – تأكد من الحساب", Toast.LENGTH_LONG).show()
@@ -67,12 +94,29 @@ class LiveFragment : Fragment() {
 
     private fun showCategories() {
         inChannelsMode = false
-        viewModel.loadCategories()
+        binding.headerRow.visibility = View.GONE
+        if (lastCategories.isNotEmpty()) {
+            binding.rvLive.adapter = CategoryAdapter(lastCategories) { category -> openCategory(category) }
+        } else {
+            viewModel.loadCategories()
+        }
     }
 
     private fun openCategory(category: XtreamCategory) {
         inChannelsMode = true
+        binding.headerRow.visibility = View.VISIBLE
+        binding.tvCategoryTitle.text = category.categoryName
         viewModel.loadChannels(category.categoryId)
+    }
+
+    // يستدعى من MainActivity عند الضغط على زر الرجوع بالريموت
+    override fun onBackPressedInFragment(): Boolean {
+        return if (inChannelsMode) {
+            showCategories()
+            true
+        } else {
+            false
+        }
     }
 
     override fun onDestroyView() { super.onDestroyView(); _binding = null }

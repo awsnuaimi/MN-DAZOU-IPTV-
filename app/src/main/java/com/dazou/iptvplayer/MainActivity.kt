@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.KeyEvent
 import android.view.View
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.dazou.iptvplayer.databinding.ActivityMainBinding
@@ -23,21 +24,21 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // ضروري لـ Android TV
         window.decorView.isFocusableInTouchMode = true
         window.decorView.requestFocus()
 
         playerManager = PlayerManager(this)
+        // نربط المشغل بشاشة العرض العادية فقط بالبداية
+        // (تفادي تعارض السطح البصري مع شاشة ملء الشاشة، وهذا سبب مشكلة "صوت بدون صورة")
         binding.playerView.player = playerManager.player
-        binding.fullscreenPlayerView.player = playerManager.player
 
         playerManager.setOnPlaybackEndedListener { onNextChannel() }
 
         setupBottomNav()
         setupPlayerControls()
+        setupBackPress()
         loadFragment(HomeFragment())
 
-        // طلب التركيز على أول زر
         Handler(Looper.getMainLooper()).postDelayed({
             binding.btnHome.isFocusable = true
             binding.btnHome.isFocusableInTouchMode = true
@@ -65,29 +66,46 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.btnSettings.setOnClickListener { loadFragment(SettingsFragment()) }
     }
 
+    // التحكم بزر الرجوع بالريموت: يخرج من ملء الشاشة، أو يرجع من القنوات للمجموعات
+    private fun setupBackPress() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                when {
+                    isFullscreen -> toggleFullscreen()
+                    else -> {
+                        val current = supportFragmentManager.findFragmentById(binding.fragmentContainer.id)
+                        val handled = (current as? BackHandledFragment)?.onBackPressedInFragment() ?: false
+                        if (!handled) {
+                            isEnabled = false
+                            onBackPressedDispatcher.onBackPressed()
+                        }
+                    }
+                }
+            }
+        })
+    }
+
     private fun loadFragment(fragment: Fragment) {
         supportFragmentManager.beginTransaction()
             .replace(binding.fragmentContainer.id, fragment)
             .commit()
     }
 
-    // ✅ إغلاق المشغل العائم (يوقف التشغيل ويخفي البطاقة بالكامل)
     private fun closeFloatingPlayer() {
         playerManager.pause()
         binding.floatingPlayerCard.visibility = View.GONE
     }
 
-    // ✅ وضع ملء الشاشة
     private fun toggleFullscreen() {
         if (isFullscreen) {
-            // الرجوع من ملء الشاشة إلى المشغل العائم
             binding.fullscreenContainer.visibility = View.GONE
             binding.floatingPlayerCard.visibility = View.VISIBLE
+            binding.fullscreenPlayerView.player = null
             binding.playerView.player = playerManager.player
         } else {
-            // الدخول إلى ملء الشاشة
             binding.fullscreenContainer.visibility = View.VISIBLE
             binding.floatingPlayerCard.visibility = View.GONE
+            binding.playerView.player = null
             binding.fullscreenPlayerView.player = playerManager.player
             binding.btnExitFullscreen.requestFocus()
         }
@@ -98,13 +116,14 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         if (playerManager.isPlaying) playerManager.pause() else playerManager.resume()
     }
 
-    // ✅ عند تشغيل أي قناة: يظهر المشغل العائم تلقائياً
     override fun playStream(url: String, name: String, type: String) {
         playerManager.play(url, name, type)
         binding.floatingPlayerCard.visibility = View.VISIBLE
         binding.tvChannelInfo.text = "🎬 $name"
         binding.tvChannelInfo.visibility = View.VISIBLE
         binding.controlsLayout.visibility = View.VISIBLE
+        // نطلب الفوكس مباشرة على زر التشغيل حتى يقدر المستخدم يتحكم بالمشغل فورًا
+        binding.btnPlayPause.requestFocus()
     }
 
     override fun onNextChannel() { /* TODO */ }
