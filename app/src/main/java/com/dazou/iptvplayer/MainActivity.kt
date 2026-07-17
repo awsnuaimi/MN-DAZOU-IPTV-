@@ -43,17 +43,20 @@ class MainActivity : AppCompatActivity() {
         setupNavigation()
         setupBackPress()
 
-        // افتح القنوات افتراضياً عند البدء
+        // فتح القنوات افتراضياً عند البدء (محاكاة بيانات أولية)
         if (viewModel.channels.value.isNullOrEmpty()) {
-            // محاكاة بيانات أولية (أو جلبها من الـ Repository)
-            viewModel.channels.value = listOf(XtreamChannel(1, "beIN Sports 1", "live", "", "", "", "", "ts"))
+            // في الإصدار الحقيقي، يجب جلب البيانات من الـ Repository
+            viewModel.channels.value = listOf(
+                XtreamChannel(1, "beIN Sports HD 1", "live", "", "", "", "", "ts"),
+                XtreamChannel(2, "MBC 1 HD", "live", "", "", "", "", "ts")
+            )
         }
     }
 
+    // إعداد مستمع المشغل لتحديث زر التشغيل
     private fun setupPlayerListener() {
         playerManager.setListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                // تحديث زر التشغيل/الإيقاف بناءً على الحالة الحقيقية للمشغل
                 binding.btnPlayPause.setImageResource(
                     if (isPlaying) android.R.drawable.ic_media_pause 
                     else android.R.drawable.ic_media_play
@@ -61,34 +64,32 @@ class MainActivity : AppCompatActivity() {
             }
         })
         
-        // تفعيل أزرار المشغل
         binding.btnPlayPause.setOnClickListener {
             if (playerManager.player.isPlaying) playerManager.pause() else playerManager.resume()
         }
         binding.btnFullscreen.setOnClickListener { viewModel.toggleFullscreen() }
-        // التالي/السابق (سيتم تفعيله لاحقاً عبر القائمة)
     }
 
+    // مراقبة البيانات القادمة من ViewModel
     private fun observeViewModel() {
-        // مراقبة القناة النشطة وتشغيلها
+        // مراقبة القناة النشطة
         viewModel.activeChannel.observe(this) { channel ->
             if (channel != null) {
-                // توليد رابط التشغيل
-                val url = "http://example.com/live/${channel.streamId}.ts" // مثال (استخدم الـ API هنا)
+                // بناء رابط البث (يحتاج للتعديل حسب الـ API الخاص بك)
+                val url = "http://example.com/live/${channel.streamId}.ts" 
                 playerManager.play(url)
                 binding.channelInfo.text = "📺 ${channel.name}"
             }
         }
 
-        // مراقبة وضع ملء الشاشة وتنفيذه بشكل صحيح
+        // مراقبة وضع ملء الشاشة
         viewModel.isFullscreen.observe(this) { isFullscreen ->
             if (isFullscreen) {
-                // إخفاء شريط الحالة والتحكمات
                 WindowCompat.setDecorFitsSystemWindows(window, false)
                 window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-                WindowInsetsControllerCompat(window, binding.videoPlayer).hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                WindowInsetsControllerCompat(window, binding.videoPlayer)
+                    .hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
             } else {
-                // إعادتها
                 WindowCompat.setDecorFitsSystemWindows(window, true)
                 window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
             }
@@ -102,6 +103,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // إعداد القائمة العلوية والتنقل
     private fun setupNavigation() {
         val fragments = mapOf(
             binding.menuHome to HomeFragment(),
@@ -116,7 +118,6 @@ class MainActivity : AppCompatActivity() {
         binding.settings.setOnClickListener { loadFragment(SettingsFragment()) }
         binding.account.setOnClickListener { loadFragment(AccountsFragment()) }
 
-        // تحميل الصفحة الرئيسية كبداية
         loadFragment(HomeFragment())
     }
 
@@ -126,6 +127,7 @@ class MainActivity : AppCompatActivity() {
             .commit()
     }
 
+    // التعامل مع زر الرجوع
     private fun setupBackPress() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -133,7 +135,6 @@ class MainActivity : AppCompatActivity() {
                 if (current is BackHandledFragment && current.onBackPressedInFragment()) {
                     return
                 }
-                // إغلاق التطبيق إذا كان الـ Fullscreen مغلق
                 if (viewModel.isFullscreen.value == false) {
                     isEnabled = false
                     onBackPressedDispatcher.onBackPressed()
@@ -144,12 +145,11 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    // اعتراض متقدم للريموت
+    // اعتراض أزرار الريموت
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN) {
             when (event.keyCode) {
                 KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                    // تنفيذ المنطق الخاص بالقائمة الجانبية أو العودة
                     val current = supportFragmentManager.findFragmentById(binding.fragmentContainer.id)
                     if (current is BackHandledFragment && current.onBackPressedInFragment()) {
                         return true
