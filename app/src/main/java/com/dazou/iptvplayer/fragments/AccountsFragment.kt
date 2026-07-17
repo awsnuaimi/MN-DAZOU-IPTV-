@@ -60,6 +60,8 @@ class AccountsFragment : Fragment() {
         if (accounts.isEmpty()) {
             binding.tvNoAccounts.visibility = View.VISIBLE
             binding.rvAccounts.visibility = View.GONE
+            // طلب الفوكس مباشرة على زر الإضافة لأنه القائمة فاضية ومخفية
+            binding.btnAddAccount.requestFocus()
         } else {
             binding.tvNoAccounts.visibility = View.GONE
             binding.rvAccounts.visibility = View.VISIBLE
