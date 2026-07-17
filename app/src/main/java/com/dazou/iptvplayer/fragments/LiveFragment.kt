@@ -52,7 +52,7 @@ class LiveFragment : Fragment(), BackHandledFragment {
 
         viewModel.channels.observe(viewLifecycleOwner) { channels ->
             if (inChannelsMode) {
-                binding.rvLive.adapter = ChannelAdapter(channels) { channel ->
+                binding.rvLive.adapter = ChannelAdapter(channels, viewModel.getServer()) { channel ->
                     val server = viewModel.getServer()
                     if (server == null) {
                         Toast.makeText(requireContext(), "اختر حساب IPTV أولاً", Toast.LENGTH_SHORT).show()
@@ -86,7 +86,6 @@ class LiveFragment : Fragment(), BackHandledFragment {
         viewModel.loadChannels(category.categoryId)
     }
 
-    // يُستدعى مركزياً من MainActivity (dispatchKeyEvent) عند سهم اليسار أو زر الرجوع
     override fun onBackPressedInFragment(): Boolean {
         return if (inChannelsMode) {
             showCategories()
