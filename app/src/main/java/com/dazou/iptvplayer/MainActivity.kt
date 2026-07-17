@@ -1,167 +1,210 @@
 package com.dazou.iptvplayer
 
 import android.os.Bundle
-import android.view.KeyEvent
-import android.view.WindowManager
-import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
-import androidx.media3.common.Player
-import com.dazou.iptvplayer.adapter.ChannelAdapter
 import com.dazou.iptvplayer.databinding.ActivityMainBinding
-import com.dazou.iptvplayer.fragments.*
-import com.dazou.iptvplayer.model.XtreamChannel
+import com.dazou.iptvplayer.player.PlayerCallback
 import com.dazou.iptvplayer.player.PlayerManager
-import com.dazou.iptvplayer.viewmodel.MainViewModel
+import com.dazou.iptvplayer.fragments.*
 
-class MainActivity : AppCompatActivity() {
+
+class MainActivity : AppCompatActivity(), PlayerCallback {
+
 
     private lateinit var binding: ActivityMainBinding
-    private lateinit var playerManager: PlayerManager
-    private lateinit var viewModel: MainViewModel
+
+    lateinit var playerManager: PlayerManager
+
+
+    private var fullscreen = false
+    private var playing = false
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
+
+
+        binding =
+            ActivityMainBinding.inflate(layoutInflater)
+
         setContentView(binding.root)
 
-        // 1. تهيئة ViewModel
-        viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
 
-        // 2. تهيئة المشغل (Player)
-        playerManager = PlayerManager(this)
-        binding.videoPlayer.player = playerManager.player
-        setupPlayerListener()
 
-        // 3. مراقبة تغييرات الحالة من ViewModel
-        observeViewModel()
+        playerManager =
+            PlayerManager(this)
 
-        // 4. إعداد القائمة والـ Fragments
-        setupNavigation()
-        setupBackPress()
 
-        // فتح القنوات افتراضياً عند البدء (محاكاة بيانات أولية)
-        if (viewModel.channels.value.isNullOrEmpty()) {
-            // في الإصدار الحقيقي، يجب جلب البيانات من الـ Repository
-            viewModel.channels.value = listOf(
-                XtreamChannel(1, "beIN Sports HD 1", "live", "", "", "", "", "ts"),
-                XtreamChannel(2, "MBC 1 HD", "live", "", "", "", "", "ts")
-            )
-        }
-    }
+        binding.videoPlayer.player =
+            playerManager.player
 
-    // إعداد مستمع المشغل لتحديث زر التشغيل
-    private fun setupPlayerListener() {
-        playerManager.setListener(object : Player.Listener {
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                binding.btnPlayPause.setImageResource(
-                    if (isPlaying) android.R.drawable.ic_media_pause 
-                    else android.R.drawable.ic_media_play
-                )
-            }
-        })
-        
-        binding.btnPlayPause.setOnClickListener {
-            if (playerManager.player.isPlaying) playerManager.pause() else playerManager.resume()
-        }
-        binding.btnFullscreen.setOnClickListener { viewModel.toggleFullscreen() }
-    }
 
-    // مراقبة البيانات القادمة من ViewModel
-    private fun observeViewModel() {
-        // مراقبة القناة النشطة
-        viewModel.activeChannel.observe(this) { channel ->
-            if (channel != null) {
-                // بناء رابط البث (يحتاج للتعديل حسب الـ API الخاص بك)
-                val url = "http://example.com/live/${channel.streamId}.ts" 
-                playerManager.play(url)
-                binding.channelInfo.text = "📺 ${channel.name}"
-            }
-        }
 
-        // مراقبة وضع ملء الشاشة
-        viewModel.isFullscreen.observe(this) { isFullscreen ->
-            if (isFullscreen) {
-                WindowCompat.setDecorFitsSystemWindows(window, false)
-                window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-                WindowInsetsControllerCompat(window, binding.videoPlayer)
-                    .hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
-            } else {
-                WindowCompat.setDecorFitsSystemWindows(window, true)
-                window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-            }
-        }
+        setupControls()
 
-        // مراقبة تغيير القنوات وتحديث القائمة الجانبية
-        viewModel.channels.observe(this) { channels ->
-            binding.channelList.adapter = ChannelAdapter(channels) { channel ->
-                viewModel.playChannel(channel)
-            }
-        }
-    }
 
-    // إعداد القائمة العلوية والتنقل
-    private fun setupNavigation() {
-        val fragments = mapOf(
-            binding.menuHome to HomeFragment(),
-            binding.menuLive to LiveFragment(),
-            binding.menuMovies to MoviesFragment(),
-            binding.menuSeries to SeriesFragment(),
-            binding.menuEpg to EpgFragment()
-        )
-        for ((view, fragment) in fragments) {
-            view.setOnClickListener { loadFragment(fragment) }
-        }
-        binding.settings.setOnClickListener { loadFragment(SettingsFragment()) }
-        binding.account.setOnClickListener { loadFragment(AccountsFragment()) }
+        setupMenu()
+
 
         loadFragment(HomeFragment())
+
     }
 
-    private fun loadFragment(fragment: Fragment) {
-        supportFragmentManager.beginTransaction()
-            .replace(binding.fragmentContainer.id, fragment)
-            .commit()
-    }
 
-    // التعامل مع زر الرجوع
-    private fun setupBackPress() {
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                val current = supportFragmentManager.findFragmentById(binding.fragmentContainer.id)
-                if (current is BackHandledFragment && current.onBackPressedInFragment()) {
-                    return
-                }
-                if (viewModel.isFullscreen.value == false) {
-                    isEnabled = false
-                    onBackPressedDispatcher.onBackPressed()
-                } else {
-                    viewModel.toggleFullscreen()
-                }
+
+    private fun setupControls(){
+
+
+        binding.btnPlayPause.setOnClickListener {
+
+            if(playerManager.isPlaying){
+
+                playerManager.pause()
+                playing=false
+
+            }else{
+
+                playerManager.resume()
+                playing=true
             }
-        })
-    }
 
-    // اعتراض أزرار الريموت
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.action == KeyEvent.ACTION_DOWN) {
-            when (event.keyCode) {
-                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                    val current = supportFragmentManager.findFragmentById(binding.fragmentContainer.id)
-                    if (current is BackHandledFragment && current.onBackPressedInFragment()) {
-                        return true
-                    }
-                }
-            }
         }
-        return super.dispatchKeyEvent(event)
+
+
+
+        binding.btnFullscreen.setOnClickListener {
+
+            fullscreen = !fullscreen
+
+        }
+
+
     }
 
-    override fun onDestroy() {
-        playerManager.release()
-        super.onDestroy()
+
+
+
+    private fun setupMenu(){
+
+
+        binding.menuHome.setOnClickListener {
+
+            loadFragment(HomeFragment())
+
+        }
+
+
+        binding.menuLive.setOnClickListener {
+
+            loadFragment(LiveFragment())
+
+        }
+
+
+        binding.menuMovies.setOnClickListener {
+
+            loadFragment(MoviesFragment())
+
+        }
+
+
+        binding.menuSeries.setOnClickListener {
+
+            loadFragment(SeriesFragment())
+
+        }
+
+
+        binding.menuEpg.setOnClickListener {
+
+            loadFragment(EpgFragment())
+
+        }
+
+
+        binding.settings.setOnClickListener {
+
+            loadFragment(SettingsFragment())
+
+        }
+
+
+        binding.account.setOnClickListener {
+
+            loadFragment(AccountsFragment())
+
+        }
+
     }
+
+
+
+
+
+    private fun loadFragment(fragment: Fragment){
+
+        supportFragmentManager
+            .beginTransaction()
+            .replace(
+                binding.fragmentContainer.id,
+                fragment
+            )
+            .commit()
+
+    }
+
+
+
+
+
+    override fun playStream(
+        url:String,
+        name:String,
+        type:String
+    ){
+
+        playerManager.play(
+            url,
+            name,
+            type
+        )
+
+        binding.channelInfo.text =
+            "📺 $name"
+
+
+        playing=true
+
+    }
+
+
+
+
+
+    override fun onNextChannel(){
+
+    }
+
+
+
+
+
+    override fun onPreviousChannel(){
+
+    }
+
+
+
+
+
+    override fun onDestroy(){
+
+        playerManager.release()
+
+        super.onDestroy()
+
+    }
+
 }

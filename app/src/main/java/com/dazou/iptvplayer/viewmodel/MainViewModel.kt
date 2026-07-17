@@ -3,29 +3,38 @@ package com.dazou.iptvplayer.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.LiveData
 import com.dazou.iptvplayer.model.XtreamChannel
+import com.dazou.iptvplayer.model.XtreamCategory
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
-    val channels = MutableLiveData<List<XtreamChannel>>()
+    private val _activeChannel = MutableLiveData<XtreamChannel?>()
+    val activeChannel: LiveData<XtreamChannel?> = _activeChannel
 
-    val movies = MutableLiveData<List<XtreamChannel>>()
+    private val _isFullscreen = MutableLiveData(false)
+    val isFullscreen: LiveData<Boolean> = _isFullscreen
 
-    val series = MutableLiveData<List<XtreamChannel>>()
+    val categories = MutableLiveData<List<XtreamCategory>>(emptyList())
+
+    val channels = MutableLiveData<List<XtreamChannel>>(emptyList())
 
 
-    fun setChannels(list: List<XtreamChannel>) {
-        channels.value = list
+    fun playChannel(channel: XtreamChannel) {
+
+        _activeChannel.value = channel
+
+        getApplication<Application>()
+            .getSharedPreferences("app_data", 0)
+            .edit()
+            .putInt("last_channel_id", channel.streamId)
+            .apply()
     }
 
 
-    fun setMovies(list: List<XtreamChannel>) {
-        movies.value = list
+    fun toggleFullscreen() {
+
+        _isFullscreen.value = !(_isFullscreen.value ?: false)
+
     }
-
-
-    fun setSeries(list: List<XtreamChannel>) {
-        series.value = list
-    }
-
 }
