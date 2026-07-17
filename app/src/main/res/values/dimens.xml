@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="tv_nav_height">72dp</dimen>
-    <dimen name="tv_icon_size">32dp</dimen>
+    <dimen name="tv_nav_height">96dp</dimen>
+    <dimen name="tv_icon_size">40dp</dimen>
     <dimen name="tv_tab_text_size">16sp</dimen>
-    <dimen name="header_text_size">22sp</dimen>
+    <dimen name="tab_text_size">15sp</dimen>
+    <dimen name="header_text_size">26sp</dimen>
     <dimen name="item_text_size">17sp</dimen>
 </resources>
