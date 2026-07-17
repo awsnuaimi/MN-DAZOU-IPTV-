@@ -65,3 +65,4 @@ jobs:
       with:
         name: DAZOU-IPTV-RELEASE-APK
         path: app/build/outputs/apk/release/app-release.apk
+        .
