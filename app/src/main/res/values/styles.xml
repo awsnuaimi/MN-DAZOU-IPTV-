@@ -1,5 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <resources>
+
+    <!-- عناصر القائمة العلوية الخاصة بتطبيق DAZOU -->
+    <style name="TvMenuItem">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingHorizontal">18dp</item>
+        <item name="android:textColor">@color/text_gray</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:fontFamily">sans</item>
+        <item name="android:focusable">true</item>
+        <item name="android:focusableInTouchMode">true</item>
+        <item name="android:background">@drawable/tv_tab_selector</item>
+    </style>
+
+
+    <!-- زر التنقل القديم (يمكن استخدامه لاحقاً) -->
     <style name="TvTabButton">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">match_parent</item>
@@ -9,12 +27,5 @@
         <item name="android:focusable">true</item>
         <item name="android:focusableInTouchMode">true</item>
     </style>
-    
-    <style name="TvMenuItem">
-        <item name="android:layout_width">wrap_content</item>
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:textColor">@color/text_gray</item>
-        <item name="android:textSize">@dimen/tv_tab_text_size</item>
-        <item name="android:padding">8dp</item>
-    </style>
+
 </resources>
