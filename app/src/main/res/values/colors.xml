@@ -1,18 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#1A1A35</color>
-    <color name="background_dark">#0F0F1A</color>
-    <color name="bg_dark">#0F0F1A</color>
-    <color name="nav_background">#12122A</color>
-    <color name="card_dark">#1A1A35</color>
-    <color name="panel_dark">#1A1A35</color>
-    <color name="panel_darker">#12122A</color>
-    <color name="bottom_bar">#12122A</color>
-    <color name="accent">#FF6B6B</color>
-    <color name="accent_highlight">#FF6B6B</color>
-    <color name="active_tab">#2D2D5E</color>
+    <color name="ic_launcher_background">#0A0710</color>
+    <color name="background_dark">#0A0710</color>
+    <color name="bg_dark">#0A0710</color>
+    <color name="nav_background">#150E1A</color>
+    <color name="card_dark">#17131D</color>
+    <color name="panel_dark">#17131D</color>
+    <color name="panel_darker">#120D17</color>
+    <color name="bottom_bar">#120D17</color>
+    <color name="accent">#7A1F3D</color>
+    <color name="accent_highlight">#7A1F3D</color>
+    <color name="active_tab">#3A1220</color>
     <color name="text_white">#FFFFFF</color>
-    <color name="text_gray">#AAAAAA</color>
+    <color name="text_gray">#9A93A0</color>
     <color name="control_bg">#CC000000</color>
     <color name="player_info_bg">#CC000000</color>
+    <color name="live_red">#7A1F3D</color>
+    <color name="input_border">#3A1220</color>
 </resources>
