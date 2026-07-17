@@ -1,302 +1,109 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
+<androidx.constraintlayout.widget.ConstraintLayout 
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/root_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_dark">
+    android:background="@color/background_dark"
+    android:layoutDirection="rtl"
+    android:keepScreenOn="true">
 
-    <!-- ===================== المحتوى الرئيسي (وضع عادي) ===================== -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/top_bar"
+        android:layout_width="0dp"
+        android:layout_height="72dp"
+        app:cardBackgroundColor="@color/nav_background"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="24dp">
+            <TextView android:id="@+id/app_logo" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📺 DAZOU" android:textColor="@color/accent" android:textSize="26sp" android:textStyle="bold"/>
+            <Space android:layout_width="40dp" android:layout_height="1dp"/>
+            <TextView android:id="@+id/menu_home" style="@style/TvMenuItem" android:text="الرئيسية" android:nextFocusDown="@id/menu_live"/>
+            <TextView android:id="@+id/menu_live" style="@style/TvMenuItem" android:text="القنوات" android:nextFocusDown="@id/menu_movies"/>
+            <TextView android:id="@+id/menu_movies" style="@style/TvMenuItem" android:text="أفلام" android:nextFocusDown="@id/menu_series"/>
+            <TextView android:id="@+id/menu_series" style="@style/TvMenuItem" android:text="مسلسلات" android:nextFocusDown="@id/menu_epg"/>
+            <TextView android:id="@+id/menu_epg" style="@style/TvMenuItem" android:text="دليل البرامج" android:nextFocusDown="@id/account"/>
+            <Space android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1"/>
+            <ImageView android:id="@+id/settings" android:layout_width="32dp" android:layout_height="32dp" android:src="@drawable/ic_settings" android:tint="@color/text_white" android:nextFocusDown="@id/account"/>
+            <ImageView android:id="@+id/account" android:layout_width="32dp" android:layout_height="32dp" android:layout_marginStart="20dp" android:src="@drawable/ic_account" android:tint="@color/text_white" android:nextFocusDown="@id/sidebar"/>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/sidebar"
+        android:layout_width="280dp"
+        android:layout_height="0dp"
+        app:cardBackgroundColor="@color/nav_background"
+        app:layout_constraintTop_toBottomOf="@id/top_bar"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="12dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="☰ القنوات المباشرة" android:textColor="@color/text_white" android:textSize="18sp" android:textStyle="bold" android:padding="12dp" android:focusable="true" android:focusableInTouchMode="true"/>
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/channel_list" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:clipToPadding="false" android:padding="8dp" android:descendantFocusability="afterDescendants"/>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/main_content"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="visible">
+        android:id="@+id/content_area"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:padding="12dp"
+        app:layout_constraintStart_toEndOf="@id/sidebar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/top_bar"
+        app:layout_constraintBottom_toBottomOf="parent">
 
-        <!-- خط توجيه لعرض المشغل العائم (35% من الشاشة) -->
-        <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/guideline_player_end"
+        <androidx.media3.ui.PlayerView
+            android:id="@+id/video_player"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@android:color/black"
+            app:use_controller="false"
+            app:layout_constraintDimensionRatio="16:9"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <TextView
+            android:id="@+id/channel_info"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            app:layout_constraintGuide_percent="0.35" />
+            android:text="جاري التحميل..."
+            android:textColor="@color/text_white"
+            android:textSize="14sp"
+            android:background="#88000000"
+            android:padding="8dp"
+            app:layout_constraintBottom_toBottomOf="@id/video_player"
+            app:layout_constraintStart_toStartOf="@id/video_player"/>
 
-        <!-- ===== المحتوى (الفراغمنتس) - ياخد الشاشة كاملة دائماً ===== -->
+        <LinearLayout
+            android:id="@+id/player_controls"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="#88000000"
+            android:padding="8dp"
+            app:layout_constraintBottom_toBottomOf="@id/video_player"
+            app:layout_constraintEnd_toEndOf="@id/video_player">
+            <ImageView android:id="@+id/btn_prev" android:layout_width="28dp" android:layout_height="28dp" android:src="@android:drawable/ic_media_rew" android:tint="@color/text_white" android:focusable="true" android:clickable="true"/>
+            <ImageView android:id="@+id/btn_play_pause" android:layout_width="28dp" android:layout_height="28dp" android:src="@android:drawable/ic_media_play" android:tint="@color/text_white" android:layout_marginStart="12dp" android:focusable="true" android:clickable="true"/>
+            <ImageView android:id="@+id/btn_next" android:layout_width="28dp" android:layout_height="28dp" android:src="@android:drawable/ic_media_ff" android:tint="@color/text_white" android:layout_marginStart="12dp" android:focusable="true" android:clickable="true"/>
+            <ImageView android:id="@+id/btn_fullscreen" android:layout_width="28dp" android:layout_height="28dp" android:src="@android:drawable/ic_menu_crop" android:tint="@color/text_white" android:layout_marginStart="12dp" android:focusable="true" android:clickable="true"/>
+        </LinearLayout>
+
         <FrameLayout
             android:id="@+id/fragment_container"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            app:layout_constraintTop_toTopOf="parent"
+            android:layout_marginTop="8dp"
+            app:layout_constraintTop_toBottomOf="@id/video_player"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/bottom_nav" />
-
-        <!-- ===== المشغل العائم - مخفي بالبداية، يظهر فقط عند تشغيل قناة ===== -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/floating_player_card"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_margin="16dp"
-            android:background="@color/panel_dark"
-            android:elevation="12dp"
-            android:visibility="gone"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/guideline_player_end">
-
-            <FrameLayout
-                android:id="@+id/player_container"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:background="@android:color/black"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintDimensionRatio="16:9">
-
-                <androidx.media3.ui.PlayerView
-                    android:id="@+id/player_view"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    app:use_controller="false" />
-
-            </FrameLayout>
-
-            <!-- زر إغلاق المشغل العائم -->
-            <Button
-                android:id="@+id/btn_close_player"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_margin="4dp"
-                android:text="✕"
-                android:textColor="@color/text_white"
-                android:background="@drawable/tv_button_selector"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:padding="6dp"
-                app:layout_constraintTop_toTopOf="@id/player_container"
-                app:layout_constraintEnd_toEndOf="@id/player_container" />
-
-            <!-- طبقة معلومات القناة وأزرار التحكم -->
-            <LinearLayout
-                android:id="@+id/controls_layout"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@color/panel_dark"
-                android:visibility="gone"
-                app:layout_constraintTop_toBottomOf="@id/player_container"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent">
-
-                <TextView
-                    android:id="@+id/tv_channel_info"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="8dp"
-                    android:textColor="@color/text_white"
-                    android:textSize="14sp"
-                    android:visibility="gone"
-                    tools:text="🎬 Channel Name" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <Button
-                        android:id="@+id/btn_prev_channel"
-                        style="@style/PlayerControlButton"
-                        android:text="⏮" />
-
-                    <Button
-                        android:id="@+id/btn_play_pause"
-                        style="@style/PlayerControlButton"
-                        android:text="⏯" />
-
-                    <Button
-                        android:id="@+id/btn_next_channel"
-                        style="@style/PlayerControlButton"
-                        android:text="⏭" />
-
-                    <Button
-                        android:id="@+id/btn_epg"
-                        style="@style/PlayerControlButton"
-                        android:text="EPG" />
-
-                    <Button
-                        android:id="@+id/btn_fullscreen"
-                        style="@style/PlayerControlButton"
-                        android:text="⛶" />
-
-                </LinearLayout>
-            </LinearLayout>
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <!-- =============== الشريط السفلي - ثابت دائماً =============== -->
-        <LinearLayout
-            android:id="@+id/bottom_nav"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/tv_nav_height"
-            android:orientation="horizontal"
-            android:background="@color/nav_background"
-            android:elevation="8dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent">
-
-            <LinearLayout
-                android:id="@+id/btn_home"
-                style="@style/TvTabButton"
-                android:nextFocusRight="@id/btn_live">
-
-                <ImageView
-                    android:layout_width="@dimen/tv_icon_size"
-                    android:layout_height="@dimen/tv_icon_size"
-                    android:src="@drawable/ic_home"
-                    android:contentDescription="@string/tab_home" />
-
-                <TextView
-                    style="@style/TvTabText"
-                    android:text="@string/tab_home" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/btn_live"
-                style="@style/TvTabButton"
-                android:nextFocusLeft="@id/btn_home"
-                android:nextFocusRight="@id/btn_movies">
-
-                <ImageView
-                    android:layout_width="@dimen/tv_icon_size"
-                    android:layout_height="@dimen/tv_icon_size"
-                    android:src="@drawable/ic_live_tv"
-                    android:contentDescription="@string/tab_live" />
-
-                <TextView
-                    style="@style/TvTabText"
-                    android:text="@string/tab_live" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/btn_movies"
-                style="@style/TvTabButton"
-                android:nextFocusLeft="@id/btn_live"
-                android:nextFocusRight="@id/btn_series">
-
-                <ImageView
-                    android:layout_width="@dimen/tv_icon_size"
-                    android:layout_height="@dimen/tv_icon_size"
-                    android:src="@drawable/ic_movies"
-                    android:contentDescription="@string/tab_movies" />
-
-                <TextView
-                    style="@style/TvTabText"
-                    android:text="@string/tab_movies" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/btn_series"
-                style="@style/TvTabButton"
-                android:nextFocusLeft="@id/btn_movies"
-                android:nextFocusRight="@id/btn_favorites">
-
-                <ImageView
-                    android:layout_width="@dimen/tv_icon_size"
-                    android:layout_height="@dimen/tv_icon_size"
-                    android:src="@drawable/ic_series"
-                    android:contentDescription="@string/tab_series" />
-
-                <TextView
-                    style="@style/TvTabText"
-                    android:text="@string/tab_series" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/btn_favorites"
-                style="@style/TvTabButton"
-                android:nextFocusLeft="@id/btn_series"
-                android:nextFocusRight="@id/btn_accounts">
-
-                <ImageView
-                    android:layout_width="@dimen/tv_icon_size"
-                    android:layout_height="@dimen/tv_icon_size"
-                    android:src="@drawable/ic_favorite"
-                    android:contentDescription="@string/tab_favorites" />
-
-                <TextView
-                    style="@style/TvTabText"
-                    android:text="@string/tab_favorites" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/btn_accounts"
-                style="@style/TvTabButton"
-                android:nextFocusLeft="@id/btn_favorites"
-                android:nextFocusRight="@id/btn_settings">
-
-                <ImageView
-                    android:layout_width="@dimen/tv_icon_size"
-                    android:layout_height="@dimen/tv_icon_size"
-                    android:src="@drawable/ic_account"
-                    android:contentDescription="@string/tab_accounts" />
-
-                <TextView
-                    style="@style/TvTabText"
-                    android:text="@string/tab_accounts" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/btn_settings"
-                style="@style/TvTabButton"
-                android:nextFocusLeft="@id/btn_accounts">
-
-                <ImageView
-                    android:layout_width="@dimen/tv_icon_size"
-                    android:layout_height="@dimen/tv_icon_size"
-                    android:src="@drawable/ic_settings"
-                    android:contentDescription="@string/tab_settings" />
-
-                <TextView
-                    style="@style/TvTabText"
-                    android:text="@string/tab_settings" />
-            </LinearLayout>
-
-        </LinearLayout>
-
+            app:layout_constraintEnd_toEndOf="parent"/>
     </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <!-- ===================== وضع ملء الشاشة ===================== -->
-    <FrameLayout
-        android:id="@+id/fullscreen_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@android:color/black"
-        android:visibility="gone"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <androidx.media3.ui.PlayerView
-            android:id="@+id/fullscreen_player_view"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            app:use_controller="false" />
-
-        <Button
-            android:id="@+id/btn_exit_fullscreen"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="top|end"
-            android:layout_margin="16dp"
-            android:text="✕"
-            android:background="@drawable/tv_tab_selector"
-            android:textColor="@color/text_white" />
-
-    </FrameLayout>
-
 </androidx.constraintlayout.widget.ConstraintLayout>

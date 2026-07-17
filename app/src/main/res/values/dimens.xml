@@ -1,52 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- أبعاد التصميم للتلفزيون -->
-    <dimen name="tv_nav_height">96dp</dimen>
-    <dimen name="tv_icon_size">40dp</dimen>
+    <dimen name="tv_nav_height">72dp</dimen>
+    <dimen name="tv_icon_size">32dp</dimen>
     <dimen name="tv_tab_text_size">16sp</dimen>
-
-    <!-- Header -->
-    <dimen name="header_padding_top">30dp</dimen>
-    <dimen name="header_padding_bottom">15dp</dimen>
-    <dimen name="header_text_size">26sp</dimen>
-    <dimen name="header_icon_size">20sp</dimen>
-
-    <!-- Player -->
-    <dimen name="player_height">480dp</dimen>
-    <dimen name="player_control_padding">12dp</dimen>
-    <dimen name="player_control_text_size">20sp</dimen>
-    <dimen name="player_info_text_size">16sp</dimen>
-
-    <!-- Tabs -->
-    <dimen name="tab_padding">4dp</dimen>
-    <dimen name="tab_text_size">15sp</dimen>
-
-    <!-- Category Items -->
-    <dimen name="category_padding_h">25dp</dimen>
-    <dimen name="category_padding_v">22dp</dimen>
-    <dimen name="category_icon_size">26sp</dimen>
-    <dimen name="category_text_size">18sp</dimen>
-    <dimen name="category_arrow_size">22sp</dimen>
-
-    <!-- Channel/Movie Items -->
-    <dimen name="item_padding_h">25dp</dimen>
-    <dimen name="item_padding_v">22dp</dimen>
+    <dimen name="header_text_size">22sp</dimen>
     <dimen name="item_text_size">17sp</dimen>
-    <dimen name="item_fav_icon_size">22sp</dimen>
-
-    <!-- Search -->
-    <dimen name="search_text_size">16sp</dimen>
-    <dimen name="search_padding_h">8dp</dimen>
-    <dimen name="search_padding_v">4dp</dimen>
-
-    <!-- Login Dialog -->
-    <dimen name="dialog_title_size">22sp</dimen>
-    <dimen name="dialog_input_size">18sp</dimen>
-    <dimen name="dialog_input_padding">30dp</dimen>
-    <dimen name="dialog_label_size">16sp</dimen>
-
-    <!-- EPG -->
-    <dimen name="epg_item_padding">14dp</dimen>
-    <dimen name="epg_title_size">18sp</dimen>
-    <dimen name="epg_time_size">15sp</dimen>
 </resources>
