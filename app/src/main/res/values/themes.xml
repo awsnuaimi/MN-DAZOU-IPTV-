@@ -2,13 +2,11 @@
 
 <resources>
 
-    <style name="Theme.Dazou" parent="Theme.Material3.Dark.NoActionBar">
-
-        <item name="android:windowActionModeOverlay">true</item>
-
-        <item name="android:windowNoTitle">true</item>
+    <style name="Theme.Dazou" parent="Theme.AppCompat.NoActionBar">
 
         <item name="android:fontFamily">sans</item>
+
+        <item name="android:windowNoTitle">true</item>
 
         <item name="android:windowLightStatusBar">false</item>
 
@@ -16,7 +14,7 @@
 
         <item name="android:statusBarColor">@color/nav_background</item>
 
-        <item name="android:colorAccent">@color/accent</item>
+        <item name="colorAccent">@color/accent</item>
 
     </style>
 
