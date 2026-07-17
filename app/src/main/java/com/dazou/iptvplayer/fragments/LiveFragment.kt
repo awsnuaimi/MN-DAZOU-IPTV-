@@ -1,7 +1,6 @@
 package com.dazou.iptvplayer.fragments
 
 import android.os.Bundle
-import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -38,29 +37,7 @@ class LiveFragment : Fragment(), BackHandledFragment {
         _binding = FragmentLiveBinding.inflate(inflater, container, false)
         binding.rvLive.layoutManager = LinearLayoutManager(requireContext())
 
-        // زر الرجوع من القنوات إلى المجموعات
         binding.btnBackToCategories.setOnClickListener { showCategories() }
-
-        // دعم أسهم الريموت يمين/يسار للتنقل بين المجموعات والقنوات
-        binding.rvLive.setOnKeyListener { _, keyCode, event ->
-            if (event.action == KeyEvent.ACTION_DOWN) {
-                when (keyCode) {
-                    KeyEvent.KEYCODE_DPAD_LEFT -> {
-                        if (inChannelsMode) {
-                            showCategories()
-                            true
-                        } else false
-                    }
-                    KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                        if (!inChannelsMode) {
-                            binding.rvLive.focusedChild?.performClick()
-                            true
-                        } else false
-                    }
-                    else -> false
-                }
-            } else false
-        }
 
         viewModel.categories.observe(viewLifecycleOwner) { categories ->
             lastCategories = categories
@@ -109,7 +86,7 @@ class LiveFragment : Fragment(), BackHandledFragment {
         viewModel.loadChannels(category.categoryId)
     }
 
-    // يستدعى من MainActivity عند الضغط على زر الرجوع بالريموت
+    // يُستدعى مركزياً من MainActivity (dispatchKeyEvent) عند سهم اليسار أو زر الرجوع
     override fun onBackPressedInFragment(): Boolean {
         return if (inChannelsMode) {
             showCategories()
