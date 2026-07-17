@@ -2,7 +2,7 @@
 
 <resources>
 
-    <style name="Theme.Dazou" parent="Theme.AppCompat.NoActionBar">
+    <style name="Theme.MN_DAZOU" parent="Theme.AppCompat.NoActionBar">
 
         <item name="android:fontFamily">sans</item>
 
