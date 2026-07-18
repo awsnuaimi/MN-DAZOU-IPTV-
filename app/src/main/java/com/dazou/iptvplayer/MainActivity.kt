@@ -1,5 +1,10 @@
 package com.dazou.iptvplayer
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -69,6 +74,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
 
         startClock()
+        setupWifiStatus()
 
         setupPlayerErrorHandling()
         setupControls()
@@ -83,6 +89,40 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         } else {
             showLoginUi()
             loadFragment(LoginFragment())
+        }
+    }
+
+    private fun setupWifiStatus() {
+        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+        fun isConnected(): Boolean {
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val network = cm.activeNetwork ?: return false
+                val capabilities = cm.getNetworkCapabilities(network) ?: return false
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            } else {
+                @Suppress("DEPRECATION")
+                cm.activeNetworkInfo?.isConnected == true
+            }
+        }
+
+        fun updateIcon() {
+            val connected = isConnected()
+            binding.wifiIcon.setImageResource(if (connected) R.drawable.ic_wifi else R.drawable.ic_wifi_off)
+            binding.wifiIcon.alpha = if (connected) 1f else 0.5f
+        }
+
+        updateIcon()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            cm.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    runOnUiThread { updateIcon() }
+                }
+                override fun onLost(network: Network) {
+                    runOnUiThread { updateIcon() }
+                }
+            })
         }
     }
 
