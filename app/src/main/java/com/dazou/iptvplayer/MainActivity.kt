@@ -169,6 +169,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.menuEpg.setOnClickListener { loadFragment(EpgFragment()) }
         binding.settings.setOnClickListener { loadFragment(SettingsFragment()) }
         binding.account.setOnClickListener { loadFragment(AccountsFragment()) }
+        binding.sidebarLiveButton.setOnClickListener { loadFragment(LiveFragment()) }
     }
 
     private fun loadFragment(fragment: Fragment){
