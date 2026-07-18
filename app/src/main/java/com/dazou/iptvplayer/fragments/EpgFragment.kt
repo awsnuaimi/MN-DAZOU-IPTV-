@@ -61,7 +61,16 @@ class EpgFragment : Fragment() {
         liveViewModel.channels.observe(viewLifecycleOwner) { channels ->
             if (channels.isEmpty()) {
                 binding.epgGrid.removeAllViews()
-                binding.epgStatus.text = "لا توجد قنوات لعرضها"
+                val diag = buildString {
+                    append("لا توجد قنوات لعرضها\n")
+                    append("الرابط: ${XtreamAPI.lastRequestUrl}\n")
+                    if (XtreamAPI.lastErrorMessage.isNotEmpty()) {
+                        append("خطأ: ${XtreamAPI.lastErrorMessage}")
+                    } else {
+                        append("رد السيرفر: ${XtreamAPI.lastResponseBody}")
+                    }
+                }
+                binding.epgStatus.text = diag
                 return@observe
             }
             allChannels = channels
@@ -84,7 +93,19 @@ class EpgFragment : Fragment() {
     }
 
     private fun processNextInQueue() {
-        if (!isAdded || loadQueue.isEmpty()) return
+        if (!isAdded) return
+        if (loadQueue.isEmpty()) {
+            val diag = buildString {
+                append("انتهى تحميل الدليل. ")
+                if (XtreamAPI.lastEpgErrorMessage.isNotEmpty()) {
+                    append("آخر خطأ EPG: ${XtreamAPI.lastEpgErrorMessage}")
+                } else if (XtreamAPI.lastEpgResponseBody.isNotEmpty()) {
+                    append("آخر رد EPG: ${XtreamAPI.lastEpgResponseBody.take(150)}")
+                }
+            }
+            if (_binding != null) binding.epgStatus.text = diag
+            return
+        }
         val (channel, row, placeholder) = loadQueue.removeAt(0)
         val server = liveViewModel.getServer()
         if (server == null) {

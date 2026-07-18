@@ -131,15 +131,24 @@ object XtreamAPI {
         }
     }
 
+    var lastEpgRequestUrl: String = ""
+    var lastEpgResponseBody: String = ""
+    var lastEpgErrorMessage: String = ""
+
     fun getShortEpg(server: XtreamServer, streamId: Int, callback: (List<XtreamEpgProgram>) -> Unit) {
         thread {
             try {
                 val url = "${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_short_epg&stream_id=$streamId"
+                lastEpgRequestUrl = url
                 val json = fetchJson(url)
+                lastEpgResponseBody = json.take(500)
+                lastEpgErrorMessage = ""
                 val programs = parseEpg(json)
                 runOnUiThread { callback(programs) }
             } catch (e: Exception) {
                 Log.e(TAG, "epg error", e)
+                lastEpgErrorMessage = e.message ?: "خطأ غير معروف"
+                lastEpgResponseBody = ""
                 runOnUiThread { callback(emptyList()) }
             }
         }
