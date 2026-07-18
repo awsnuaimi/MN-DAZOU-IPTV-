@@ -29,6 +29,25 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         setupPlayerErrorHandling()
         setupControls()
         setupMenu()
+
+        val app = application as App
+        val hasAccount = app.container.accountManager.getActiveAccount() != null
+
+        if (hasAccount) {
+            binding.topBar.visibility = View.VISIBLE
+            binding.sidebar.visibility = View.VISIBLE
+            loadFragment(HomeFragment())
+            binding.menuHome.requestFocus()
+        } else {
+            binding.topBar.visibility = View.GONE
+            binding.sidebar.visibility = View.GONE
+            loadFragment(LoginFragment())
+        }
+    }
+
+    fun goToHome() {
+        binding.topBar.visibility = View.VISIBLE
+        binding.sidebar.visibility = View.VISIBLE
         loadFragment(HomeFragment())
         binding.menuHome.requestFocus()
     }
