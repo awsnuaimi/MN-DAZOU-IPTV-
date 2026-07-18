@@ -17,6 +17,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     lateinit var playerManager: PlayerManager
 
     private var fullscreen = false
+    private var currentChannelName = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,22 +35,35 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         val hasAccount = app.container.accountManager.getActiveAccount() != null
 
         if (hasAccount) {
-            binding.topBar.visibility = View.VISIBLE
-            binding.sidebar.visibility = View.VISIBLE
+            showMainUi()
             loadFragment(HomeFragment())
             binding.menuHome.requestFocus()
         } else {
-            binding.topBar.visibility = View.GONE
-            binding.sidebar.visibility = View.GONE
+            showLoginUi()
             loadFragment(LoginFragment())
         }
     }
 
     fun goToHome() {
-        binding.topBar.visibility = View.VISIBLE
-        binding.sidebar.visibility = View.VISIBLE
+        showMainUi()
         loadFragment(HomeFragment())
         binding.menuHome.requestFocus()
+    }
+
+    private fun showMainUi() {
+        binding.topBar.visibility = View.VISIBLE
+        binding.sidebar.visibility = View.VISIBLE
+        binding.videoPlayer.visibility = View.VISIBLE
+        binding.channelInfo.visibility = View.VISIBLE
+        binding.playerControls.visibility = View.VISIBLE
+    }
+
+    private fun showLoginUi() {
+        binding.topBar.visibility = View.GONE
+        binding.sidebar.visibility = View.GONE
+        binding.videoPlayer.visibility = View.GONE
+        binding.channelInfo.visibility = View.GONE
+        binding.playerControls.visibility = View.GONE
     }
 
     private fun setupPlayerErrorHandling() {
@@ -76,8 +90,9 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                 when (state) {
                     Player.STATE_BUFFERING -> binding.channelInfo.text = "⏳ جاري التحميل..."
                     Player.STATE_READY -> {
-                        if (binding.channelInfo.text.toString().startsWith("⏳") ||
-                            binding.channelInfo.text.toString().startsWith("⚠️")) {
+                        if (currentChannelName.isNotEmpty()) {
+                            binding.channelInfo.text = "📺 $currentChannelName"
+                        } else {
                             binding.channelInfo.text = ""
                         }
                     }
@@ -119,6 +134,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         if (fullscreen) {
             binding.topBar.visibility = View.GONE
             binding.sidebar.visibility = View.GONE
+            binding.fragmentContainer.visibility = View.GONE
 
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = (
@@ -129,6 +145,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         } else {
             binding.topBar.visibility = View.VISIBLE
             binding.sidebar.visibility = View.VISIBLE
+            binding.fragmentContainer.visibility = View.VISIBLE
 
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
@@ -161,10 +178,11 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     }
 
     override fun playStream(url:String, name:String, type:String){
+        currentChannelName = name
         playerManager.play(url, name, type)
         binding.channelInfo.text = "📺 $name"
         binding.btnPlayPause.setImageResource(R.drawable.ic_pause)
-        binding.videoPlayer.requestFocus()
+        binding.btnPlayPause.requestFocus()
     }
 
     override fun onNextChannel(){ }
