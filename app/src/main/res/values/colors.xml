@@ -9,6 +9,7 @@
     <color name="panel_darker">#120D17</color>
     <color name="bottom_bar">#120D17</color>
     <color name="accent">#7A1F3D</color>
+    <color name="accent_dark">#4A1226</color>
     <color name="accent_highlight">#7A1F3D</color>
     <color name="active_tab">#3A1220</color>
     <color name="text_white">#FFFFFF</color>
