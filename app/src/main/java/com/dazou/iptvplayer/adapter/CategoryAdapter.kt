@@ -4,7 +4,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.dazou.iptvplayer.R
 import com.dazou.iptvplayer.model.XtreamCategory
 
 class CategoryAdapter(
@@ -21,8 +23,13 @@ class CategoryAdapter(
             .inflate(android.R.layout.simple_list_item_1, parent, false)
 
         view.isFocusable = true
+        view.isFocusableInTouchMode = true
         view.isClickable = true
         view.setBackgroundResource(android.R.drawable.list_selector_background)
+
+        val textView = view.findViewById<TextView>(android.R.id.text1)
+        textView.setTextColor(ContextCompat.getColor(parent.context, R.color.text_white))
+        textView.setPadding(24, 24, 24, 24)
 
         return ViewHolder(view)
     }
