@@ -14,6 +14,7 @@ import com.dazou.iptvplayer.adapter.ChannelAdapter
 import com.dazou.iptvplayer.api.XtreamAPI
 import com.dazou.iptvplayer.databinding.ActivityMainBinding
 import com.dazou.iptvplayer.model.XtreamCategory
+import com.dazou.iptvplayer.model.XtreamChannel
 import com.dazou.iptvplayer.player.PlayerCallback
 import com.dazou.iptvplayer.player.PlayerManager
 import com.dazou.iptvplayer.viewmodel.LiveViewModel
@@ -28,8 +29,9 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     private var fullscreen = false
     private var currentChannelName = ""
-    private var inChannelsMode = false
     private var lastCategories: List<XtreamCategory> = emptyList()
+    private var currentChannelList: List<XtreamChannel> = emptyList()
+    private var currentChannelIndex: Int = -1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,31 +45,30 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         liveViewModel = ViewModelProvider(this, ViewModelFactory(app.container.currentRepository))
             .get(LiveViewModel::class.java)
 
+        binding.categoryList.layoutManager = LinearLayoutManager(this)
         binding.channelList.layoutManager = LinearLayoutManager(this)
 
         liveViewModel.categories.observe(this) { categories ->
             lastCategories = categories
-            if (!inChannelsMode) {
-                if (categories.isEmpty()) {
-                    Toast.makeText(this, "لا توجد مجموعات – تأكد من الحساب", Toast.LENGTH_LONG).show()
-                }
-                binding.channelList.adapter = CategoryAdapter(categories) { category -> openCategory(category) }
+            if (categories.isEmpty()) {
+                Toast.makeText(this, "لا توجد مجموعات – تأكد من الحساب", Toast.LENGTH_LONG).show()
             }
+            binding.categoryList.adapter = CategoryAdapter(categories) { category -> openCategory(category) }
         }
 
         liveViewModel.channels.observe(this) { channels ->
-            if (inChannelsMode) {
-                binding.channelList.adapter = ChannelAdapter(channels) { channel ->
-                    val server = liveViewModel.getServer()
-                    if (server == null) {
-                        Toast.makeText(this, "اختر حساب IPTV أولاً", Toast.LENGTH_SHORT).show()
-                        return@ChannelAdapter
-                    }
-                    val url = XtreamAPI.getStreamUrl(server, channel.streamId, channel.containerExtension, "live")
-                    playStream(url, channel.name, "live")
-                }
+            currentChannelList = channels
+            binding.channelList.adapter = ChannelAdapter(channels) { channel ->
+                val index = channels.indexOf(channel)
+                playChannelAt(index)
             }
         }
+
+        binding.channelsPanelBack.setOnClickListener {
+            hideChannelsPanel()
+        }
+
+        startClock()
 
         setupPlayerErrorHandling()
         setupControls()
@@ -85,18 +86,45 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
     }
 
+    private fun startClock() {
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        val updateTime = object : Runnable {
+            override fun run() {
+                val sdf = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                binding.clockText.text = sdf.format(java.util.Date())
+                handler.postDelayed(this, 30000)
+            }
+        }
+        handler.post(updateTime)
+    }
+
     private fun showCategories() {
-        inChannelsMode = false
-        if (lastCategories.isNotEmpty()) {
-            binding.channelList.adapter = CategoryAdapter(lastCategories) { category -> openCategory(category) }
-        } else {
+        if (lastCategories.isEmpty()) {
             liveViewModel.loadCategories()
         }
     }
 
     private fun openCategory(category: XtreamCategory) {
-        inChannelsMode = true
+        binding.channelsPanelTitle.text = category.categoryName
+        binding.channelsPanel.visibility = View.VISIBLE
         liveViewModel.loadChannels(category.categoryId)
+    }
+
+    private fun hideChannelsPanel() {
+        binding.channelsPanel.visibility = View.GONE
+    }
+
+    private fun playChannelAt(index: Int) {
+        if (index < 0 || index >= currentChannelList.size) return
+        val server = liveViewModel.getServer()
+        if (server == null) {
+            Toast.makeText(this, "اختر حساب IPTV أولاً", Toast.LENGTH_SHORT).show()
+            return
+        }
+        currentChannelIndex = index
+        val channel = currentChannelList[index]
+        val url = XtreamAPI.getStreamUrl(server, channel.streamId, channel.containerExtension, "live")
+        playStream(url, channel.name, "live")
     }
 
     fun goToHome() {
@@ -116,6 +144,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     private fun showLoginUi() {
         binding.topBar.visibility = View.GONE
         binding.sidebar.visibility = View.GONE
+        binding.channelsPanel.visibility = View.GONE
         binding.videoPlayer.visibility = View.GONE
         binding.channelInfo.visibility = View.GONE
         binding.playerControls.visibility = View.GONE
@@ -189,6 +218,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         if (fullscreen) {
             binding.topBar.visibility = View.GONE
             binding.sidebar.visibility = View.GONE
+            binding.channelsPanel.visibility = View.GONE
             binding.fragmentContainer.visibility = View.GONE
 
             @Suppress("DEPRECATION")
@@ -211,8 +241,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     override fun onBackPressed() {
         if (fullscreen) {
             toggleFullscreen()
-        } else if (inChannelsMode) {
-            showCategories()
+        } else if (binding.channelsPanel.visibility == View.VISIBLE) {
+            hideChannelsPanel()
         } else {
             super.onBackPressed()
         }
@@ -243,8 +273,17 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.btnPlayPause.requestFocus()
     }
 
-    override fun onNextChannel(){ }
-    override fun onPreviousChannel(){ }
+    override fun onNextChannel(){
+        if (currentChannelList.isEmpty()) return
+        val next = (currentChannelIndex + 1).coerceAtMost(currentChannelList.size - 1)
+        playChannelAt(next)
+    }
+
+    override fun onPreviousChannel(){
+        if (currentChannelList.isEmpty()) return
+        val prev = (currentChannelIndex - 1).coerceAtLeast(0)
+        playChannelAt(prev)
+    }
 
     override fun onDestroy(){
         playerManager.release()

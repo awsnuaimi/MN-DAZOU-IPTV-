@@ -21,27 +21,38 @@
             android:layout_height="match_parent"
             android:gravity="center_vertical"
             android:paddingHorizontal="24dp">
-            <TextView android:id="@+id/app_logo" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📺 DAZOU" android:textColor="@color/accent" android:textSize="26sp" android:textStyle="bold"/>
-            <Space android:layout_width="40dp" android:layout_height="1dp"/>
-            <TextView android:id="@+id/menu_home" style="@style/TvMenuItem" android:text="الرئيسية" android:nextFocusLeft="@id/menu_live" android:nextFocusDown="@id/btn_play_pause"/>
-            <TextView android:id="@+id/menu_live" style="@style/TvMenuItem" android:text="القنوات" android:nextFocusRight="@id/menu_home" android:nextFocusLeft="@id/menu_movies" android:nextFocusDown="@id/sidebar_live_button"/>
-            <TextView android:id="@+id/menu_movies" style="@style/TvMenuItem" android:text="أفلام" android:nextFocusRight="@id/menu_live" android:nextFocusLeft="@id/menu_series" android:nextFocusDown="@id/btn_play_pause"/>
-            <TextView android:id="@+id/menu_series" style="@style/TvMenuItem" android:text="مسلسلات" android:nextFocusRight="@id/menu_movies" android:nextFocusLeft="@id/menu_epg" android:nextFocusDown="@id/btn_play_pause"/>
-            <TextView android:id="@+id/menu_epg" style="@style/TvMenuItem" android:text="دليل البرامج" android:nextFocusRight="@id/menu_series" android:nextFocusLeft="@id/settings" android:nextFocusDown="@id/btn_play_pause"/>
+
+            <ImageView android:id="@+id/account" android:layout_width="32dp" android:layout_height="32dp" android:padding="4dp" android:src="@drawable/ic_account" android:tint="@color/text_white" android:background="@drawable/icon_focus_selector" android:focusable="true" android:focusableInTouchMode="true" android:clickable="true" android:nextFocusLeft="@id/settings" android:nextFocusDown="@id/btn_play_pause"/>
+
+            <TextView android:id="@+id/clock_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="18dp" android:text="00:00" android:textColor="@color/text_white" android:textSize="16sp"/>
+
+            <ImageView android:id="@+id/wifi_icon" android:layout_width="20dp" android:layout_height="20dp" android:layout_marginStart="18dp" android:src="@drawable/ic_wifi" android:tint="@color/text_white"/>
+
+            <ImageView android:id="@+id/settings" android:layout_width="28dp" android:layout_height="28dp" android:padding="4dp" android:layout_marginStart="18dp" android:src="@drawable/ic_settings" android:tint="@color/text_white" android:background="@drawable/icon_focus_selector" android:focusable="true" android:focusableInTouchMode="true" android:clickable="true" android:nextFocusRight="@id/account" android:nextFocusLeft="@id/search_icon" android:nextFocusDown="@id/btn_play_pause"/>
+
+            <ImageView android:id="@+id/search_icon" android:layout_width="26dp" android:layout_height="26dp" android:padding="4dp" android:layout_marginStart="18dp" android:src="@drawable/ic_search" android:tint="@color/text_white" android:background="@drawable/icon_focus_selector" android:focusable="true" android:focusableInTouchMode="true" android:clickable="true" android:nextFocusRight="@id/settings" android:nextFocusLeft="@id/menu_epg" android:nextFocusDown="@id/btn_play_pause"/>
+
             <Space android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1"/>
-            <ImageView android:id="@+id/settings" android:layout_width="32dp" android:layout_height="32dp" android:padding="4dp" android:src="@drawable/ic_settings" android:tint="@color/text_white" android:background="@drawable/icon_focus_selector" android:focusable="true" android:focusableInTouchMode="true" android:clickable="true" android:nextFocusRight="@id/menu_epg" android:nextFocusLeft="@id/account" android:nextFocusDown="@id/btn_play_pause"/>
-            <ImageView android:id="@+id/account" android:layout_width="32dp" android:layout_height="32dp" android:padding="4dp" android:layout_marginStart="20dp" android:src="@drawable/ic_account" android:tint="@color/text_white" android:background="@drawable/icon_focus_selector" android:focusable="true" android:focusableInTouchMode="true" android:clickable="true" android:nextFocusRight="@id/settings" android:nextFocusDown="@id/btn_play_pause"/>
+
+            <TextView android:id="@+id/menu_epg" style="@style/TvMenuItem" android:text="دليل البرامج" android:nextFocusRight="@id/search_icon" android:nextFocusLeft="@id/menu_series" android:nextFocusDown="@id/btn_play_pause"/>
+            <TextView android:id="@+id/menu_series" style="@style/TvMenuItem" android:text="مسلسلات" android:nextFocusRight="@id/menu_epg" android:nextFocusLeft="@id/menu_movies" android:nextFocusDown="@id/btn_play_pause"/>
+            <TextView android:id="@+id/menu_movies" style="@style/TvMenuItem" android:text="أفلام" android:nextFocusRight="@id/menu_series" android:nextFocusLeft="@id/menu_live" android:nextFocusDown="@id/btn_play_pause"/>
+            <TextView android:id="@+id/menu_live" style="@style/TvMenuItem" android:text="القنوات" android:nextFocusRight="@id/menu_movies" android:nextFocusLeft="@id/menu_home" android:nextFocusDown="@id/sidebar_live_button"/>
+            <TextView android:id="@+id/menu_home" style="@style/TvMenuItem" android:text="الرئيسية" android:nextFocusRight="@id/menu_live" android:nextFocusDown="@id/btn_play_pause"/>
+
+            <Space android:layout_width="32dp" android:layout_height="1dp"/>
+            <TextView android:id="@+id/app_logo" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📺 DAZOU" android:textColor="@color/accent" android:textSize="24sp" android:textStyle="bold"/>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
     <androidx.cardview.widget.CardView
         android:id="@+id/sidebar"
-        android:layout_width="280dp"
+        android:layout_width="260dp"
         android:layout_height="0dp"
         app:cardBackgroundColor="@color/nav_background"
         app:layout_constraintTop_toBottomOf="@id/top_bar"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
+        app:layout_constraintEnd_toEndOf="parent">
         <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="12dp">
             <TextView
                 android:id="@+id/sidebar_live_button"
@@ -49,7 +60,7 @@
                 android:layout_height="wrap_content"
                 android:text="☰ القنوات المباشرة"
                 android:textColor="@color/text_white"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:textStyle="bold"
                 android:padding="12dp"
                 android:background="@drawable/tv_button_selector"
@@ -57,8 +68,64 @@
                 android:focusableInTouchMode="true"
                 android:clickable="true"
                 android:nextFocusUp="@id/menu_live"
-                android:nextFocusRight="@id/btn_play_pause"
-                android:nextFocusDown="@id/channel_list"/>
+                android:nextFocusDown="@id/category_list"/>
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/category_list"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:padding="8dp"
+                android:descendantFocusability="afterDescendants"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:nextFocusUp="@id/sidebar_live_button"
+                android:nextFocusRight="@id/channel_list"/>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/channels_panel"
+        android:layout_width="300dp"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        app:cardBackgroundColor="@color/panel_dark"
+        app:layout_constraintTop_toBottomOf="@id/top_bar"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/sidebar">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="12dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="4dp">
+                <TextView
+                    android:id="@+id/channels_panel_back"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="→"
+                    android:textColor="@color/accent"
+                    android:textSize="20sp"
+                    android:padding="8dp"
+                    android:background="@drawable/icon_focus_selector"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:clickable="true"
+                    android:nextFocusLeft="@id/category_list"
+                    android:nextFocusRight="@id/btn_play_pause"
+                    android:nextFocusDown="@id/channel_list"/>
+                <TextView
+                    android:id="@+id/channels_panel_title"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text=""
+                    android:textColor="@color/text_white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:gravity="center"/>
+            </LinearLayout>
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/channel_list"
                 android:layout_width="match_parent"
@@ -69,8 +136,9 @@
                 android:descendantFocusability="afterDescendants"
                 android:focusable="true"
                 android:focusableInTouchMode="true"
-                android:nextFocusUp="@id/sidebar_live_button"
-                android:nextFocusLeft="@id/btn_play_pause"/>
+                android:nextFocusUp="@id/channels_panel_back"
+                android:nextFocusLeft="@id/category_list"
+                android:nextFocusRight="@id/btn_play_pause"/>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
@@ -79,8 +147,8 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:padding="12dp"
-        app:layout_constraintStart_toEndOf="@id/sidebar"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/channels_panel"
         app:layout_constraintTop_toBottomOf="@id/top_bar"
         app:layout_constraintBottom_toBottomOf="parent">
 
@@ -90,6 +158,7 @@
             android:layout_height="0dp"
             android:background="@android:color/black"
             app:use_controller="false"
+            app:resize_mode="fit"
             app:layout_constraintDimensionRatio="16:9"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -116,10 +185,10 @@
             android:padding="8dp"
             app:layout_constraintBottom_toBottomOf="@id/video_player"
             app:layout_constraintEnd_toEndOf="@id/video_player">
-            <ImageView android:id="@+id/btn_prev" android:layout_width="28dp" android:layout_height="28dp" android:padding="3dp" android:src="@android:drawable/ic_media_rew" android:tint="@color/text_white" android:background="@drawable/icon_focus_selector" android:focusable="true" android:focusableInTouchMode="true" android:clickable="true" android:nextFocusLeft="@id/btn_play_pause" android:nextFocusRight="@id/channel_list" android:nextFocusUp="@id/menu_home"/>
+            <ImageView android:id="@+id/btn_prev" android:layout_width="28dp" android:layout_height="28dp" android:padding="3dp" android:src="@android:drawable/ic_media_rew" android:tint="@color/text_white" android:background="@drawable/icon_focus_selector" android:focusable="true" android:focusableInTouchMode="true" android:clickable="true" android:nextFocusLeft="@id/btn_play_pause" android:nextFocusUp="@id/menu_home"/>
             <ImageView android:id="@+id/btn_play_pause" android:layout_width="28dp" android:layout_height="28dp" android:padding="3dp" android:src="@android:drawable/ic_media_play" android:tint="@color/text_white" android:background="@drawable/icon_focus_selector" android:layout_marginStart="12dp" android:focusable="true" android:focusableInTouchMode="true" android:clickable="true" android:nextFocusRight="@id/btn_prev" android:nextFocusLeft="@id/btn_next" android:nextFocusUp="@id/menu_home"/>
             <ImageView android:id="@+id/btn_next" android:layout_width="28dp" android:layout_height="28dp" android:padding="3dp" android:src="@android:drawable/ic_media_ff" android:tint="@color/text_white" android:background="@drawable/icon_focus_selector" android:layout_marginStart="12dp" android:focusable="true" android:focusableInTouchMode="true" android:clickable="true" android:nextFocusRight="@id/btn_play_pause" android:nextFocusLeft="@id/btn_fullscreen" android:nextFocusUp="@id/menu_home"/>
-            <ImageView android:id="@+id/btn_fullscreen" android:layout_width="28dp" android:layout_height="28dp" android:padding="3dp" android:src="@android:drawable/ic_menu_crop" android:tint="@color/text_white" android:background="@drawable/icon_focus_selector" android:layout_marginStart="12dp" android:focusable="true" android:focusableInTouchMode="true" android:clickable="true" android:nextFocusRight="@id/btn_next" android:nextFocusUp="@id/menu_home"/>
+            <ImageView android:id="@+id/btn_fullscreen" android:layout_width="28dp" android:layout_height="28dp" android:padding="3dp" android:src="@android:drawable/ic_menu_crop" android:tint="@color/text_white" android:background="@drawable/icon_focus_selector" android:layout_marginStart="12dp" android:focusable="true" android:focusableInTouchMode="true" android:clickable="true" android:nextFocusRight="@id/btn_next" android:nextFocusLeft="@id/channel_list" android:nextFocusUp="@id/menu_home"/>
         </LinearLayout>
 
         <FrameLayout
