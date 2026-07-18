@@ -139,6 +139,9 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     }
 
     private fun showCategories() {
+        binding.videoPlayer.visibility = View.VISIBLE
+        binding.channelInfo.visibility = View.VISIBLE
+        binding.playerControls.visibility = View.VISIBLE
         if (lastCategories.isEmpty()) {
             liveViewModel.loadCategories()
         }
@@ -300,6 +303,9 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     }
 
     private fun loadFragment(fragment: Fragment){
+        binding.videoPlayer.visibility = View.GONE
+        binding.channelInfo.visibility = View.GONE
+        binding.playerControls.visibility = View.GONE
         supportFragmentManager.beginTransaction()
             .replace(binding.fragmentContainer.id, fragment)
             .commit()
