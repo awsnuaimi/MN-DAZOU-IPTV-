@@ -101,6 +101,13 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
     }
 
+    fun playExternalMedia(url: String, name: String, type: String) {
+        binding.videoPlayer.visibility = View.VISIBLE
+        binding.channelInfo.visibility = View.VISIBLE
+        binding.playerControls.visibility = View.VISIBLE
+        playStream(url, name, type)
+    }
+
     fun playChannelFromExternal(channel: XtreamChannel, sourceList: List<XtreamChannel>) {
         currentChannelList = sourceList
         currentChannelIndex = sourceList.indexOf(channel)
