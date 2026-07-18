@@ -1,5 +1,6 @@
 package com.dazou.iptvplayer.fragments
 
+import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.TextUtils
@@ -36,6 +37,9 @@ class EpgFragment : Fragment() {
     private val dpPerMinute = 4
     private var windowStart = 0L
 
+    private var allChannels: List<XtreamChannel> = emptyList()
+    private var loadQueue: MutableList<Triple<XtreamChannel, LinearLayout, View>> = mutableListOf()
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -61,12 +65,38 @@ class EpgFragment : Fragment() {
                 binding.epgStatus.text = "لا توجد قنوات لعرضها"
                 return@observe
             }
+            allChannels = channels
             val limited = channels.take(25)
             binding.epgStatus.text = "عرض ${limited.size} من ${channels.size} قناة (أول 25 قناة حاليًا)"
-            limited.forEach { channel -> addChannelRow(channel) }
+
+            loadQueue.clear()
+            limited.forEach { channel ->
+                val (row, placeholder) = buildChannelRow(channel)
+                binding.epgGrid.addView(row)
+                loadQueue.add(Triple(channel, row, placeholder))
+            }
+            processNextInQueue()
         }
 
         liveViewModel.loadChannels(null)
+    }
+
+    private fun processNextInQueue() {
+        if (!isAdded || loadQueue.isEmpty()) return
+        val (channel, row, placeholder) = loadQueue.removeAt(0)
+        val server = liveViewModel.getServer()
+        if (server == null) {
+            processNextInQueue()
+            return
+        }
+        XtreamAPI.getShortEpg(server, channel.streamId) { programs ->
+            if (!isAdded) return@getShortEpg
+            if (placeholder.parent != null) {
+                row.removeView(placeholder)
+            }
+            renderPrograms(row, programs)
+            processNextInQueue()
+        }
     }
 
     private fun dp(value: Int): Int {
@@ -98,7 +128,7 @@ class EpgFragment : Fragment() {
         binding.epgGrid.addView(row)
     }
 
-    private fun addChannelRow(channel: XtreamChannel) {
+    private fun buildChannelRow(channel: XtreamChannel): Pair<LinearLayout, View> {
         val row = LinearLayout(requireContext())
         row.orientation = LinearLayout.HORIZONTAL
         val rowParams = LinearLayout.LayoutParams(
@@ -131,14 +161,7 @@ class EpgFragment : Fragment() {
         placeholder.layoutParams = LinearLayout.LayoutParams(dp(windowMinutes * dpPerMinute), dp(46))
         row.addView(placeholder)
 
-        binding.epgGrid.addView(row)
-
-        val server = liveViewModel.getServer() ?: return
-        XtreamAPI.getShortEpg(server, channel.streamId) { programs ->
-            if (!isAdded) return@getShortEpg
-            row.removeView(placeholder)
-            renderPrograms(row, programs)
-        }
+        return row to placeholder
     }
 
     private fun renderPrograms(row: LinearLayout, programs: List<XtreamEpgProgram>) {
@@ -168,6 +191,7 @@ class EpgFragment : Fragment() {
                 val gapMinutes = ((start - cursor) / 60).toInt()
                 if (gapMinutes > 0) {
                     val gap = View(requireContext())
+                    gap.setBackgroundColor(Color.parseColor("#151515"))
                     gap.layoutParams = LinearLayout.LayoutParams(dp(gapMinutes * dpPerMinute), dp(46))
                     row.addView(gap)
                 }
@@ -183,6 +207,8 @@ class EpgFragment : Fragment() {
             block.ellipsize = TextUtils.TruncateAt.END
             block.setPadding(dp(6), dp(4), dp(6), dp(4))
             block.gravity = Gravity.CENTER_VERTICAL
+            block.isFocusable = true
+            block.isFocusableInTouchMode = true
 
             val bg = GradientDrawable()
             bg.cornerRadius = dp(4).toFloat()
@@ -204,9 +230,7 @@ class EpgFragment : Fragment() {
     }
 
     private fun playChannel(channel: XtreamChannel) {
-        val server = liveViewModel.getServer() ?: return
-        val url = XtreamAPI.getStreamUrl(server, channel.streamId, channel.containerExtension, "live")
-        (activity as? MainActivity)?.playStream(url, channel.name, "live")
+        (activity as? MainActivity)?.playChannelFromExternal(channel, allChannels)
     }
 
     private fun formatTime(timestamp: Long): String {
@@ -216,6 +240,7 @@ class EpgFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        loadQueue.clear()
         _binding = null
     }
 }

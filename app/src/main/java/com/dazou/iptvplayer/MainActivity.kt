@@ -6,6 +6,8 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -37,6 +39,13 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     private var lastCategories: List<XtreamCategory> = emptyList()
     private var currentChannelList: List<XtreamChannel> = emptyList()
     private var currentChannelIndex: Int = -1
+    private var wasChannelsPanelOpenBeforeFullscreen = false
+
+    private val clockHandler = Handler(Looper.getMainLooper())
+    private lateinit var clockRunnable: Runnable
+
+    private lateinit var connectivityManager: ConnectivityManager
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -92,17 +101,25 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
     }
 
+    fun playChannelFromExternal(channel: XtreamChannel, sourceList: List<XtreamChannel>) {
+        currentChannelList = sourceList
+        currentChannelIndex = sourceList.indexOf(channel)
+        val server = liveViewModel.getServer() ?: return
+        val url = XtreamAPI.getStreamUrl(server, channel.streamId, channel.containerExtension, "live")
+        playStream(url, channel.name, "live")
+    }
+
     private fun setupWifiStatus() {
-        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
         fun isConnected(): Boolean {
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                val network = cm.activeNetwork ?: return false
-                val capabilities = cm.getNetworkCapabilities(network) ?: return false
+                val network = connectivityManager.activeNetwork ?: return false
+                val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
                 capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             } else {
                 @Suppress("DEPRECATION")
-                cm.activeNetworkInfo?.isConnected == true
+                connectivityManager.activeNetworkInfo?.isConnected == true
             }
         }
 
@@ -115,30 +132,40 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         updateIcon()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            cm.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
+            val callback = object : ConnectivityManager.NetworkCallback() {
                 override fun onAvailable(network: Network) {
                     runOnUiThread { updateIcon() }
                 }
                 override fun onLost(network: Network) {
                     runOnUiThread { updateIcon() }
                 }
-            })
+            }
+            networkCallback = callback
+            connectivityManager.registerDefaultNetworkCallback(callback)
         }
     }
 
     private fun startClock() {
-        val handler = android.os.Handler(android.os.Looper.getMainLooper())
-        val updateTime = object : Runnable {
+        clockRunnable = object : Runnable {
             override fun run() {
                 val sdf = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
                 binding.clockText.text = sdf.format(java.util.Date())
-                handler.postDelayed(this, 30000)
+                clockHandler.postDelayed(this, 30000)
             }
         }
-        handler.post(updateTime)
+        clockHandler.post(clockRunnable)
+    }
+
+    private fun clearContentFragment() {
+        supportFragmentManager.findFragmentById(binding.fragmentContainer.id)?.let {
+            supportFragmentManager.beginTransaction().remove(it).commitNowAllowingStateLoss()
+        }
+        binding.fragmentContainer.visibility = View.GONE
     }
 
     private fun showCategories() {
+        clearContentFragment()
+        binding.sidebar.visibility = View.VISIBLE
         binding.videoPlayer.visibility = View.VISIBLE
         binding.channelInfo.visibility = View.VISIBLE
         binding.playerControls.visibility = View.VISIBLE
@@ -259,6 +286,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         fullscreen = !fullscreen
 
         if (fullscreen) {
+            wasChannelsPanelOpenBeforeFullscreen = binding.channelsPanel.visibility == View.VISIBLE
+
             binding.topBar.visibility = View.GONE
             binding.sidebar.visibility = View.GONE
             binding.channelsPanel.visibility = View.GONE
@@ -273,7 +302,9 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         } else {
             binding.topBar.visibility = View.VISIBLE
             binding.sidebar.visibility = View.VISIBLE
-            binding.fragmentContainer.visibility = View.VISIBLE
+            if (wasChannelsPanelOpenBeforeFullscreen) {
+                binding.channelsPanel.visibility = View.VISIBLE
+            }
 
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
@@ -306,6 +337,9 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.videoPlayer.visibility = View.GONE
         binding.channelInfo.visibility = View.GONE
         binding.playerControls.visibility = View.GONE
+        binding.sidebar.visibility = View.GONE
+        binding.channelsPanel.visibility = View.GONE
+        binding.fragmentContainer.visibility = View.VISIBLE
         supportFragmentManager.beginTransaction()
             .replace(binding.fragmentContainer.id, fragment)
             .commit()
@@ -332,6 +366,10 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     }
 
     override fun onDestroy(){
+        clockHandler.removeCallbacks(clockRunnable)
+        networkCallback?.let {
+            try { connectivityManager.unregisterNetworkCallback(it) } catch (_: Exception) {}
+        }
         playerManager.release()
         super.onDestroy()
     }
