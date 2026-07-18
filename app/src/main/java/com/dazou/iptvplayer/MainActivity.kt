@@ -36,7 +36,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
         if (hasAccount) {
             showMainUi()
-            loadFragment(HomeFragment())
+            loadFragment(LiveFragment())
             binding.menuHome.requestFocus()
         } else {
             showLoginUi()
@@ -46,7 +46,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     fun goToHome() {
         showMainUi()
-        loadFragment(HomeFragment())
+        loadFragment(LiveFragment())
         binding.menuHome.requestFocus()
     }
 
