@@ -114,6 +114,41 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         val server = liveViewModel.getServer() ?: return
         val url = XtreamAPI.getStreamUrl(server, channel.streamId, channel.containerExtension, "live")
         playStream(url, channel.name, "live")
+        updateNowPlayingPanel(channel)
+    }
+
+    private fun updateNowPlayingPanel(channel: XtreamChannel) {
+        val server = liveViewModel.getServer() ?: return
+        binding.tvNowTitle.text = "⏳ جاري تحميل معلومات البرنامج..."
+        binding.tvNowTime.text = ""
+        binding.tvNextTitle.text = ""
+        binding.pbNowProgress.progress = 0
+
+        XtreamAPI.getShortEpg(server, channel.streamId) { programs ->
+            if (programs.isEmpty()) {
+                binding.tvNowTitle.text = "📺 ${channel.name}"
+                binding.tvNowTime.text = "لا توجد بيانات دليل برامج لهذه القناة"
+                binding.tvNextTitle.text = ""
+                binding.pbNowProgress.progress = 0
+                return@getShortEpg
+            }
+
+            val now = programs.firstOrNull { it.nowPlaying } ?: programs.first()
+            val nowIndex = programs.indexOf(now)
+            val next = programs.getOrNull(nowIndex + 1)
+
+            binding.tvNowTitle.text = "▶ الآن: ${now.title}"
+            binding.pbNowProgress.progress = now.progressPercent()
+            binding.tvNowTime.text = "${formatEpgTime(now.startTimestamp)} - ${formatEpgTime(now.stopTimestamp)}"
+            binding.tvNextTitle.text = if (next != null)
+                "⏭ التالي: ${next.title} (${formatEpgTime(next.startTimestamp)})"
+            else ""
+        }
+    }
+
+    private fun formatEpgTime(timestamp: Long): String {
+        val sdf = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+        return sdf.format(java.util.Date(timestamp * 1000))
     }
 
     private fun setupWifiStatus() {
@@ -179,6 +214,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.videoPlayer.visibility = View.VISIBLE
         binding.channelInfo.visibility = View.VISIBLE
         binding.playerControls.visibility = View.VISIBLE
+        binding.liveEpgPanel.visibility = View.VISIBLE
         if (lastCategories.isEmpty()) {
             liveViewModel.loadCategories()
         }
@@ -205,6 +241,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         val channel = currentChannelList[index]
         val url = XtreamAPI.getStreamUrl(server, channel.streamId, channel.containerExtension, "live")
         playStream(url, channel.name, "live")
+        updateNowPlayingPanel(channel)
     }
 
     fun goToHome() {
@@ -225,6 +262,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.topBar.visibility = View.GONE
         binding.sidebar.visibility = View.GONE
         binding.channelsPanel.visibility = View.GONE
+        binding.liveEpgPanel.visibility = View.GONE
         binding.videoPlayer.visibility = View.GONE
         binding.channelInfo.visibility = View.GONE
         binding.playerControls.visibility = View.GONE
@@ -301,6 +339,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             binding.topBar.visibility = View.GONE
             binding.sidebar.visibility = View.GONE
             binding.channelsPanel.visibility = View.GONE
+            binding.liveEpgPanel.visibility = View.GONE
             binding.fragmentContainer.visibility = View.GONE
 
             @Suppress("DEPRECATION")
@@ -317,6 +356,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             }
             if (supportFragmentManager.findFragmentById(binding.fragmentContainer.id) != null) {
                 binding.fragmentContainer.visibility = View.VISIBLE
+            } else {
+                binding.liveEpgPanel.visibility = View.VISIBLE
             }
 
             @Suppress("DEPRECATION")
@@ -352,6 +393,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.playerControls.visibility = View.GONE
         binding.sidebar.visibility = View.GONE
         binding.channelsPanel.visibility = View.GONE
+        binding.liveEpgPanel.visibility = View.GONE
         binding.fragmentContainer.visibility = View.VISIBLE
         supportFragmentManager.beginTransaction()
             .replace(binding.fragmentContainer.id, fragment)
