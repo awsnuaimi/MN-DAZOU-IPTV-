@@ -42,7 +42,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     private var wasChannelsPanelOpenBeforeFullscreen = false
 
     private val clockHandler = Handler(Looper.getMainLooper())
-    private lateinit var clockRunnable: Runnable
+    private var clockRunnable: Runnable? = null
 
     private lateinit var connectivityManager: ConnectivityManager
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
@@ -141,19 +141,22 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                 }
             }
             networkCallback = callback
-            connectivityManager.registerDefaultNetworkCallback(callback)
+            try {
+                connectivityManager.registerDefaultNetworkCallback(callback)
+            } catch (_: Exception) {}
         }
     }
 
     private fun startClock() {
-        clockRunnable = object : Runnable {
+        val runnable = object : Runnable {
             override fun run() {
                 val sdf = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
                 binding.clockText.text = sdf.format(java.util.Date())
                 clockHandler.postDelayed(this, 30000)
             }
         }
-        clockHandler.post(clockRunnable)
+        clockRunnable = runnable
+        clockHandler.post(runnable)
     }
 
     private fun clearContentFragment() {
@@ -305,6 +308,9 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             if (wasChannelsPanelOpenBeforeFullscreen) {
                 binding.channelsPanel.visibility = View.VISIBLE
             }
+            if (supportFragmentManager.findFragmentById(binding.fragmentContainer.id) != null) {
+                binding.fragmentContainer.visibility = View.VISIBLE
+            }
 
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
@@ -366,7 +372,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     }
 
     override fun onDestroy(){
-        clockHandler.removeCallbacks(clockRunnable)
+        clockRunnable?.let { clockHandler.removeCallbacks(it) }
         networkCallback?.let {
             try { connectivityManager.unregisterNetworkCallback(it) } catch (_: Exception) {}
         }

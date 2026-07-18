@@ -58,16 +58,18 @@ class EpgFragment : Fragment() {
         liveViewModel = ViewModelProvider(this, ViewModelFactory(app.container.currentRepository))
             .get(LiveViewModel::class.java)
 
-        addTimeRuler()
-
         liveViewModel.channels.observe(viewLifecycleOwner) { channels ->
             if (channels.isEmpty()) {
+                binding.epgGrid.removeAllViews()
                 binding.epgStatus.text = "لا توجد قنوات لعرضها"
                 return@observe
             }
             allChannels = channels
             val limited = channels.take(25)
             binding.epgStatus.text = "عرض ${limited.size} من ${channels.size} قناة (أول 25 قناة حاليًا)"
+
+            binding.epgGrid.removeAllViews()
+            addTimeRuler()
 
             loadQueue.clear()
             limited.forEach { channel ->
@@ -94,7 +96,7 @@ class EpgFragment : Fragment() {
             if (placeholder.parent != null) {
                 row.removeView(placeholder)
             }
-            renderPrograms(row, programs)
+            renderPrograms(row, programs, channel)
             processNextInQueue()
         }
     }
@@ -164,7 +166,7 @@ class EpgFragment : Fragment() {
         return row to placeholder
     }
 
-    private fun renderPrograms(row: LinearLayout, programs: List<XtreamEpgProgram>) {
+    private fun renderPrograms(row: LinearLayout, programs: List<XtreamEpgProgram>, channel: XtreamChannel) {
         val windowEnd = windowStart + (windowMinutes * 60)
         var cursor = windowStart
 
@@ -209,6 +211,8 @@ class EpgFragment : Fragment() {
             block.gravity = Gravity.CENTER_VERTICAL
             block.isFocusable = true
             block.isFocusableInTouchMode = true
+            block.isClickable = true
+            block.setOnClickListener { playChannel(channel) }
 
             val bg = GradientDrawable()
             bg.cornerRadius = dp(4).toFloat()
