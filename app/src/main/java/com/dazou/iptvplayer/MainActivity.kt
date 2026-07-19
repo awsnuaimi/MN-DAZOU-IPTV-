@@ -12,12 +12,14 @@ import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.bumptech.glide.Glide
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.media3.common.PlaybackException
@@ -130,6 +132,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
     }
 
+    // ===================== حفظ واسترجاع آخر مجموعة/قناة =====================
+
     private fun savePlaybackState(channel: XtreamChannel) {
         val prefs = getSharedPreferences("dazou_prefs", MODE_PRIVATE)
         prefs.edit()
@@ -233,16 +237,20 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         return if (h > 0) String.format("%d:%02d:%02d", h, m, s) else String.format("%02d:%02d", m, s)
     }
 
+    // ===================== شريط التحكم: إخفاء/إظهار تلقائي =====================
+
     private fun showControls() {
         binding.playerControls.visibility = View.VISIBLE
         controlsRunnable?.let { controlsHandler.removeCallbacks(it) }
         val runnable = Runnable {
             binding.playerControls.visibility = View.INVISIBLE
+            binding.channelStripScroll.visibility = View.GONE
         }
         controlsRunnable = runnable
         controlsHandler.postDelayed(runnable, 5000)
     }
 
+    /** يلتقط زر تبديل القناة الفعلي بالريموت (P+ / P-) بالإضافة لأي مفتاح آخر لإظهار شريط التحكم */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN && binding.videoPlayer.visibility == View.VISIBLE) {
             when (event.keyCode) {
@@ -254,11 +262,47 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                     onPreviousChannel()
                     return true
                 }
+                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                    if (isFocusInPlayerButtons() && binding.channelStripScroll.visibility != View.VISIBLE) {
+                        showChannelStrip()
+                        return true
+                    }
+                    showControls()
+                }
+                KeyEvent.KEYCODE_BACK -> {
+                    if (binding.channelStripScroll.visibility == View.VISIBLE) {
+                        hideChannelStrip()
+                        return true
+                    }
+                    showControls()
+                }
                 else -> showControls()
             }
         }
         return super.dispatchKeyEvent(event)
     }
+
+    private fun isFocusInPlayerButtons(): Boolean {
+        val f = currentFocus ?: return false
+        return f === binding.btnPrev || f === binding.btnPlayPause || f === binding.btnNext ||
+            f === binding.btnVolume || f === binding.btnFullscreen || f === binding.videoPlayer
+    }
+
+    private fun showChannelStrip() {
+        binding.channelStripScroll.visibility = View.VISIBLE
+        val cell = binding.channelStripTrack.findViewById<View>(
+            binding.channelStripTrack.getChildAt(currentChannelIndex.coerceIn(0, (binding.channelStripTrack.childCount - 1).coerceAtLeast(0)))?.id ?: View.NO_ID
+        )
+        cell?.requestFocus()
+        showControls()
+    }
+
+    private fun hideChannelStrip() {
+        binding.channelStripScroll.visibility = View.GONE
+        binding.btnPlayPause.requestFocus()
+    }
+
+    // ===================== شريط التقدم (للأفلام/المسلسلات) =====================
 
     private fun startSeekUpdater() {
         val runnable = object : Runnable {
@@ -284,8 +328,12 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.seekBar.visibility = if (isLive) View.GONE else View.VISIBLE
         binding.tvElapsed.visibility = if (isLive) View.GONE else View.VISIBLE
         binding.tvDuration.visibility = if (isLive) View.GONE else View.VISIBLE
-        binding.channelStripScroll.visibility = if (isLive) View.VISIBLE else View.GONE
+        if (!isLive) {
+            binding.channelStripScroll.visibility = View.GONE
+        }
     }
+
+    // ===================== شريط القنوات المجاورة داخل لوحة التحكم =====================
 
     private fun buildChannelStrip() {
         binding.channelStripTrack.removeAllViews()
@@ -301,7 +349,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             cell.id = View.generateViewId()
             cell.orientation = LinearLayout.VERTICAL
             cell.gravity = android.view.Gravity.CENTER
-            val lp = LinearLayout.LayoutParams(dp(64), dp(56))
+            val lp = LinearLayout.LayoutParams(dp(70), dp(76))
             lp.marginEnd = dp(6)
             cell.layoutParams = lp
             cell.setPadding(dp(4), dp(4), dp(4), dp(4))
@@ -311,6 +359,16 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             cell.isClickable = true
             cell.setOnClickListener { playChannelAt(index) }
 
+            val logo = ImageView(this)
+            val logoLp = LinearLayout.LayoutParams(dp(30), dp(30))
+            logo.layoutParams = logoLp
+            logo.scaleType = ImageView.ScaleType.CENTER_INSIDE
+            Glide.with(this)
+                .load(channel.streamIcon)
+                .placeholder(R.drawable.ic_live_tv)
+                .error(R.drawable.ic_live_tv)
+                .into(logo)
+
             val idText = TextView(this)
             idText.text = "${index + 1}"
             idText.textSize = 9f
@@ -319,12 +377,13 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
             val nameText = TextView(this)
             nameText.text = channel.name
-            nameText.textSize = 10f
+            nameText.textSize = 9.5f
             nameText.maxLines = 1
             nameText.ellipsize = android.text.TextUtils.TruncateAt.END
             nameText.gravity = android.view.Gravity.CENTER
             nameText.setTextColor(ContextCompat.getColor(this, R.color.text_white))
 
+            cell.addView(logo)
             cell.addView(idText)
             cell.addView(nameText)
 
@@ -339,18 +398,24 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             cells.add(cell)
         }
 
+        // ربط التنقل بالأسهم يمين/يسار بين خلايا الشريط (RTL: أول عنصر = أقصى اليمين)
         for (i in cells.indices) {
             if (i > 0) cells[i].nextFocusRightId = cells[i - 1].id
             if (i < cells.size - 1) cells[i].nextFocusLeftId = cells[i + 1].id
-            cells[i].nextFocusDownId = R.id.btn_play_pause
-            cells[i].nextFocusUpId = R.id.menu_home
+            cells[i].nextFocusUpId = R.id.btn_play_pause
         }
         if (currentChannelIndex in cells.indices) {
-            binding.btnPlayPause.nextFocusUpId = cells[currentChannelIndex].id
+            val currentCellId = cells[currentChannelIndex].id
+            binding.btnPrev.nextFocusDownId = currentCellId
+            binding.btnPlayPause.nextFocusDownId = currentCellId
+            binding.btnNext.nextFocusDownId = currentCellId
+            binding.btnVolume.nextFocusDownId = currentCellId
+            binding.btnFullscreen.nextFocusDownId = currentCellId
         }
 
+        // تمرير الشريط ليصبح المؤشر الحالي بالمنتصف تقريبًا
         binding.channelStripScroll.post {
-            val cellWidth = dp(70)
+            val cellWidth = dp(76)
             val scrollX = (currentChannelIndex * cellWidth) - (binding.channelStripScroll.width / 2) + (cellWidth / 2)
             binding.channelStripScroll.smoothScrollTo(scrollX.coerceAtLeast(0), 0)
         }
