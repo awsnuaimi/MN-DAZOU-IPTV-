@@ -1,13 +1,63 @@
 package com.dazou.iptvplayer.data
 
 import android.content.Context
+import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.dazou.iptvplayer.model.XtreamServer
 import org.json.JSONArray
 import org.json.JSONObject
 
 class AccountManager(private val context: Context) {
 
-    private val prefs = context.getSharedPreferences("iptv_accounts", Context.MODE_PRIVATE)
+    // ✅ تخزين مشفّر لبيانات الحسابات (يشمل كلمات السر) بدل SharedPreferences العادية
+    private val prefs: SharedPreferences by lazy {
+        try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+
+            EncryptedSharedPreferences.create(
+                context,
+                "iptv_accounts_secure",
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+        } catch (e: Exception) {
+            // احتياط: لو فشل إنشاء التخزين المشفّر لأي سبب (نادر)، نرجع لتخزين عادي
+            // بدل ما نكرش التطبيق بالكامل
+            context.getSharedPreferences("iptv_accounts", Context.MODE_PRIVATE)
+        }
+    }
+
+    init {
+        migrateFromLegacyPrefsIfNeeded()
+    }
+
+    /**
+     * لو كان عند المستخدم حسابات محفوظة من قبل بالتخزين القديم غير المشفّر،
+     * ننقلها تلقائيًا للتخزين المشفّر الجديد مرة وحدة، ثم نمسح النسخة القديمة.
+     */
+    private fun migrateFromLegacyPrefsIfNeeded() {
+        try {
+            val legacyPrefs = context.getSharedPreferences("iptv_accounts", Context.MODE_PRIVATE)
+            val legacyJson = legacyPrefs.getString("accounts", null)
+            val alreadyMigrated = prefs.contains("accounts")
+
+            if (!legacyJson.isNullOrEmpty() && !alreadyMigrated) {
+                prefs.edit()
+                    .putString("accounts", legacyJson)
+                    .putInt("active_account", legacyPrefs.getInt("active_account", -1))
+                    .apply()
+
+                // مسح النسخة القديمة غير المشفّرة بعد نقل البيانات بنجاح
+                legacyPrefs.edit().clear().apply()
+            }
+        } catch (_: Exception) {
+            // لو فشل النقل لأي سبب، نتجاهله بهدوء ونكمل بالتخزين الجديد فاضي
+        }
+    }
 
     fun saveAccount(server: XtreamServer) {
         val accounts = getAccounts().toMutableList()
@@ -56,10 +106,6 @@ class AccountManager(private val context: Context) {
         return if (position >= 0 && position < accounts.size) accounts[position] else null
     }
 
-    /**
-     * يحذف الحساب في الموقع المحدد، ويصحح تلقائيًا فهرس "الحساب النشط"
-     * حتى لا يتحول الحساب النشط لحساب آخر بالخطأ بعد الحذف.
-     */
     fun deleteAccount(position: Int) {
         val accounts = getAccounts().toMutableList()
         if (position < 0 || position >= accounts.size) return
@@ -70,7 +116,7 @@ class AccountManager(private val context: Context) {
         val activeIndex = prefs.getInt("active_account", -1)
         val newActiveIndex = when {
             activeIndex == -1 -> -1
-            position == activeIndex -> -1   // الحساب المحذوف كان هو النشط
+            position == activeIndex -> -1
             position < activeIndex -> activeIndex - 1
             else -> activeIndex
         }
