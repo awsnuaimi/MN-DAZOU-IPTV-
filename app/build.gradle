@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace 'com.dazou.iptvplayer'
-    compileSdk 34
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.dazou.iptvplayer"
         minSdk 23
-        targetSdk 34
+        targetSdk 36
         versionCode (System.getenv("GITHUB_RUN_NUMBER")?.toInteger() ?: 1)
         versionName "1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
     }
