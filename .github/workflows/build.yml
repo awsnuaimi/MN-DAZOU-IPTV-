@@ -15,6 +15,9 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Grant execute permission for gradlew
+      run: chmod +x ./gradlew
+
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
@@ -32,13 +35,13 @@ jobs:
       run: |
         echo "$KEYSTORE_BASE64" | base64 -d > app/dazou-release-key.jks
 
-    - name: Verify Keystore exists
+    - name: Verify Keystore
       run: |
         if [ -s app/dazou-release-key.jks ]; then
-          echo "✅ Keystore file exists:"
+          echo "✅ Keystore file ready"
           ls -la app/dazou-release-key.jks
         else
-          echo "❌ Keystore file not found or empty"
+          echo "❌ Keystore file missing or empty"
           exit 1
         fi
 
@@ -60,8 +63,8 @@ jobs:
         KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       run: ./gradlew assembleRelease
 
-    - name: Upload Release APK (if built)
-      if: always()
+    - name: Upload Release APK
+      if: success() || failure()
       continue-on-error: true
       uses: actions/upload-artifact@v4
       with:
