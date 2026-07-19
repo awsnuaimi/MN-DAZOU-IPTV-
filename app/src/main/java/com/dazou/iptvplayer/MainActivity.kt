@@ -8,10 +8,16 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.KeyEvent
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
+import android.widget.LinearLayout
 import android.widget.SeekBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.media3.common.PlaybackException
@@ -95,6 +101,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                 pendingAutoPlayChannelId = null
                 val index = channels.indexOfFirst { it.streamId == pendingId }
                 if (index >= 0) playChannelAt(index)
+            } else {
+                buildChannelStrip()
             }
         }
 
@@ -171,6 +179,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         val url = XtreamAPI.getStreamUrl(server, channel.streamId, channel.containerExtension, "live")
         playStream(url, channel.name, "live")
         updateNowPlayingPanel(channel)
+        buildChannelStrip()
     }
 
     private fun updateNowPlayingPanel(channel: XtreamChannel) {
@@ -179,6 +188,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.tvNowTime.text = ""
         binding.tvNextTitle.text = ""
         binding.pbNowProgress.progress = 0
+        binding.tvControlsNow.text = "⏳ جاري تحميل معلومات البرنامج..."
+        binding.pbControlsProgress.visibility = View.GONE
 
         XtreamAPI.getShortEpg(server, channel.streamId) { programs ->
             if (programs.isEmpty()) {
@@ -186,6 +197,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                 binding.tvNowTime.text = "لا توجد بيانات دليل برامج لهذه القناة"
                 binding.tvNextTitle.text = ""
                 binding.pbNowProgress.progress = 0
+                binding.tvControlsNow.text = "📺 ${channel.name}"
+                binding.pbControlsProgress.visibility = View.GONE
                 return@getShortEpg
             }
 
@@ -199,6 +212,10 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             binding.tvNextTitle.text = if (next != null)
                 "⏭ التالي: ${next.title} (${formatEpgTime(next.startTimestamp)})"
             else ""
+
+            binding.tvControlsNow.text = "${channel.name}  •  ${now.title}"
+            binding.pbControlsProgress.visibility = View.VISIBLE
+            binding.pbControlsProgress.progress = now.progressPercent()
         }
     }
 
@@ -220,14 +237,27 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.playerControls.visibility = View.VISIBLE
         controlsRunnable?.let { controlsHandler.removeCallbacks(it) }
         val runnable = Runnable {
-            if (!binding.playerControls.hasFocus()) {
-                binding.playerControls.visibility = View.INVISIBLE
-            } else {
-                showControls()
-            }
+            binding.playerControls.visibility = View.INVISIBLE
         }
         controlsRunnable = runnable
-        controlsHandler.postDelayed(runnable, 4500)
+        controlsHandler.postDelayed(runnable, 5000)
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN && binding.videoPlayer.visibility == View.VISIBLE) {
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_CHANNEL_UP -> {
+                    onNextChannel()
+                    return true
+                }
+                KeyEvent.KEYCODE_CHANNEL_DOWN -> {
+                    onPreviousChannel()
+                    return true
+                }
+                else -> showControls()
+            }
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     private fun startSeekUpdater() {
@@ -254,6 +284,76 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.seekBar.visibility = if (isLive) View.GONE else View.VISIBLE
         binding.tvElapsed.visibility = if (isLive) View.GONE else View.VISIBLE
         binding.tvDuration.visibility = if (isLive) View.GONE else View.VISIBLE
+        binding.channelStripScroll.visibility = if (isLive) View.VISIBLE else View.GONE
+    }
+
+    private fun buildChannelStrip() {
+        binding.channelStripTrack.removeAllViews()
+        if (currentChannelList.isEmpty()) return
+
+        val density = resources.displayMetrics.density
+        fun dp(v: Int) = (v * density).toInt()
+
+        val cells = mutableListOf<LinearLayout>()
+
+        currentChannelList.forEachIndexed { index, channel ->
+            val cell = LinearLayout(this)
+            cell.id = View.generateViewId()
+            cell.orientation = LinearLayout.VERTICAL
+            cell.gravity = android.view.Gravity.CENTER
+            val lp = LinearLayout.LayoutParams(dp(64), dp(56))
+            lp.marginEnd = dp(6)
+            cell.layoutParams = lp
+            cell.setPadding(dp(4), dp(4), dp(4), dp(4))
+            cell.setBackgroundResource(R.drawable.tv_button_selector)
+            cell.isFocusable = true
+            cell.isFocusableInTouchMode = true
+            cell.isClickable = true
+            cell.setOnClickListener { playChannelAt(index) }
+
+            val idText = TextView(this)
+            idText.text = "${index + 1}"
+            idText.textSize = 9f
+            idText.setTextColor(ContextCompat.getColor(this, R.color.text_gray))
+            idText.gravity = android.view.Gravity.CENTER
+
+            val nameText = TextView(this)
+            nameText.text = channel.name
+            nameText.textSize = 10f
+            nameText.maxLines = 1
+            nameText.ellipsize = android.text.TextUtils.TruncateAt.END
+            nameText.gravity = android.view.Gravity.CENTER
+            nameText.setTextColor(ContextCompat.getColor(this, R.color.text_white))
+
+            cell.addView(idText)
+            cell.addView(nameText)
+
+            if (index == currentChannelIndex) {
+                cell.background = android.graphics.drawable.GradientDrawable().apply {
+                    cornerRadius = dp(6).toFloat()
+                    setColor(ContextCompat.getColor(this@MainActivity, R.color.accent))
+                }
+            }
+
+            binding.channelStripTrack.addView(cell)
+            cells.add(cell)
+        }
+
+        for (i in cells.indices) {
+            if (i > 0) cells[i].nextFocusRightId = cells[i - 1].id
+            if (i < cells.size - 1) cells[i].nextFocusLeftId = cells[i + 1].id
+            cells[i].nextFocusDownId = R.id.btn_play_pause
+            cells[i].nextFocusUpId = R.id.menu_home
+        }
+        if (currentChannelIndex in cells.indices) {
+            binding.btnPlayPause.nextFocusUpId = cells[currentChannelIndex].id
+        }
+
+        binding.channelStripScroll.post {
+            val cellWidth = dp(70)
+            val scrollX = (currentChannelIndex * cellWidth) - (binding.channelStripScroll.width / 2) + (cellWidth / 2)
+            binding.channelStripScroll.smoothScrollTo(scrollX.coerceAtLeast(0), 0)
+        }
     }
 
     private fun setupWifiStatus() {
@@ -350,6 +450,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         playStream(url, channel.name, "live")
         updateNowPlayingPanel(channel)
         savePlaybackState(channel)
+        buildChannelStrip()
     }
 
     fun goToHome() {

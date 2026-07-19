@@ -195,17 +195,53 @@
             android:orientation="vertical"
             android:background="@drawable/player_controls_gradient"
             android:paddingHorizontal="18dp"
-            android:paddingTop="26dp"
+            android:paddingTop="14dp"
             android:paddingBottom="12dp"
             app:layout_constraintStart_toStartOf="@id/video_player"
             app:layout_constraintEnd_toEndOf="@id/video_player"
             app:layout_constraintBottom_toBottomOf="@id/video_player">
+
+            <HorizontalScrollView
+                android:id="@+id/channelStripScroll"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none"
+                android:layout_marginBottom="10dp">
+                <LinearLayout
+                    android:id="@+id/channelStripTrack"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"/>
+            </HorizontalScrollView>
+
+            <TextView
+                android:id="@+id/tvControlsNow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="@color/text_white"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end"/>
+
+            <ProgressBar
+                android:id="@+id/pbControlsProgress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_marginTop="6dp"
+                android:max="100"
+                android:progress="0"
+                android:progressTint="@color/accent"
+                android:visibility="gone"/>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
+                android:layout_marginTop="10dp"
                 android:layout_marginBottom="6dp">
 
                 <TextView
