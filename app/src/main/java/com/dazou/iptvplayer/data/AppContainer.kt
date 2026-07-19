@@ -5,6 +5,7 @@ import com.dazou.iptvplayer.api.XtreamAPI
 
 class AppContainer(application: Application) {
     val accountManager = AccountManager(application)
+    val favoritesManager = FavoritesManager(application)
 
     // خاصية ذكية تعيد Repository مرتبطاً بالحساب النشط، أو null
     val currentRepository: XtreamRepository?

@@ -10,13 +10,29 @@
     android:clickable="true"
     android:background="@drawable/tv_button_selector">
 
-    <ImageView
-        android:id="@+id/ivSeriesPoster"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="160dp"
-        android:scaleType="centerCrop"
-        android:background="@color/panel_darker"
-        tools:src="@android:color/darker_gray"/>
+        android:layout_height="160dp">
+
+        <ImageView
+            android:id="@+id/ivSeriesPoster"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:background="@color/panel_darker"
+            tools:src="@android:color/darker_gray"/>
+
+        <ImageView
+            android:id="@+id/ivFavoriteBadge"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="4dp"
+            android:src="@drawable/ic_favorite"
+            android:visibility="gone"
+            tools:visibility="visible"/>
+
+    </FrameLayout>
 
     <TextView
         android:id="@+id/tvSeriesName"

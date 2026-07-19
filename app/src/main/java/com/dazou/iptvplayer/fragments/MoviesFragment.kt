@@ -67,17 +67,14 @@ class MoviesFragment : Fragment() {
                 "لا توجد أفلام بهذه المجموعة"
             else
                 "${movies.size} فيلم"
-            binding.rvMovies.adapter = MovieAdapter(movies) { movie -> playMovie(movie) }
+            binding.rvMovies.adapter = MovieAdapter(movies, app.container.favoritesManager) { movie ->
+                playMovie(movie)
+            }
         }
 
         moviesViewModel.loadCategories()
     }
 
-    /**
-     * يطلب الفوكس بشكل مضمون التوقيت: لو الشاشة خلصت ترتيبها (layout) فعليًا يطلب الفوكس فورًا،
-     * وإلا ينتظر حدث اكتمال الترتيب بالضبط قبل ما يطلبه — عشان يتجنب فشل requestFocus() الصامت
-     * لما يُستدعى قبل ما تصير للـ View أبعاد فعلية على الشاشة.
-     */
     private fun requestFocusWhenReady(view: View) {
         if (view.isLaidOut && view.width > 0 && view.height > 0) {
             view.requestFocus()

@@ -7,5 +7,11 @@ data class XtreamMovie(val streamId: Int, val name: String, val containerExtensi
 data class XtreamSeries(val seriesId: Int, val name: String, val cover: String, val plot: String, val cast: String, val director: String, val genre: String, val rating: String, val year: String)
 data class XtreamEpisode(val id: Int, val episodeNum: Int, val seasonNum: Int, val title: String, val containerExtension: String, val info: String)
 data class EpgProgram(val channelId: String, val title: String, val startTime: String, val endTime: String, val description: String)
-data class FavoriteItem(val type: String, val id: Int, val name: String)
+data class FavoriteItem(
+    val type: String,
+    val id: Int,
+    val name: String,
+    val icon: String = "",
+    val containerExtension: String = "ts"
+)
 data class HistoryItem(val type: String, val id: Int, val name: String, val timestamp: Long)

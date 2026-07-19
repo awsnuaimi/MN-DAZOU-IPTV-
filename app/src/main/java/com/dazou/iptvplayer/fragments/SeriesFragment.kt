@@ -69,7 +69,9 @@ class SeriesFragment : Fragment() {
                 "لا توجد مسلسلات بهذه المجموعة"
             else
                 "${list.size} مسلسل"
-            binding.rvSeries.adapter = SeriesAdapter(list) { series -> onSeriesClicked(series) }
+            binding.rvSeries.adapter = SeriesAdapter(list, app.container.favoritesManager) { series ->
+                onSeriesClicked(series)
+            }
         }
 
         seriesViewModel.episodes.observe(viewLifecycleOwner) { episodes ->
