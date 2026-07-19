@@ -152,4 +152,4 @@ class SeriesFragment : Fragment() {
         super.onDestroyView()
         _binding = null
     }
-}(activity as? MainActivity)?.playExternalMedia(url, episode.title, "series")
+}
