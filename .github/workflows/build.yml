@@ -46,7 +46,12 @@ jobs:
         fi
 
     - name: Build Debug APK
-      run: ./gradlew assembleDebug
+      run: ./gradlew assembleDebug --stacktrace
+
+    - name: List actual build outputs (debug)
+      run: |
+        echo "===== محتوى مجلد app/build/outputs بالكامل ====="
+        find app/build/outputs -type f 2>&1 || echo "المجلد app/build/outputs غير موجود إطلاقًا"
 
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
@@ -61,7 +66,7 @@ jobs:
         KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      run: ./gradlew assembleRelease
+      run: ./gradlew assembleRelease --stacktrace
 
     - name: Upload Release APK
       if: success() || failure()
