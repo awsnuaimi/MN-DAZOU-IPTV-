@@ -36,6 +36,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     private var fullscreen = false
     private var currentChannelName = ""
+    private var wasPlayingBeforeBackground = false
     private var lastCategories: List<XtreamCategory> = emptyList()
     private var currentChannelList: List<XtreamChannel> = emptyList()
     private var currentChannelIndex: Int = -1
@@ -272,11 +273,19 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         playerManager.player.addListener(object : Player.Listener {
 
             override fun onPlayerError(error: PlaybackException) {
+                val isNetworkError = error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
+                    error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT ||
+                    error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS
+
+                if (isNetworkError) {
+                    binding.channelInfo.text = "⚠️ انقطع الاتصال، جاري إعادة المحاولة..."
+                    playerManager.retryCurrent {
+                        binding.channelInfo.text = "⚠️ تعذر الاتصال بالقناة بعد عدة محاولات"
+                    }
+                    return
+                }
+
                 val message = when (error.errorCode) {
-                    PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
-                    PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT ->
-                        "لا يوجد اتصال بالإنترنت"
-                    PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS,
                     PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND ->
                         "رابط القناة غير متاح حاليًا"
                     PlaybackException.ERROR_CODE_DECODING_FAILED,
@@ -292,6 +301,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                 when (state) {
                     Player.STATE_BUFFERING -> binding.channelInfo.text = "⏳ جاري التحميل..."
                     Player.STATE_READY -> {
+                        playerManager.resetRetry()
                         if (currentChannelName.isNotEmpty()) {
                             binding.channelInfo.text = "📺 $currentChannelName"
                         } else {
@@ -418,6 +428,22 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         if (currentChannelList.isEmpty()) return
         val prev = (currentChannelIndex - 1).coerceAtLeast(0)
         playChannelAt(prev)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        wasPlayingBeforeBackground = playerManager.isPlaying
+        if (playerManager.isPlaying) {
+            playerManager.pause()
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (wasPlayingBeforeBackground) {
+            playerManager.resume()
+            wasPlayingBeforeBackground = false
+        }
     }
 
     override fun onDestroy(){
