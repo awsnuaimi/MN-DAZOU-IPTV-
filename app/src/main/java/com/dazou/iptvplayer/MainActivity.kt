@@ -1,26 +1,17 @@
 package com.dazou.iptvplayer
 
-import android.content.Context
-import android.net.ConnectivityManager
-import android.net.Network
-import android.net.NetworkCapabilities
+import android.app.PictureInPictureParams
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Rational
 import android.view.KeyEvent
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.SeekBar
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.content.ContextCompat
-import com.bumptech.glide.Glide
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.media3.common.PlaybackException
@@ -30,32 +21,32 @@ import com.dazou.iptvplayer.adapter.CategoryAdapter
 import com.dazou.iptvplayer.adapter.ChannelAdapter
 import com.dazou.iptvplayer.api.XtreamAPI
 import com.dazou.iptvplayer.databinding.ActivityMainBinding
+import com.dazou.iptvplayer.fragments.*
 import com.dazou.iptvplayer.model.XtreamCategory
 import com.dazou.iptvplayer.model.XtreamChannel
-import android.app.PictureInPictureParams
-import android.content.res.Configuration
-import android.util.Rational
 import com.dazou.iptvplayer.player.PlayerCallback
+import com.dazou.iptvplayer.player.PlayerControlsController
 import com.dazou.iptvplayer.player.PlayerManager
+import com.dazou.iptvplayer.utils.CategoryGrouper
+import com.dazou.iptvplayer.utils.NetworkMonitor
 import com.dazou.iptvplayer.viewmodel.LiveViewModel
 import com.dazou.iptvplayer.viewmodel.ViewModelFactory
-import com.dazou.iptvplayer.fragments.*
 
 class MainActivity : AppCompatActivity(), PlayerCallback {
 
     private lateinit var binding: ActivityMainBinding
     lateinit var playerManager: PlayerManager
     private lateinit var liveViewModel: LiveViewModel
+    private lateinit var controlsController: PlayerControlsController
+    private lateinit var networkMonitor: NetworkMonitor
 
     private var fullscreen = false
     private var currentChannelName = ""
-    private var currentType = "live"
     private var wasPlayingBeforeBackground = false
     private var lastCategories: List<XtreamCategory> = emptyList()
     private var currentChannelList: List<XtreamChannel> = emptyList()
     private var currentChannelIndex: Int = -1
     private var wasChannelsPanelOpenBeforeFullscreen = false
-    private var isMuted = false
     private var currentCategoryId: String? = null
     private var currentCategoryName: String = ""
     private var pendingAutoPlayChannelId: Int? = null
@@ -65,16 +56,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     private val clockHandler = Handler(Looper.getMainLooper())
     private var clockRunnable: Runnable? = null
 
-    private val controlsHandler = Handler(Looper.getMainLooper())
-    private var controlsRunnable: Runnable? = null
-
-    private val seekHandler = Handler(Looper.getMainLooper())
-    private var seekRunnable: Runnable? = null
-    private var userSeeking = false
-
-    private lateinit var connectivityManager: ConnectivityManager
-    private var networkCallback: ConnectivityManager.NetworkCallback? = null
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -82,6 +63,16 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
         playerManager = PlayerManager(this)
         binding.videoPlayer.player = playerManager.player
+
+        controlsController = PlayerControlsController(this, binding, playerManager) { index ->
+            playChannelAt(index)
+        }
+        controlsController.setup(
+            onPrev = { onPreviousChannel() },
+            onNext = { onNextChannel() },
+            onFullscreenToggle = { toggleFullscreen() },
+            onPip = { enterPipMode() }
+        )
 
         val app = application as App
         liveViewModel = ViewModelProvider(this, ViewModelFactory(app.container.currentRepository))
@@ -95,7 +86,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             if (categories.isEmpty()) {
                 Toast.makeText(this, "لا توجد مجموعات – تأكد من الحساب", Toast.LENGTH_LONG).show()
             }
-            val displayCategories = buildDisplayCategories(categories)
+            val displayCategories = CategoryGrouper.buildDisplayCategories(categories, categoryGroupMap)
             binding.categoryList.adapter = CategoryAdapter(displayCategories) { category -> openCategory(category) }
 
             val code = pendingGroupCode
@@ -117,11 +108,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         startClock()
         setupWifiStatus()
         setupThemeToggle()
-
         setupPlayerErrorHandling()
-        setupControls()
         setupMenu()
-        startSeekUpdater()
 
         val hasAccount = app.container.accountManager.getActiveAccount() != null
 
@@ -189,7 +177,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         val url = XtreamAPI.getStreamUrl(server, channel.streamId, channel.containerExtension, "live")
         playStream(url, channel.name, "live")
         updateNowPlayingPanel(channel)
-        buildChannelStrip()
+        controlsController.onChannelListChanged(currentChannelList, currentChannelIndex)
     }
 
     private fun updateNowPlayingPanel(channel: XtreamChannel) {
@@ -234,26 +222,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         return sdf.format(java.util.Date(timestamp * 1000))
     }
 
-    private fun formatDuration(ms: Long): String {
-        if (ms < 0) return "00:00"
-        val totalSec = ms / 1000
-        val h = totalSec / 3600
-        val m = (totalSec % 3600) / 60
-        val s = totalSec % 60
-        return if (h > 0) String.format("%d:%02d:%02d", h, m, s) else String.format("%02d:%02d", m, s)
-    }
-
-    private fun showControls() {
-        binding.playerControls.visibility = View.VISIBLE
-        controlsRunnable?.let { controlsHandler.removeCallbacks(it) }
-        val runnable = Runnable {
-            binding.playerControls.visibility = View.INVISIBLE
-            binding.channelStripScroll.visibility = View.GONE
-        }
-        controlsRunnable = runnable
-        controlsHandler.postDelayed(runnable, 5000)
-    }
-
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN && binding.videoPlayer.visibility == View.VISIBLE) {
             when (event.keyCode) {
@@ -265,265 +233,12 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                     onPreviousChannel()
                     return true
                 }
-                KeyEvent.KEYCODE_DPAD_DOWN -> {
-                    if (isFocusInPlayerButtons() && binding.channelStripScroll.visibility != View.VISIBLE) {
-                        showChannelStrip()
-                        return true
-                    }
-                    showControls()
+                else -> {
+                    if (controlsController.handleControlKeyEvent(event)) return true
                 }
-                KeyEvent.KEYCODE_BACK -> {
-                    if (binding.channelStripScroll.visibility == View.VISIBLE) {
-                        hideChannelStrip()
-                        return true
-                    }
-                    showControls()
-                }
-                else -> showControls()
             }
         }
         return super.dispatchKeyEvent(event)
-    }
-
-    private fun isFocusInPlayerButtons(): Boolean {
-        val f = currentFocus ?: return false
-        return f === binding.btnPrev || f === binding.btnPlayPause || f === binding.btnNext ||
-            f === binding.btnVolume || f === binding.btnFullscreen || f === binding.videoPlayer
-    }
-
-    private fun showChannelStrip() {
-        binding.channelStripScroll.visibility = View.VISIBLE
-        val cell = binding.channelStripTrack.findViewById<View>(
-            binding.channelStripTrack.getChildAt(currentChannelIndex.coerceIn(0, (binding.channelStripTrack.childCount - 1).coerceAtLeast(0)))?.id ?: View.NO_ID
-        )
-        cell?.requestFocus()
-        showControls()
-    }
-
-    private fun hideChannelStrip() {
-        binding.channelStripScroll.visibility = View.GONE
-        binding.btnPlayPause.requestFocus()
-    }
-
-    private fun startSeekUpdater() {
-        val runnable = object : Runnable {
-            override fun run() {
-                if (currentType != "live" && !userSeeking && playerManager.player.duration > 0) {
-                    val pos = playerManager.player.currentPosition
-                    val dur = playerManager.player.duration
-                    val progress = ((pos.toFloat() / dur.toFloat()) * 1000).toInt()
-                    binding.seekBar.progress = progress
-                    binding.tvElapsed.text = formatDuration(pos)
-                    binding.tvDuration.text = formatDuration(dur)
-                }
-                seekHandler.postDelayed(this, 500)
-            }
-        }
-        seekRunnable = runnable
-        seekHandler.post(runnable)
-    }
-
-    private fun updateMediaTypeUi() {
-        val isLive = currentType == "live"
-        binding.liveBadge.visibility = if (isLive) View.VISIBLE else View.GONE
-        binding.seekBar.visibility = if (isLive) View.GONE else View.VISIBLE
-        binding.tvElapsed.visibility = if (isLive) View.GONE else View.VISIBLE
-        binding.tvDuration.visibility = if (isLive) View.GONE else View.VISIBLE
-        if (!isLive) {
-            binding.channelStripScroll.visibility = View.GONE
-        }
-    }
-
-    private fun buildChannelStrip() {
-        binding.channelStripTrack.removeAllViews()
-        if (currentChannelList.isEmpty()) return
-
-        val density = resources.displayMetrics.density
-        fun dp(v: Int) = (v * density).toInt()
-
-        val cells = mutableListOf<LinearLayout>()
-
-        currentChannelList.forEachIndexed { index, channel ->
-            val cell = LinearLayout(this)
-            cell.id = View.generateViewId()
-            cell.orientation = LinearLayout.VERTICAL
-            cell.gravity = android.view.Gravity.CENTER
-            val lp = LinearLayout.LayoutParams(dp(70), dp(76))
-            lp.marginEnd = dp(6)
-            cell.layoutParams = lp
-            cell.setPadding(dp(4), dp(4), dp(4), dp(4))
-            cell.setBackgroundResource(R.drawable.tv_button_selector)
-            cell.isFocusable = true
-            cell.isFocusableInTouchMode = true
-            cell.isClickable = true
-            cell.setOnClickListener { playChannelAt(index) }
-
-            val logo = ImageView(this)
-            val logoLp = LinearLayout.LayoutParams(dp(30), dp(30))
-            logo.layoutParams = logoLp
-            logo.scaleType = ImageView.ScaleType.CENTER_INSIDE
-            Glide.with(this)
-                .load(channel.streamIcon)
-                .placeholder(R.drawable.ic_live_tv)
-                .error(R.drawable.ic_live_tv)
-                .into(logo)
-
-            val idText = TextView(this)
-            idText.text = "${index + 1}"
-            idText.textSize = 9f
-            idText.setTextColor(ContextCompat.getColor(this, R.color.text_gray))
-            idText.gravity = android.view.Gravity.CENTER
-
-            val nameText = TextView(this)
-            nameText.text = channel.name
-            nameText.textSize = 9.5f
-            nameText.maxLines = 1
-            nameText.ellipsize = android.text.TextUtils.TruncateAt.END
-            nameText.gravity = android.view.Gravity.CENTER
-            nameText.setTextColor(ContextCompat.getColor(this, R.color.text_white))
-
-            cell.addView(logo)
-            cell.addView(idText)
-            cell.addView(nameText)
-
-            if (index == currentChannelIndex) {
-                cell.background = android.graphics.drawable.GradientDrawable().apply {
-                    cornerRadius = dp(6).toFloat()
-                    setColor(ContextCompat.getColor(this@MainActivity, R.color.accent))
-                }
-            }
-
-            binding.channelStripTrack.addView(cell)
-            cells.add(cell)
-        }
-
-        for (i in cells.indices) {
-            if (i > 0) cells[i].nextFocusRightId = cells[i - 1].id
-            if (i < cells.size - 1) cells[i].nextFocusLeftId = cells[i + 1].id
-            cells[i].nextFocusUpId = R.id.btn_play_pause
-        }
-        if (currentChannelIndex in cells.indices) {
-            val currentCellId = cells[currentChannelIndex].id
-            binding.btnPrev.nextFocusDownId = currentCellId
-            binding.btnPlayPause.nextFocusDownId = currentCellId
-            binding.btnNext.nextFocusDownId = currentCellId
-            binding.btnVolume.nextFocusDownId = currentCellId
-            binding.btnFullscreen.nextFocusDownId = currentCellId
-        }
-
-        binding.channelStripScroll.post {
-            val cellWidth = dp(76)
-            val scrollX = (currentChannelIndex * cellWidth) - (binding.channelStripScroll.width / 2) + (cellWidth / 2)
-            binding.channelStripScroll.smoothScrollTo(scrollX.coerceAtLeast(0), 0)
-        }
-    }
-
-    private fun setupThemeToggle() {
-        val prefs = getSharedPreferences("dazou_prefs", MODE_PRIVATE)
-        val isLight = prefs.getBoolean("is_light_theme", false)
-        binding.themeToggle.setImageResource(if (isLight) R.drawable.ic_theme_light else R.drawable.ic_theme_dark)
-
-        binding.themeToggle.setOnClickListener {
-            val newIsLight = !prefs.getBoolean("is_light_theme", false)
-            prefs.edit().putBoolean("is_light_theme", newIsLight).apply()
-            AppCompatDelegate.setDefaultNightMode(
-                if (newIsLight) AppCompatDelegate.MODE_NIGHT_NO else AppCompatDelegate.MODE_NIGHT_YES
-            )
-            recreate()
-        }
-    }
-
-    private data class GroupOverride(val flag: String?, val name: String, val suppressFlag: Boolean = false)
-
-    private val groupOverrides = mapOf(
-        "AR" to GroupOverride(null, "عربي", suppressFlag = true),
-        "ARABIC" to GroupOverride(null, "عربي", suppressFlag = true),
-        "ALB" to GroupOverride("🇦🇱", "ألبانيا"),
-        "JAPAN" to GroupOverride("🇯🇵", "اليابان"),
-        "JP" to GroupOverride("🇯🇵", "اليابان"),
-        "PL" to GroupOverride("🇵🇱", "بولندا"),
-        "SA" to GroupOverride("🇸🇦", "السعودية"),
-        "AE" to GroupOverride("🇦🇪", "الإمارات"),
-        "UAE" to GroupOverride("🇦🇪", "الإمارات"),
-        "QA" to GroupOverride("🇶🇦", "قطر"),
-        "KW" to GroupOverride("🇰🇼", "الكويت"),
-        "BH" to GroupOverride("🇧🇭", "البحرين"),
-        "OM" to GroupOverride("🇴🇲", "عُمان"),
-        "EG" to GroupOverride("🇪🇬", "مصر"),
-        "LB" to GroupOverride("🇱🇧", "لبنان"),
-        "JO" to GroupOverride("🇯🇴", "الأردن"),
-        "SY" to GroupOverride("🇸🇾", "سوريا"),
-        "IQ" to GroupOverride("🇮🇶", "العراق"),
-        "MA" to GroupOverride("🇲🇦", "المغرب"),
-        "TN" to GroupOverride("🇹🇳", "تونس"),
-        "DZ" to GroupOverride("🇩🇿", "الجزائر"),
-        "TR" to GroupOverride("🇹🇷", "تركيا"),
-        "US" to GroupOverride("🇺🇸", "أمريكا"),
-        "USA" to GroupOverride("🇺🇸", "أمريكا"),
-        "UK" to GroupOverride("🇬🇧", "بريطانيا"),
-        "DE" to GroupOverride("🇩🇪", "ألمانيا"),
-        "FR" to GroupOverride("🇫🇷", "فرنسا"),
-        "IT" to GroupOverride("🇮🇹", "إيطاليا"),
-        "ES" to GroupOverride("🇪🇸", "إسبانيا"),
-        "NL" to GroupOverride("🇳🇱", "هولندا"),
-        "RU" to GroupOverride("🇷🇺", "روسيا"),
-        "IN" to GroupOverride("🇮🇳", "الهند"),
-        "PK" to GroupOverride("🇵🇰", "باكستان"),
-        "GR" to GroupOverride("🇬🇷", "اليونان"),
-        "PT" to GroupOverride("🇵🇹", "البرتغال")
-    )
-
-    private fun countryCodeToFlagEmoji(code: String): String? {
-        if (code.length != 2) return null
-        val c1 = code[0].uppercaseChar()
-        val c2 = code[1].uppercaseChar()
-        if (c1 !in 'A'..'Z' || c2 !in 'A'..'Z') return null
-        val base = 0x1F1E6 - 'A'.code
-        return try {
-            String(Character.toChars(base + c1.code)) + String(Character.toChars(base + c2.code))
-        } catch (e: Exception) { null }
-    }
-
-    private fun buildDisplayCategories(categories: List<XtreamCategory>): List<XtreamCategory> {
-        val prefixRegex = Regex("^\\[([A-Za-z]{2,8})\\]")
-        val groups = LinkedHashMap<String, MutableList<XtreamCategory>>()
-        val ungrouped = mutableListOf<XtreamCategory>()
-
-        categories.forEach { cat ->
-            val match = prefixRegex.find(cat.categoryName.trim())
-            if (match != null) {
-                val code = match.groupValues[1].uppercase()
-                groups.getOrPut(code) { mutableListOf() }.add(cat)
-            } else {
-                ungrouped.add(cat)
-            }
-        }
-
-        categoryGroupMap.clear()
-        val result = mutableListOf<XtreamCategory>()
-        groups.forEach { (code, catsInGroup) ->
-            if (catsInGroup.size >= 2) {
-                val override = groupOverrides[code]
-                val flag = when {
-                    override != null && override.suppressFlag -> null
-                    override != null -> override.flag
-                    else -> countryCodeToFlagEmoji(code)
-                }
-                val name = override?.name
-                val label = when {
-                    flag != null && name != null -> "$flag $name"
-                    flag != null -> "$flag $code"
-                    name != null -> "📁 $name"
-                    else -> "📁 $code"
-                }
-                result.add(XtreamCategory("GROUP:$code", label, 0))
-                categoryGroupMap[code] = catsInGroup.map { it.categoryId }
-            } else {
-                result.addAll(catsInGroup)
-            }
-        }
-        result.addAll(ungrouped)
-        return result
     }
 
     private fun loadMergedChannels(categoryIds: List<String>, onComplete: (List<XtreamChannel>) -> Unit) {
@@ -555,45 +270,32 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             val index = channels.indexOfFirst { it.streamId == pendingId }
             if (index >= 0) playChannelAt(index)
         } else {
-            buildChannelStrip()
+            controlsController.onChannelListChanged(currentChannelList, currentChannelIndex)
         }
     }
 
     private fun setupWifiStatus() {
-        connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-
-        fun isConnected(): Boolean {
-            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                val network = connectivityManager.activeNetwork ?: return false
-                val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
-                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            } else {
-                @Suppress("DEPRECATION")
-                connectivityManager.activeNetworkInfo?.isConnected == true
+        networkMonitor = NetworkMonitor(this)
+        networkMonitor.start { connected ->
+            runOnUiThread {
+                binding.wifiIcon.setImageResource(if (connected) R.drawable.ic_wifi else R.drawable.ic_wifi_off)
+                binding.wifiIcon.alpha = if (connected) 1f else 0.5f
             }
         }
+    }
 
-        fun updateIcon() {
-            val connected = isConnected()
-            binding.wifiIcon.setImageResource(if (connected) R.drawable.ic_wifi else R.drawable.ic_wifi_off)
-            binding.wifiIcon.alpha = if (connected) 1f else 0.5f
-        }
+    private fun setupThemeToggle() {
+        val prefs = getSharedPreferences("dazou_prefs", MODE_PRIVATE)
+        val isLight = prefs.getBoolean("is_light_theme", false)
+        binding.themeToggle.setImageResource(if (isLight) R.drawable.ic_theme_light else R.drawable.ic_theme_dark)
 
-        updateIcon()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            val callback = object : ConnectivityManager.NetworkCallback() {
-                override fun onAvailable(network: Network) {
-                    runOnUiThread { updateIcon() }
-                }
-                override fun onLost(network: Network) {
-                    runOnUiThread { updateIcon() }
-                }
-            }
-            networkCallback = callback
-            try {
-                connectivityManager.registerDefaultNetworkCallback(callback)
-            } catch (_: Exception) {}
+        binding.themeToggle.setOnClickListener {
+            val newIsLight = !prefs.getBoolean("is_light_theme", false)
+            prefs.edit().putBoolean("is_light_theme", newIsLight).apply()
+            AppCompatDelegate.setDefaultNightMode(
+                if (newIsLight) AppCompatDelegate.MODE_NIGHT_NO else AppCompatDelegate.MODE_NIGHT_YES
+            )
+            recreate()
         }
     }
 
@@ -660,7 +362,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         playStream(url, channel.name, "live")
         updateNowPlayingPanel(channel)
         savePlaybackState(channel)
-        buildChannelStrip()
+        controlsController.onChannelListChanged(currentChannelList, currentChannelIndex)
     }
 
     fun goToHome() {
@@ -739,71 +441,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         })
     }
 
-    private fun setupControls(){
-
-        val focusShowListener = View.OnFocusChangeListener { _, hasFocus -> if (hasFocus) showControls() }
-
-        binding.btnPlayPause.setOnClickListener {
-            showControls()
-            if(playerManager.isPlaying){
-                playerManager.pause()
-                binding.btnPlayPause.setImageResource(R.drawable.ic_play_small)
-            }else{
-                playerManager.resume()
-                binding.btnPlayPause.setImageResource(R.drawable.ic_pause)
-            }
-        }
-        binding.btnPlayPause.onFocusChangeListener = focusShowListener
-
-        binding.btnFullscreen.setOnClickListener {
-            showControls()
-            toggleFullscreen()
-        }
-        binding.btnFullscreen.onFocusChangeListener = focusShowListener
-
-        binding.btnPip.setOnClickListener {
-            enterPipMode()
-        }
-        binding.btnPip.onFocusChangeListener = focusShowListener
-
-        binding.btnPrev.setOnClickListener {
-            showControls()
-            onPreviousChannel()
-        }
-        binding.btnPrev.onFocusChangeListener = focusShowListener
-
-        binding.btnNext.setOnClickListener {
-            showControls()
-            onNextChannel()
-        }
-        binding.btnNext.onFocusChangeListener = focusShowListener
-
-        binding.btnVolume.setOnClickListener {
-            showControls()
-            toggleMute()
-        }
-        binding.btnVolume.onFocusChangeListener = focusShowListener
-
-        binding.videoPlayer.setOnClickListener {
-            showControls()
-        }
-
-        binding.seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                showControls()
-            }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) { userSeeking = true }
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                userSeeking = false
-                val dur = playerManager.player.duration
-                if (dur > 0 && seekBar != null) {
-                    val target = (dur * (seekBar.progress.toFloat() / 1000f)).toLong()
-                    playerManager.player.seekTo(target)
-                }
-            }
-        })
-    }
-
     private fun enterPipMode() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             Toast.makeText(this, "الميزة غير مدعومة على هذا الجهاز", Toast.LENGTH_SHORT).show()
@@ -854,12 +491,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
     }
 
-    private fun toggleMute() {
-        isMuted = !isMuted
-        playerManager.player.volume = if (isMuted) 0f else 1f
-        binding.btnVolume.setImageResource(if (isMuted) R.drawable.ic_volume_off else R.drawable.ic_volume_on)
-    }
-
     private fun toggleFullscreen() {
         fullscreen = !fullscreen
 
@@ -871,7 +502,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             binding.channelsPanel.visibility = View.GONE
             binding.liveEpgPanel.visibility = View.GONE
             binding.fragmentContainer.visibility = View.GONE
-            binding.btnFullscreen.setImageResource(R.drawable.ic_fullscreen_exit)
 
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = (
@@ -882,7 +512,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         } else {
             binding.topBar.visibility = View.VISIBLE
             binding.sidebar.visibility = View.VISIBLE
-            binding.btnFullscreen.setImageResource(R.drawable.ic_fullscreen_enter)
             if (wasChannelsPanelOpenBeforeFullscreen) {
                 binding.channelsPanel.visibility = View.VISIBLE
             }
@@ -895,6 +524,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
         }
+
+        controlsController.updateFullscreenIcon(fullscreen)
     }
 
     @Deprecated("Deprecated in Java")
@@ -934,12 +565,9 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     override fun playStream(url:String, name:String, type:String){
         currentChannelName = name
-        currentType = type
         playerManager.play(url, name, type)
         binding.channelInfo.text = "📺 $name"
-        binding.btnPlayPause.setImageResource(R.drawable.ic_pause)
-        updateMediaTypeUi()
-        showControls()
+        controlsController.onMediaStarted(type)
     }
 
     override fun onNextChannel(){
@@ -972,11 +600,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     override fun onDestroy(){
         clockRunnable?.let { clockHandler.removeCallbacks(it) }
-        controlsRunnable?.let { controlsHandler.removeCallbacks(it) }
-        seekRunnable?.let { seekHandler.removeCallbacks(it) }
-        networkCallback?.let {
-            try { connectivityManager.unregisterNetworkCallback(it) } catch (_: Exception) {}
-        }
+        controlsController.release()
+        networkMonitor.stop()
         playerManager.release()
         super.onDestroy()
     }
