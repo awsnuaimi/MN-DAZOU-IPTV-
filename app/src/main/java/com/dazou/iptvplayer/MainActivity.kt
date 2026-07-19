@@ -52,7 +52,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     private var pendingAutoPlayChannelId: Int? = null
     private var pendingGroupCode: String? = null
     private val categoryGroupMap = mutableMapOf<String, List<String>>()
-    // ✅ جديد: نفس فكرة categoryGroupMap بس بتخزّن الأقسام كاملة (بأسمائها الحقيقية) لبناء المجلدات الفرعية
     private val categoryGroupDetailsMap = mutableMapOf<String, List<XtreamCategory>>()
 
     private var currentPlayingType: String = ""
@@ -92,7 +91,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         liveViewModel.categories.observe(this) { categories ->
             lastCategories = categories
             if (categories.isEmpty()) {
-                Toast.makeText(this, "لا توجد مجموعات – تأكد من الحساب", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.live_no_categories), Toast.LENGTH_LONG).show()
             }
             val displayCategories = CategoryGrouper.buildDisplayCategories(
                 categories, categoryGroupMap, categoryGroupDetailsMap
@@ -169,7 +168,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             binding.channelsPanel.visibility = View.VISIBLE
 
             if (savedCategoryId.startsWith("GROUP:")) {
-                // توافق قديم: لو كانت النسخة السابقة حفظت مجموعة دولة مدموجة بالكامل
                 pendingGroupCode = savedCategoryId.removePrefix("GROUP:")
             } else {
                 liveViewModel.loadChannels(savedCategoryId)
@@ -198,9 +196,9 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             if (hasResumablePosition && saved != null) {
                 android.app.AlertDialog.Builder(this)
                     .setTitle(name)
-                    .setMessage("توقفت سابقًا عند ${formatDurationShort(saved.positionMs)}. تحب تكمل من هناك؟")
-                    .setPositiveButton("متابعة") { _, _ -> startPlayback(url, name, type, saved.positionMs) }
-                    .setNegativeButton("من البداية") { _, _ -> startPlayback(url, name, type, 0L) }
+                    .setMessage(getString(R.string.resume_message, formatDurationShort(saved.positionMs)))
+                    .setPositiveButton(getString(R.string.resume_continue)) { _, _ -> startPlayback(url, name, type, saved.positionMs) }
+                    .setNegativeButton(getString(R.string.resume_from_start)) { _, _ -> startPlayback(url, name, type, 0L) }
                     .setCancelable(false)
                     .show()
                 return
@@ -260,17 +258,17 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     private fun updateNowPlayingPanel(channel: XtreamChannel) {
         val server = liveViewModel.getServer() ?: return
-        binding.tvNowTitle.text = "⏳ جاري تحميل معلومات البرنامج..."
+        binding.tvNowTitle.text = getString(R.string.live_loading_epg)
         binding.tvNowTime.text = ""
         binding.tvNextTitle.text = ""
         binding.pbNowProgress.progress = 0
-        binding.tvControlsNow.text = "⏳ جاري تحميل معلومات البرنامج..."
+        binding.tvControlsNow.text = getString(R.string.live_loading_epg)
         binding.pbControlsProgress.visibility = View.GONE
 
         XtreamAPI.getShortEpg(server, channel.streamId) { programs ->
             if (programs.isEmpty()) {
                 binding.tvNowTitle.text = "📺 ${channel.name}"
-                binding.tvNowTime.text = "لا توجد بيانات دليل برامج لهذه القناة"
+                binding.tvNowTime.text = getString(R.string.live_no_epg_data)
                 binding.tvNextTitle.text = ""
                 binding.pbNowProgress.progress = 0
                 binding.tvControlsNow.text = "📺 ${channel.name}"
@@ -282,11 +280,11 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             val nowIndex = programs.indexOf(now)
             val next = programs.getOrNull(nowIndex + 1)
 
-            binding.tvNowTitle.text = "▶ الآن: ${now.title}"
+            binding.tvNowTitle.text = getString(R.string.live_now_playing, now.title)
             binding.pbNowProgress.progress = now.progressPercent()
             binding.tvNowTime.text = "${formatEpgTime(now.startTimestamp)} - ${formatEpgTime(now.stopTimestamp)}"
             binding.tvNextTitle.text = if (next != null)
-                "⏭ التالي: ${next.title} (${formatEpgTime(next.startTimestamp)})"
+                getString(R.string.live_next_program, next.title, formatEpgTime(next.startTimestamp))
             else ""
 
             binding.tvControlsNow.text = "${channel.name}  •  ${now.title}"
@@ -345,7 +343,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             R.id.btn_play_pause
         ) { channel ->
             val index = channels.indexOf(channel)
-            // ✅ ضغطة على القناة الشغّالة أصلاً حاليًا = تكبير مباشر لملء الشاشة
             if (index == currentChannelIndex && playerManager.isPlaying) {
                 toggleFullscreen()
             } else {
@@ -418,11 +415,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
     }
 
-    /**
-     * ✅ نقطة الدخول الموحّدة لفتح أي عنصر بقائمة الأقسام:
-     * - لو "مجلد دولة" (GROUP:xx) → يعرض مجلدات فرعية (رياضة/أفلام/مسلسلات...).
-     * - لو قسم حقيقي عادي → يفتح قنوات هالقسم مباشرة (بدون أي تغيير عن السابق).
-     */
     private fun openCategory(category: XtreamCategory) {
         if (category.categoryId.startsWith("GROUP:")) {
             val code = category.categoryId.removePrefix("GROUP:")
@@ -432,7 +424,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
     }
 
-    /** يعرض المجلدات الفرعية (الأقسام الحقيقية) الموجودة جوا دولة معيّنة */
     private fun openCountryGroup(code: String, countryLabel: String) {
         currentCategoryId = "GROUP:$code"
         currentCategoryName = countryLabel
@@ -453,7 +444,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
     }
 
-    /** يفتح قسمًا حقيقيًا (سواء كان مستقلًا أو مجلدًا فرعيًا جوا دولة) ويحمّل قنواته */
     private fun openRealCategory(category: XtreamCategory) {
         currentCategoryId = category.categoryId
         currentCategoryName = category.categoryName
@@ -470,7 +460,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         if (index < 0 || index >= currentChannelList.size) return
         val server = liveViewModel.getServer()
         if (server == null) {
-            Toast.makeText(this, "اختر حساب IPTV أولاً", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.common_choose_account_first), Toast.LENGTH_SHORT).show()
             return
         }
         currentChannelIndex = index
@@ -518,21 +508,21 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                     error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS
 
                 if (isNetworkError) {
-                    binding.channelInfo.text = "⚠️ انقطع الاتصال، جاري إعادة المحاولة..."
+                    binding.channelInfo.text = getString(R.string.live_connection_lost)
                     playerManager.retryCurrent {
-                        binding.channelInfo.text = "⚠️ تعذر الاتصال بالقناة بعد عدة محاولات"
+                        binding.channelInfo.text = getString(R.string.live_connection_failed)
                     }
                     return
                 }
 
                 val message = when (error.errorCode) {
                     PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND ->
-                        "رابط القناة غير متاح حاليًا"
+                        getString(R.string.live_url_unavailable)
                     PlaybackException.ERROR_CODE_DECODING_FAILED,
                     PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ->
-                        "صيغة القناة غير مدعومة على هذا الجهاز"
+                        getString(R.string.live_format_unsupported)
                     else ->
-                        "تعذر تشغيل القناة (${error.errorCodeName})"
+                        getString(R.string.live_playback_failed, error.errorCodeName)
                 }
                 binding.channelInfo.text = "⚠️ $message"
             }
@@ -540,7 +530,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             override fun onPlaybackStateChanged(state: Int) {
                 when (state) {
                     Player.STATE_BUFFERING -> {
-                        binding.channelInfo.text = "⏳ جاري التحميل..."
+                        binding.channelInfo.text = getString(R.string.common_loading)
                         binding.playerLoading.visibility = View.VISIBLE
                     }
                     Player.STATE_READY -> {
@@ -562,7 +552,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     private fun enterPipMode() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            Toast.makeText(this, "الميزة غير مدعومة على هذا الجهاز", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.live_feature_unsupported), Toast.LENGTH_SHORT).show()
             return
         }
         if (binding.videoPlayer.visibility != View.VISIBLE) return
@@ -573,7 +563,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         try {
             enterPictureInPictureMode(params)
         } catch (e: Exception) {
-            Toast.makeText(this, "تعذر تفعيل الصورة داخل الصورة", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.live_pip_failed), Toast.LENGTH_SHORT).show()
         }
     }
 
