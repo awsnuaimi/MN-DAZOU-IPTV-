@@ -10,6 +10,11 @@
   public *;
 }
 
-# EncryptedSharedPreferences / Tink (يحمي كلاسات التشفير من الحذف الخاطئ)
+# EncryptedSharedPreferences / Tink
 -keep class com.google.crypto.tink.** { *; }
 -keep class androidx.security.crypto.** { *; }
+
+# ✅ Tink فيها إشارات لميزة اختيارية (تحميل مفاتيح من رابط) غير مستخدمة بمشروعنا إطلاقًا،
+# وتعتمد على مكتبات غير موجودة أصلًا بالتبعيات — هذا كود ميت آمن نتجاهله
+-dontwarn com.google.api.client.http.**
+-dontwarn org.joda.time.**
