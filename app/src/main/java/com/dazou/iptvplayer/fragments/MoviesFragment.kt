@@ -59,7 +59,7 @@ class MoviesFragment : Fragment() {
 
         moviesViewModel.categories.observe(viewLifecycleOwner) { categories ->
             if (categories.isEmpty()) {
-                Toast.makeText(requireContext(), "لا توجد مجموعات أفلام – تأكد من الحساب", Toast.LENGTH_LONG).show()
+                Toast.makeText(requireContext(), getString(R.string.movies_no_categories), Toast.LENGTH_LONG).show()
             }
             binding.rvMovieCategories.adapter = CategoryAdapter(categories) { category ->
                 openCategory(category)
@@ -97,9 +97,9 @@ class MoviesFragment : Fragment() {
     private fun displayMovies(movies: List<XtreamMovie>, isSearchResult: Boolean = false) {
         if (_binding == null) return
         binding.tvMoviesStatus.text = when {
-            movies.isEmpty() && isSearchResult -> "لا نتائج مطابقة للبحث"
-            movies.isEmpty() -> "لا توجد أفلام بهذه المجموعة"
-            else -> "${movies.size} فيلم"
+            movies.isEmpty() && isSearchResult -> getString(R.string.movies_no_search_results)
+            movies.isEmpty() -> getString(R.string.movies_no_results_in_category)
+            else -> getString(R.string.movies_count, movies.size)
         }
         binding.rvMovies.adapter = MovieAdapter(movies, requireApp().container.favoritesManager) { movie ->
             showMovieDetails(movie)
@@ -120,7 +120,7 @@ class MoviesFragment : Fragment() {
     }
 
     private fun openCategory(category: XtreamCategory) {
-        binding.tvMoviesStatus.text = "جاري التحميل..."
+        binding.tvMoviesStatus.text = getString(R.string.common_loading)
         moviesViewModel.loadMovies(category.categoryId)
     }
 
@@ -141,19 +141,19 @@ class MoviesFragment : Fragment() {
         if (movie.rating.isNotBlank()) metaParts.add("⭐ ${movie.rating}")
         meta.text = metaParts.joinToString("  •  ")
 
-        plot.text = movie.plot.ifBlank { "لا يوجد وصف متاح." }
+        plot.text = movie.plot.ifBlank { getString(R.string.movies_no_description) }
 
         val castParts = mutableListOf<String>()
         if (movie.cast.isNotBlank()) castParts.add("🎭 ${movie.cast}")
-        if (movie.director.isNotBlank()) castParts.add("🎬 إخراج: ${movie.director}")
+        if (movie.director.isNotBlank()) castParts.add("🎬 ${movie.director}")
         cast.text = castParts.joinToString("\n")
         cast.visibility = if (castParts.isEmpty()) View.GONE else View.VISIBLE
 
         AlertDialog.Builder(requireContext())
             .setTitle(movie.name)
             .setView(dialogView)
-            .setPositiveButton("▶ تشغيل") { _, _ -> playMovie(movie) }
-            .setNegativeButton("إغلاق", null)
+            .setPositiveButton(getString(R.string.movies_play)) { _, _ -> playMovie(movie) }
+            .setNegativeButton(getString(R.string.common_close), null)
             .show()
     }
 

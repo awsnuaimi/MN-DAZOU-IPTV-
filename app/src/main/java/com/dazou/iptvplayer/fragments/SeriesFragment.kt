@@ -61,7 +61,7 @@ class SeriesFragment : Fragment() {
 
         seriesViewModel.categories.observe(viewLifecycleOwner) { categories ->
             if (categories.isEmpty()) {
-                Toast.makeText(requireContext(), "لا توجد مجموعات مسلسلات – تأكد من الحساب", Toast.LENGTH_LONG).show()
+                Toast.makeText(requireContext(), getString(R.string.series_no_categories), Toast.LENGTH_LONG).show()
             }
             binding.rvSeriesCategories.adapter = CategoryAdapter(categories) { category ->
                 openCategory(category)
@@ -104,9 +104,9 @@ class SeriesFragment : Fragment() {
     private fun displaySeries(list: List<XtreamSeries>, isSearchResult: Boolean = false) {
         if (_binding == null) return
         binding.tvSeriesStatus.text = when {
-            list.isEmpty() && isSearchResult -> "لا نتائج مطابقة للبحث"
-            list.isEmpty() -> "لا توجد مسلسلات بهذه المجموعة"
-            else -> "${list.size} مسلسل"
+            list.isEmpty() && isSearchResult -> getString(R.string.movies_no_search_results)
+            list.isEmpty() -> getString(R.string.series_no_results_in_category)
+            else -> getString(R.string.series_count, list.size)
         }
         binding.rvSeries.adapter = SeriesAdapter(list, requireApp().container.favoritesManager) { series ->
             showSeriesDetails(series)
@@ -127,7 +127,7 @@ class SeriesFragment : Fragment() {
     }
 
     private fun openCategory(category: XtreamCategory) {
-        binding.tvSeriesStatus.text = "جاري التحميل..."
+        binding.tvSeriesStatus.text = getString(R.string.common_loading)
         seriesViewModel.loadSeries(category.categoryId)
     }
 
@@ -148,44 +148,44 @@ class SeriesFragment : Fragment() {
         if (series.rating.isNotBlank()) metaParts.add("⭐ ${series.rating}")
         meta.text = metaParts.joinToString("  •  ")
 
-        plot.text = series.plot.ifBlank { "لا يوجد وصف متاح." }
+        plot.text = series.plot.ifBlank { getString(R.string.movies_no_description) }
 
         val castParts = mutableListOf<String>()
         if (series.cast.isNotBlank()) castParts.add("🎭 ${series.cast}")
-        if (series.director.isNotBlank()) castParts.add("🎬 إخراج: ${series.director}")
+        if (series.director.isNotBlank()) castParts.add("🎬 ${series.director}")
         cast.text = castParts.joinToString("\n")
         cast.visibility = if (castParts.isEmpty()) View.GONE else View.VISIBLE
 
         AlertDialog.Builder(requireContext())
             .setTitle(series.name)
             .setView(dialogView)
-            .setPositiveButton("📺 عرض الحلقات") { _, _ -> onSeriesClicked(series) }
-            .setNegativeButton("إغلاق", null)
+            .setPositiveButton(getString(R.string.series_show_episodes)) { _, _ -> onSeriesClicked(series) }
+            .setNegativeButton(getString(R.string.common_close), null)
             .show()
     }
 
     private fun onSeriesClicked(series: XtreamSeries) {
         selectedSeries = series
-        Toast.makeText(requireContext(), "⏳ جاري تحميل الحلقات...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.series_loading_episodes), Toast.LENGTH_SHORT).show()
         seriesViewModel.loadEpisodes(series.seriesId)
     }
 
     private fun showEpisodesDialog(series: XtreamSeries, episodes: List<XtreamEpisode>) {
         if (!isAdded) return
         if (episodes.isEmpty()) {
-            Toast.makeText(requireContext(), "لا توجد حلقات متاحة لهذا المسلسل", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.series_no_episodes), Toast.LENGTH_SHORT).show()
             return
         }
 
         val sorted = episodes.sortedWith(compareBy({ it.seasonNum }, { it.episodeNum }))
-        val labels = sorted.map { "الموسم ${it.seasonNum} • الحلقة ${it.episodeNum}: ${it.title}" }.toTypedArray()
+        val labels = sorted.map { getString(R.string.series_episode_label, it.seasonNum, it.episodeNum, it.title) }.toTypedArray()
 
         AlertDialog.Builder(requireContext())
             .setTitle(series.name)
             .setItems(labels) { _, which ->
                 playEpisode(sorted[which])
             }
-            .setNegativeButton("إغلاق", null)
+            .setNegativeButton(getString(R.string.common_close), null)
             .show()
     }
 
