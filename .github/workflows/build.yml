@@ -1,3 +1,14 @@
+Error: Could not find or load main class org.gradle.wrapper.GradleWrapperMain
+```//
+هذا يفسر بالضبط كل الأعراض اللي شفناها: مدة تنفيذ شبه صفرية لخطوة "Build Debug APK"، وعدم إنتاج أي APK — لأن الأمر كان يفشل بجزء من الثانية قبل ما يوصل حتى لتحميل أو تجميع أي كود فعلي.
+
+بما إنه ملف **ثنائي (binary)** مو نص، ما فيني أعطيك محتواه كـ"كود جاهز للصق" متل باقي الملفات — الحل يكون بخلي الـ CI نفسه يولّده تلقائيًا بكل تشغيلة.
+
+## الحل: أضف خطوة تُعيد توليد ملف الـ Wrapper تلقائيًا
+
+**المسار:** `.github/workflows/build.yml`
+
+```yaml
 name: Build Android App
 
 on:
@@ -15,14 +26,22 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x ./gradlew
-
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+      with:
+        gradle-version: 8.9
+
+    - name: Regenerate Gradle Wrapper (jar missing from repo)
+      run: gradle wrapper --gradle-version 8.9 --distribution-type bin
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x ./gradlew
 
     - name: Decode Keystore
       env:
