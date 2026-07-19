@@ -13,6 +13,7 @@ import com.dazou.iptvplayer.utils.FocusAnimator
 class CategoryAdapter(
     private val categories: List<XtreamCategory>,
     private val nextFocusRightId: Int? = null,
+    private val nextFocusLeftId: Int? = null,
     private val onCategoryClick: (XtreamCategory) -> Unit
 ) : RecyclerView.Adapter<CategoryAdapter.ViewHolder>() {
 
@@ -32,6 +33,7 @@ class CategoryAdapter(
 
         // ✅ توجيه فوكس صريح لكل صف (بدل الاعتماد على البحث التلقائي اللي بيتوه بالـ RTL)
         nextFocusRightId?.let { view.nextFocusRightId = it }
+        nextFocusLeftId?.let { view.nextFocusLeftId = it }
 
         val textView = view.findViewById<TextView>(android.R.id.text1)
         textView.setTextColor(ContextCompat.getColor(parent.context, R.color.text_white))

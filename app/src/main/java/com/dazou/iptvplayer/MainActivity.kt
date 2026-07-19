@@ -52,6 +52,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     private var pendingAutoPlayChannelId: Int? = null
     private var pendingGroupCode: String? = null
     private val categoryGroupMap = mutableMapOf<String, List<String>>()
+    // ✅ جديد: نفس فكرة categoryGroupMap بس بتخزّن الأقسام كاملة (بأسمائها الحقيقية) لبناء المجلدات الفرعية
+    private val categoryGroupDetailsMap = mutableMapOf<String, List<XtreamCategory>>()
 
     private var currentPlayingType: String = ""
     private var currentPlayingId: Int = -1
@@ -92,7 +94,9 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             if (categories.isEmpty()) {
                 Toast.makeText(this, "لا توجد مجموعات – تأكد من الحساب", Toast.LENGTH_LONG).show()
             }
-            val displayCategories = CategoryGrouper.buildDisplayCategories(categories, categoryGroupMap)
+            val displayCategories = CategoryGrouper.buildDisplayCategories(
+                categories, categoryGroupMap, categoryGroupDetailsMap
+            )
             binding.categoryList.adapter = CategoryAdapter(displayCategories, R.id.channel_list) { category ->
                 openCategory(category)
             }
@@ -165,6 +169,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             binding.channelsPanel.visibility = View.VISIBLE
 
             if (savedCategoryId.startsWith("GROUP:")) {
+                // توافق قديم: لو كانت النسخة السابقة حفظت مجموعة دولة مدموجة بالكامل
                 pendingGroupCode = savedCategoryId.removePrefix("GROUP:")
             } else {
                 liveViewModel.loadChannels(savedCategoryId)
@@ -413,19 +418,48 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
     }
 
+    /**
+     * ✅ نقطة الدخول الموحّدة لفتح أي عنصر بقائمة الأقسام:
+     * - لو "مجلد دولة" (GROUP:xx) → يعرض مجلدات فرعية (رياضة/أفلام/مسلسلات...).
+     * - لو قسم حقيقي عادي → يفتح قنوات هالقسم مباشرة (بدون أي تغيير عن السابق).
+     */
     private fun openCategory(category: XtreamCategory) {
+        if (category.categoryId.startsWith("GROUP:")) {
+            val code = category.categoryId.removePrefix("GROUP:")
+            openCountryGroup(code, category.categoryName)
+        } else {
+            openRealCategory(category)
+        }
+    }
+
+    /** يعرض المجلدات الفرعية (الأقسام الحقيقية) الموجودة جوا دولة معيّنة */
+    private fun openCountryGroup(code: String, countryLabel: String) {
+        currentCategoryId = "GROUP:$code"
+        currentCategoryName = countryLabel
+        binding.channelsPanelTitle.text = countryLabel
+        binding.channelsPanel.visibility = View.VISIBLE
+
+        val subCategories = categoryGroupDetailsMap[code] ?: emptyList()
+        val cleanedSubCategories = subCategories.map {
+            it.copy(categoryName = CategoryGrouper.stripCountryPrefix(it.categoryName))
+        }
+
+        binding.channelList.adapter = CategoryAdapter(
+            cleanedSubCategories,
+            R.id.btn_play_pause,
+            R.id.category_list
+        ) { subCategory ->
+            openRealCategory(subCategory)
+        }
+    }
+
+    /** يفتح قسمًا حقيقيًا (سواء كان مستقلًا أو مجلدًا فرعيًا جوا دولة) ويحمّل قنواته */
+    private fun openRealCategory(category: XtreamCategory) {
         currentCategoryId = category.categoryId
         currentCategoryName = category.categoryName
         binding.channelsPanelTitle.text = category.categoryName
         binding.channelsPanel.visibility = View.VISIBLE
-
-        if (category.categoryId.startsWith("GROUP:")) {
-            val code = category.categoryId.removePrefix("GROUP:")
-            val ids = categoryGroupMap[code] ?: emptyList()
-            loadMergedChannels(ids) { merged -> applyChannelResults(merged) }
-        } else {
-            liveViewModel.loadChannels(category.categoryId)
-        }
+        liveViewModel.loadChannels(category.categoryId)
     }
 
     private fun hideChannelsPanel() {

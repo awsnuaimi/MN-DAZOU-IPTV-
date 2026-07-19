@@ -57,12 +57,14 @@ object CategoryGrouper {
     }
 
     /**
-     * يبني قائمة عرض من المجموعات الخام. يملأ categoryGroupMap بخرائط
-     * (رمز البلد → قائمة معرّفات المجموعات الأصلية) لاستخدامها لاحقًا بالتحميل المدمج.
+     * يبني قائمة عرض من المجموعات الخام.
+     * - categoryGroupMap: (رمز البلد → قائمة معرّفات المجموعات الأصلية) — للتوافق القديم فقط.
+     * - categoryGroupDetailsMap: (رمز البلد → قائمة الأقسام الأصلية كاملة) — تُستخدم لبناء المجلدات الفرعية (رياضة/أفلام/مسلسلات).
      */
     fun buildDisplayCategories(
         categories: List<XtreamCategory>,
-        categoryGroupMap: MutableMap<String, List<String>>
+        categoryGroupMap: MutableMap<String, List<String>>,
+        categoryGroupDetailsMap: MutableMap<String, List<XtreamCategory>>
     ): List<XtreamCategory> {
         val prefixRegex = Regex("^\\[([A-Za-z]{2,8})\\]")
         val groups = LinkedHashMap<String, MutableList<XtreamCategory>>()
@@ -79,6 +81,7 @@ object CategoryGrouper {
         }
 
         categoryGroupMap.clear()
+        categoryGroupDetailsMap.clear()
         val result = mutableListOf<XtreamCategory>()
         groups.forEach { (code, catsInGroup) ->
             if (catsInGroup.size >= 2) {
@@ -97,11 +100,19 @@ object CategoryGrouper {
                 }
                 result.add(XtreamCategory("GROUP:$code", label, 0))
                 categoryGroupMap[code] = catsInGroup.map { it.categoryId }
+                categoryGroupDetailsMap[code] = catsInGroup
             } else {
                 result.addAll(catsInGroup)
             }
         }
         result.addAll(ungrouped)
         return result
+    }
+
+    /** يشيل بادئة رمز البلد [XX] من اسم القسم الفرعي، عشان يظهر نظيف بقائمة المجلدات الفرعية */
+    fun stripCountryPrefix(categoryName: String): String {
+        val regex = Regex("^\\[([A-Za-z]{2,8})\\]\\s*")
+        val cleaned = regex.replace(categoryName.trim(), "").trim()
+        return cleaned.ifEmpty { categoryName }
     }
 }
