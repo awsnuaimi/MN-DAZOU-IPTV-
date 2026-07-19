@@ -3,40 +3,57 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="10dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="8dp"
     android:focusable="true"
     android:focusableInTouchMode="true"
     android:clickable="true"
     android:background="@drawable/tv_button_selector">
 
-    <TextView
-        android:id="@+id/tvChannelName"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textColor="@color/text_white"
-        android:textSize="15sp"
-        tools:text="Jordan TV" />
+    <ImageView
+        android:id="@+id/ivChannelLogo"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:layout_marginEnd="10dp"
+        android:scaleType="centerInside"
+        android:background="@color/panel_darker"
+        tools:src="@android:color/darker_gray" />
 
-    <TextView
-        android:id="@+id/tvChannelEpg"
-        android:layout_width="match_parent"
+    <LinearLayout
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:textColor="@color/text_gray"
-        android:textSize="11sp"
-        android:visibility="gone"
-        tools:text="📺 نشرة الأخبار" />
+        android:layout_weight="1"
+        android:orientation="vertical">
 
-    <ProgressBar
-        android:id="@+id/pbChannelEpg"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="4dp"
-        android:layout_marginTop="4dp"
-        android:max="100"
-        android:progress="0"
-        android:progressTint="@color/accent"
-        android:visibility="gone" />
+        <TextView
+            android:id="@+id/tvChannelName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_white"
+            android:textSize="15sp"
+            tools:text="Jordan TV" />
+
+        <TextView
+            android:id="@+id/tvChannelEpg"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/text_gray"
+            android:textSize="11sp"
+            android:visibility="gone"
+            tools:text="📺 نشرة الأخبار" />
+
+        <ProgressBar
+            android:id="@+id/pbChannelEpg"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="4dp"
+            android:layout_marginTop="4dp"
+            android:max="100"
+            android:progress="0"
+            android:progressTint="@color/accent"
+            android:visibility="gone" />
+    </LinearLayout>
 
 </LinearLayout>

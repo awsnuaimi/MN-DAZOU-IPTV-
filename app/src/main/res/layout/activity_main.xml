@@ -290,7 +290,9 @@
 
                 <ImageView android:id="@+id/btn_volume" android:layout_width="24dp" android:layout_height="24dp" android:padding="3dp" android:src="@drawable/ic_volume_on" android:tint="@color/text_white" android:background="@drawable/icon_focus_selector" android:focusable="true" android:focusableInTouchMode="true" android:clickable="true" android:nextFocusRight="@id/btn_next" android:nextFocusLeft="@id/btn_fullscreen" android:nextFocusUp="@id/menu_home"/>
 
-                <ImageView android:id="@+id/btn_fullscreen" android:layout_width="24dp" android:layout_height="24dp" android:padding="3dp" android:layout_marginStart="16dp" android:src="@drawable/ic_fullscreen_enter" android:tint="@color/text_white" android:background="@drawable/icon_focus_selector" android:focusable="true" android:focusableInTouchMode="true" android:clickable="true" android:nextFocusRight="@id/btn_volume" android:nextFocusLeft="@id/channel_list" android:nextFocusUp="@id/menu_home"/>
+                <ImageView android:id="@+id/btn_fullscreen" android:layout_width="24dp" android:layout_height="24dp" android:padding="3dp" android:layout_marginStart="16dp" android:src="@drawable/ic_fullscreen_enter" android:tint="@color/text_white" android:background="@drawable/icon_focus_selector" android:focusable="true" android:focusableInTouchMode="true" android:clickable="true" android:nextFocusRight="@id/btn_volume" android:nextFocusLeft="@id/btn_pip" android:nextFocusUp="@id/menu_home"/>
+                <ImageView android:id="@+id/btn_pip" android:layout_width="22dp" android:layout_height="22dp" android:padding="2dp" android:layout_marginStart="16dp" android:src="@drawable/ic_pip" android:tint="@color/text_white" android:background="@drawable/icon_focus_selector" android:focusable="true" android:focusableInTouchMode="true" android:clickable="true" android:nextFocusRight="@id/btn_fullscreen" android:nextFocusUp="@id/menu_home"/>
+
             </LinearLayout>
 
             <HorizontalScrollView
