@@ -18,8 +18,6 @@ import com.dazou.iptvplayer.databinding.FragmentAccountsBinding
 import com.dazou.iptvplayer.model.XtreamServer
 import com.dazou.iptvplayer.viewmodel.LiveViewModel
 import com.dazou.iptvplayer.viewmodel.ViewModelFactory
-import org.json.JSONArray
-import org.json.JSONObject
 
 class AccountsFragment : Fragment() {
 
@@ -163,24 +161,14 @@ class AccountsFragment : Fragment() {
             .setTitle("تأكيد الحذف")
             .setMessage("هل أنت متأكد من حذف هذا الحساب؟")
             .setPositiveButton("نعم") { _, _ ->
-                // ✅ استخدام دالة AccountManager بدلاً من التكرار
                 accountManager.deleteAccount(position)
                 loadAccounts()
-                
-                // ✅ التحقق إذا كان الحساب النشط تم حذفه
-                val accounts = accountManager.getAccounts()
-                if (accounts.isNotEmpty() && accountManager.getActiveAccountIndex() >= accounts.size) {
-                    accountManager.setActiveAccount(0)
-                }
-                
                 refreshLiveChannels()
                 Toast.makeText(requireContext(), "🗑️ تم حذف الحساب", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("إلغاء", null)
             .show()
     }
-
-    // ✅ حذف الدالة المكررة saveAccountsList() لأن AccountManager يقوم بهذا الدور
 
     // ========== Helper Functions ==========
     private fun refreshLiveChannels() {
