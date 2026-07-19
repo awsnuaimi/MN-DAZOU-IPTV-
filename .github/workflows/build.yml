@@ -32,16 +32,18 @@ jobs:
       run: |
         echo "$KEYSTORE_BASE64" | base64 -d > app/dazou-release-key.jks
 
-    - name: Verify Keystore File
+    - name: Verify Keystore exists
       run: |
-        echo "حجم الملف بعد فك التشفير:"
-        ls -la app/dazou-release-key.jks
-        echo "---"
-        echo "التحقق من كلمة السر مباشرة:"
-        keytool -list -v -keystore app/dazou-release-key.jks -storepass "${{ secrets.KEYSTORE_PASSWORD }}" || echo "فشل التحقق من كلمة السر"
+        if [ -s app/dazou-release-key.jks ]; then
+          echo "✅ Keystore file exists:"
+          ls -la app/dazou-release-key.jks
+        else
+          echo "❌ Keystore file not found or empty"
+          exit 1
+        fi
 
     - name: Build Debug APK
-      run: gradle assembleDebug
+      run: ./gradlew assembleDebug
 
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
@@ -56,7 +58,7 @@ jobs:
         KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      run: gradle assembleRelease
+      run: ./gradlew assembleRelease
 
     - name: Upload Release APK (if built)
       if: always()

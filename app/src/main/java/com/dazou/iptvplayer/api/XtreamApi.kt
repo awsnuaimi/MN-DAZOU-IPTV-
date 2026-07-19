@@ -8,6 +8,7 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 import kotlin.concurrent.thread
 
 object XtreamAPI {
@@ -18,10 +19,14 @@ object XtreamAPI {
     var lastErrorMessage: String = ""
     var lastItemCount: Int = -1
 
+    // ترميز آمن لاسم المستخدم/كلمة المرور بالرابط (يمنع كسر الطلب لو فيها رموز خاصة)
+    private fun enc(value: String): String =
+        try { URLEncoder.encode(value, "UTF-8") } catch (_: Exception) { value }
+
     fun getLiveCategories(server: XtreamServer, callback: (List<XtreamCategory>) -> Unit) {
         thread {
             try {
-                val url = "${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_live_categories"
+                val url = "${server.url}/player_api.php?username=${enc(server.username)}&password=${enc(server.password)}&action=get_live_categories"
                 val json = fetchJson(url)
                 val categories = parseCategories(json)
                 runOnUiThread { callback(categories) }
@@ -36,7 +41,7 @@ object XtreamAPI {
     fun getLiveStreams(server: XtreamServer, categoryId: String? = null, callback: (List<XtreamChannel>) -> Unit) {
         thread {
             try {
-                var url = "${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_live_streams"
+                var url = "${server.url}/player_api.php?username=${enc(server.username)}&password=${enc(server.password)}&action=get_live_streams"
                 if (categoryId != null) url += "&category_id=$categoryId"
                 lastRequestUrl = url
                 val json = fetchJson(url)
@@ -59,7 +64,7 @@ object XtreamAPI {
     fun getVodCategories(server: XtreamServer, callback: (List<XtreamCategory>) -> Unit) {
         thread {
             try {
-                val url = "${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_vod_categories"
+                val url = "${server.url}/player_api.php?username=${enc(server.username)}&password=${enc(server.password)}&action=get_vod_categories"
                 val json = fetchJson(url)
                 val categories = parseCategories(json)
                 runOnUiThread { callback(categories) }
@@ -74,7 +79,7 @@ object XtreamAPI {
     fun getVodStreams(server: XtreamServer, categoryId: String? = null, callback: (List<XtreamMovie>) -> Unit) {
         thread {
             try {
-                var url = "${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_vod_streams"
+                var url = "${server.url}/player_api.php?username=${enc(server.username)}&password=${enc(server.password)}&action=get_vod_streams"
                 if (categoryId != null) url += "&category_id=$categoryId"
                 lastRequestUrl = url
                 val json = fetchJson(url)
@@ -94,10 +99,26 @@ object XtreamAPI {
         }
     }
 
+    // مصحَّحة: تجلب تصنيفات المسلسلات الحقيقية بدل تصنيفات الأفلام
+    fun getSeriesCategories(server: XtreamServer, callback: (List<XtreamCategory>) -> Unit) {
+        thread {
+            try {
+                val url = "${server.url}/player_api.php?username=${enc(server.username)}&password=${enc(server.password)}&action=get_series_categories"
+                val json = fetchJson(url)
+                val categories = parseCategories(json)
+                runOnUiThread { callback(categories) }
+            } catch (e: Exception) {
+                Log.e(TAG, "series categories error", e)
+                lastErrorMessage = e.message ?: "خطأ غير معروف"
+                runOnUiThread { callback(emptyList()) }
+            }
+        }
+    }
+
     fun getSeries(server: XtreamServer, categoryId: String? = null, callback: (List<XtreamSeries>) -> Unit) {
         thread {
             try {
-                var url = "${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_series"
+                var url = "${server.url}/player_api.php?username=${enc(server.username)}&password=${enc(server.password)}&action=get_series"
                 if (categoryId != null) url += "&category_id=$categoryId"
                 lastRequestUrl = url
                 val json = fetchJson(url)
@@ -120,7 +141,7 @@ object XtreamAPI {
     fun getSeriesInfo(server: XtreamServer, seriesId: Int, callback: (List<XtreamEpisode>) -> Unit) {
         thread {
             try {
-                val url = "${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_series_info&series_id=$seriesId"
+                val url = "${server.url}/player_api.php?username=${enc(server.username)}&password=${enc(server.password)}&action=get_series_info&series_id=$seriesId"
                 val json = fetchJson(url)
                 val episodes = parseEpisodes(json)
                 runOnUiThread { callback(episodes) }
@@ -138,7 +159,7 @@ object XtreamAPI {
     fun getShortEpg(server: XtreamServer, streamId: Int, callback: (List<XtreamEpgProgram>) -> Unit) {
         thread {
             try {
-                val url = "${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_short_epg&stream_id=$streamId"
+                val url = "${server.url}/player_api.php?username=${enc(server.username)}&password=${enc(server.password)}&action=get_short_epg&stream_id=$streamId"
                 lastEpgRequestUrl = url
                 val json = fetchJson(url)
                 lastEpgResponseBody = json.take(500)
@@ -155,13 +176,13 @@ object XtreamAPI {
     }
 
     fun getStreamUrl(server: XtreamServer, streamId: Int, extension: String = "ts", type: String = "live") =
-        "${server.url}/$type/${server.username}/${server.password}/$streamId.$extension"
+        "${server.url}/$type/${enc(server.username)}/${enc(server.password)}/$streamId.$extension"
 
     fun getMovieUrl(server: XtreamServer, streamId: Int, extension: String = "mp4") =
-        "${server.url}/movie/${server.username}/${server.password}/$streamId.$extension"
+        "${server.url}/movie/${enc(server.username)}/${enc(server.password)}/$streamId.$extension"
 
     fun getSeriesEpisodeUrl(server: XtreamServer, episodeId: Int, extension: String = "mp4") =
-        "${server.url}/series/${server.username}/${server.password}/$episodeId.$extension"
+        "${server.url}/series/${enc(server.username)}/${enc(server.password)}/$episodeId.$extension"
 
     private fun fetchJson(urlString: String): String {
         val conn = URL(urlString).openConnection() as HttpURLConnection

@@ -33,26 +33,38 @@ class AccountsFragment : Fragment() {
         accountManager = (requireActivity().application as App).container.accountManager
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
         _binding = FragmentAccountsBinding.inflate(inflater, container, false)
 
-        binding.rvAccounts.layoutManager = LinearLayoutManager(requireContext())
+        setupRecyclerView()
+        setupListeners()
+        loadAccounts()
 
+        return binding.root
+    }
+
+    // ========== Setup Functions ==========
+    private fun setupRecyclerView() {
+        binding.rvAccounts.layoutManager = LinearLayoutManager(requireContext())
         adapter = AccountsAdapter(
             onAccountClick = { account, position ->
                 showAccountOptionsDialog(account, position)
             }
         )
         binding.rvAccounts.adapter = adapter
+    }
 
+    private fun setupListeners() {
         binding.btnAddAccount.setOnClickListener {
             showAddAccountDialog()
         }
-
-        loadAccounts()
-        return binding.root
     }
 
+    // ========== Data Loading ==========
     private fun loadAccounts() {
         val accounts = accountManager.getAccounts()
         adapter.submitList(accounts)
@@ -60,7 +72,6 @@ class AccountsFragment : Fragment() {
         if (accounts.isEmpty()) {
             binding.tvNoAccounts.visibility = View.VISIBLE
             binding.rvAccounts.visibility = View.GONE
-            // طلب الفوكس مباشرة على زر الإضافة لأنه القائمة فاضية ومخفية
             binding.btnAddAccount.requestFocus()
         } else {
             binding.tvNoAccounts.visibility = View.GONE
@@ -68,13 +79,17 @@ class AccountsFragment : Fragment() {
         }
     }
 
+    // ========== Dialog Functions ==========
     private fun showAddAccountDialog() {
-        val scrollView = ScrollView(requireContext()).apply { setPadding(40, 40, 40, 40) }
+        val scrollView = ScrollView(requireContext()).apply {
+            setPadding(40, 40, 40, 40)
+        }
         val layout = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.parseColor("#1A1A35"))
         }
 
+        // Title
         layout.addView(TextView(requireContext()).apply {
             text = "⚙️ إضافة حساب Xtream"
             textSize = 18f
@@ -84,6 +99,7 @@ class AccountsFragment : Fragment() {
             setPadding(0, 0, 0, 24)
         })
 
+        // Input Fields
         val etUrl = createEditText("http://example.com:8080", "http://")
         val etUsername = createEditText("username", "")
         val etPassword = createEditText("password", "")
@@ -128,15 +144,18 @@ class AccountsFragment : Fragment() {
             .setTitle("${account.username} @ ${account.url}")
             .setItems(arrayOf("✅ تعيين كحساب نشط", "🗑️ حذف الحساب")) { _, which ->
                 when (which) {
-                    0 -> {
-                        accountManager.setActiveAccount(position)
-                        refreshLiveChannels()
-                        Toast.makeText(requireContext(), "✅ تم تعيين الحساب النشط", Toast.LENGTH_SHORT).show()
-                    }
+                    0 -> setActiveAccount(position)
                     1 -> deleteAccount(position)
                 }
             }
             .show()
+    }
+
+    // ========== Account Actions ==========
+    private fun setActiveAccount(position: Int) {
+        accountManager.setActiveAccount(position)
+        refreshLiveChannels()
+        Toast.makeText(requireContext(), "✅ تم تعيين الحساب النشط", Toast.LENGTH_SHORT).show()
     }
 
     private fun deleteAccount(position: Int) {
@@ -144,33 +163,34 @@ class AccountsFragment : Fragment() {
             .setTitle("تأكيد الحذف")
             .setMessage("هل أنت متأكد من حذف هذا الحساب؟")
             .setPositiveButton("نعم") { _, _ ->
-                val accounts = accountManager.getAccounts().toMutableList()
-                accounts.removeAt(position)
-                saveAccountsList(accounts)
+                // ✅ استخدام دالة AccountManager بدلاً من التكرار
+                accountManager.deleteAccount(position)
                 loadAccounts()
+                
+                // ✅ التحقق إذا كان الحساب النشط تم حذفه
+                val accounts = accountManager.getAccounts()
+                if (accounts.isNotEmpty() && accountManager.getActiveAccountIndex() >= accounts.size) {
+                    accountManager.setActiveAccount(0)
+                }
+                
+                refreshLiveChannels()
                 Toast.makeText(requireContext(), "🗑️ تم حذف الحساب", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("إلغاء", null)
             .show()
     }
 
-    private fun saveAccountsList(accounts: List<XtreamServer>) {
-        val json = JSONArray()
-        accounts.forEach {
-            val obj = JSONObject()
-            obj.put("url", it.url); obj.put("username", it.username); obj.put("password", it.password)
-            json.put(obj)
-        }
-        requireContext().getSharedPreferences("iptv_accounts", 0)
-            .edit().putString("accounts", json.toString()).apply()
-    }
+    // ✅ حذف الدالة المكررة saveAccountsList() لأن AccountManager يقوم بهذا الدور
 
+    // ========== Helper Functions ==========
     private fun refreshLiveChannels() {
         try {
             val app = requireActivity().application as App
             val repository = app.container.currentRepository
-            val viewModel = ViewModelProvider(requireActivity(), ViewModelFactory(repository))
-                .get(LiveViewModel::class.java)
+            val viewModel = ViewModelProvider(
+                requireActivity(),
+                ViewModelFactory(repository)
+            ).get(LiveViewModel::class.java)
             viewModel.loadCategories()
         } catch (e: Exception) {
             // تجاهل إذا لم يكن LiveFragment نشطاً
@@ -195,7 +215,10 @@ class AccountsFragment : Fragment() {
     }
 
     private fun createSpacer(height: Int) = View(requireContext()).apply {
-        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height)
+        layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            height
+        )
     }
 
     override fun onDestroyView() {

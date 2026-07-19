@@ -3,6 +3,7 @@ package com.dazou.iptvplayer.viewmodel
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModel
 import com.dazou.iptvplayer.data.XtreamRepository
 import com.dazou.iptvplayer.model.XtreamCategory
@@ -17,6 +18,21 @@ class LiveViewModel(private val repository: XtreamRepository?) : ViewModel() {
     private val _channels = MutableLiveData<List<XtreamChannel>>()
     val channels: LiveData<List<XtreamChannel>> get() = _channels
 
+    // مراقِبون ثابتون (نفس الكائن) — يُسجَّلون مرة واحدة فقط ويُزالون بشكل صحيح لاحقًا
+    private val categoriesObserver = Observer<List<XtreamCategory>> { cats ->
+        Log.d("LiveViewModel", "Categories received: ${cats.size}")
+        _categories.postValue(cats)
+    }
+    private val channelsObserver = Observer<List<XtreamChannel>> { ch ->
+        Log.d("LiveViewModel", "Channels received: ${ch.size}")
+        _channels.postValue(ch)
+    }
+
+    init {
+        repository?.liveCategories?.observeForever(categoriesObserver)
+        repository?.liveChannels?.observeForever(channelsObserver)
+    }
+
     fun loadCategories() {
         val repo = repository
         if (repo == null) {
@@ -25,10 +41,6 @@ class LiveViewModel(private val repository: XtreamRepository?) : ViewModel() {
             return
         }
         Log.d("LiveViewModel", "Loading categories from ${repo.server.url}")
-        repo.liveCategories.observeForever { cats ->
-            Log.d("LiveViewModel", "Categories received: ${cats.size}")
-            _categories.postValue(cats)
-        }
         repo.loadLiveCategories()
     }
 
@@ -38,10 +50,6 @@ class LiveViewModel(private val repository: XtreamRepository?) : ViewModel() {
             _channels.value = emptyList()
             return
         }
-        repo.liveChannels.observeForever { ch ->
-            Log.d("LiveViewModel", "Channels received: ${ch.size}")
-            _channels.postValue(ch)
-        }
         repo.loadLiveStreams(categoryId)
     }
 
@@ -49,7 +57,7 @@ class LiveViewModel(private val repository: XtreamRepository?) : ViewModel() {
 
     override fun onCleared() {
         super.onCleared()
-        repository?.liveCategories?.removeObserver { }
-        repository?.liveChannels?.removeObserver { }
+        repository?.liveCategories?.removeObserver(categoriesObserver)
+        repository?.liveChannels?.removeObserver(channelsObserver)
     }
 }
