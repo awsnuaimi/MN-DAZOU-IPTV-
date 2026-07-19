@@ -32,6 +32,9 @@ import com.dazou.iptvplayer.api.XtreamAPI
 import com.dazou.iptvplayer.databinding.ActivityMainBinding
 import com.dazou.iptvplayer.model.XtreamCategory
 import com.dazou.iptvplayer.model.XtreamChannel
+import android.app.PictureInPictureParams
+import android.content.res.Configuration
+import android.util.Rational
 import com.dazou.iptvplayer.player.PlayerCallback
 import com.dazou.iptvplayer.player.PlayerManager
 import com.dazou.iptvplayer.viewmodel.LiveViewModel
@@ -430,14 +433,44 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
     }
 
-    private val countryNames = mapOf(
-        "PL" to "بولندا", "SA" to "السعودية", "AE" to "الإمارات", "QA" to "قطر",
-        "KW" to "الكويت", "BH" to "البحرين", "OM" to "عُمان", "EG" to "مصر",
-        "LB" to "لبنان", "JO" to "الأردن", "SY" to "سوريا", "IQ" to "العراق",
-        "MA" to "المغرب", "TN" to "تونس", "DZ" to "الجزائر", "TR" to "تركيا",
-        "US" to "أمريكا", "UK" to "بريطانيا", "DE" to "ألمانيا", "FR" to "فرنسا",
-        "IT" to "إيطاليا", "ES" to "إسبانيا", "NL" to "هولندا", "RU" to "روسيا",
-        "IN" to "الهند", "PK" to "باكستان", "GR" to "اليونان", "PT" to "البرتغال"
+    private data class GroupOverride(val flag: String?, val name: String, val suppressFlag: Boolean = false)
+
+    private val groupOverrides = mapOf(
+        "AR" to GroupOverride(null, "عربي", suppressFlag = true),
+        "ARABIC" to GroupOverride(null, "عربي", suppressFlag = true),
+        "ALB" to GroupOverride("🇦🇱", "ألبانيا"),
+        "JAPAN" to GroupOverride("🇯🇵", "اليابان"),
+        "JP" to GroupOverride("🇯🇵", "اليابان"),
+        "PL" to GroupOverride("🇵🇱", "بولندا"),
+        "SA" to GroupOverride("🇸🇦", "السعودية"),
+        "AE" to GroupOverride("🇦🇪", "الإمارات"),
+        "UAE" to GroupOverride("🇦🇪", "الإمارات"),
+        "QA" to GroupOverride("🇶🇦", "قطر"),
+        "KW" to GroupOverride("🇰🇼", "الكويت"),
+        "BH" to GroupOverride("🇧🇭", "البحرين"),
+        "OM" to GroupOverride("🇴🇲", "عُمان"),
+        "EG" to GroupOverride("🇪🇬", "مصر"),
+        "LB" to GroupOverride("🇱🇧", "لبنان"),
+        "JO" to GroupOverride("🇯🇴", "الأردن"),
+        "SY" to GroupOverride("🇸🇾", "سوريا"),
+        "IQ" to GroupOverride("🇮🇶", "العراق"),
+        "MA" to GroupOverride("🇲🇦", "المغرب"),
+        "TN" to GroupOverride("🇹🇳", "تونس"),
+        "DZ" to GroupOverride("🇩🇿", "الجزائر"),
+        "TR" to GroupOverride("🇹🇷", "تركيا"),
+        "US" to GroupOverride("🇺🇸", "أمريكا"),
+        "USA" to GroupOverride("🇺🇸", "أمريكا"),
+        "UK" to GroupOverride("🇬🇧", "بريطانيا"),
+        "DE" to GroupOverride("🇩🇪", "ألمانيا"),
+        "FR" to GroupOverride("🇫🇷", "فرنسا"),
+        "IT" to GroupOverride("🇮🇹", "إيطاليا"),
+        "ES" to GroupOverride("🇪🇸", "إسبانيا"),
+        "NL" to GroupOverride("🇳🇱", "هولندا"),
+        "RU" to GroupOverride("🇷🇺", "روسيا"),
+        "IN" to GroupOverride("🇮🇳", "الهند"),
+        "PK" to GroupOverride("🇵🇰", "باكستان"),
+        "GR" to GroupOverride("🇬🇷", "اليونان"),
+        "PT" to GroupOverride("🇵🇹", "البرتغال")
     )
 
     private fun countryCodeToFlagEmoji(code: String): String? {
@@ -452,7 +485,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     }
 
     private fun buildDisplayCategories(categories: List<XtreamCategory>): List<XtreamCategory> {
-        val prefixRegex = Regex("^\\[([A-Za-z]{2,3})\\]")
+        val prefixRegex = Regex("^\\[([A-Za-z]{2,8})\\]")
         val groups = LinkedHashMap<String, MutableList<XtreamCategory>>()
         val ungrouped = mutableListOf<XtreamCategory>()
 
@@ -470,11 +503,17 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         val result = mutableListOf<XtreamCategory>()
         groups.forEach { (code, catsInGroup) ->
             if (catsInGroup.size >= 2) {
-                val flag = countryCodeToFlagEmoji(code)
-                val name = countryNames[code]
+                val override = groupOverrides[code]
+                val flag = when {
+                    override != null && override.suppressFlag -> null
+                    override != null -> override.flag
+                    else -> countryCodeToFlagEmoji(code)
+                }
+                val name = override?.name
                 val label = when {
                     flag != null && name != null -> "$flag $name"
                     flag != null -> "$flag $code"
+                    name != null -> "📁 $name"
                     else -> "📁 $code"
                 }
                 result.add(XtreamCategory("GROUP:$code", label, 0))
@@ -722,6 +761,11 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
         binding.btnFullscreen.onFocusChangeListener = focusShowListener
 
+        binding.btnPip.setOnClickListener {
+            enterPipMode()
+        }
+        binding.btnPip.onFocusChangeListener = focusShowListener
+
         binding.btnPrev.setOnClickListener {
             showControls()
             onPreviousChannel()
@@ -758,6 +802,56 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                 }
             }
         })
+    }
+
+    private fun enterPipMode() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            Toast.makeText(this, "الميزة غير مدعومة على هذا الجهاز", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (binding.videoPlayer.visibility != View.VISIBLE) return
+        val aspectRatio = Rational(16, 9)
+        val params = PictureInPictureParams.Builder()
+            .setAspectRatio(aspectRatio)
+            .build()
+        try {
+            enterPictureInPictureMode(params)
+        } catch (e: Exception) {
+            Toast.makeText(this, "تعذر تفعيل الصورة داخل الصورة", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            binding.videoPlayer.visibility == View.VISIBLE &&
+            playerManager.isPlaying
+        ) {
+            enterPipMode()
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        if (isInPictureInPictureMode) {
+            binding.topBar.visibility = View.GONE
+            binding.sidebar.visibility = View.GONE
+            binding.channelsPanel.visibility = View.GONE
+            binding.liveEpgPanel.visibility = View.GONE
+            binding.fragmentContainer.visibility = View.GONE
+            binding.playerControls.visibility = View.GONE
+            binding.channelInfo.visibility = View.GONE
+        } else {
+            binding.playerControls.visibility = View.VISIBLE
+            binding.channelInfo.visibility = View.VISIBLE
+            if (supportFragmentManager.findFragmentById(binding.fragmentContainer.id) != null) {
+                binding.fragmentContainer.visibility = View.VISIBLE
+            } else {
+                binding.topBar.visibility = View.VISIBLE
+                binding.sidebar.visibility = View.VISIBLE
+                binding.liveEpgPanel.visibility = View.VISIBLE
+            }
+        }
     }
 
     private fun toggleMute() {
