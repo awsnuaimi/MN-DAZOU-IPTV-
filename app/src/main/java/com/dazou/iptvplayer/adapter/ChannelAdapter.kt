@@ -17,6 +17,8 @@ import com.dazou.iptvplayer.utils.FocusAnimator
 class ChannelAdapter(
     private val channels: List<XtreamChannel>,
     private val favoritesManager: FavoritesManager,
+    private val leftFocusTargetId: Int? = null,
+    private val rightFocusTargetId: Int? = null,
     private val onChannelClick: (XtreamChannel) -> Unit
 ) : RecyclerView.Adapter<ChannelAdapter.ViewHolder>() {
 
@@ -30,6 +32,11 @@ class ChannelAdapter(
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_channel, parent, false)
         FocusAnimator.attach(view)
+
+        // ✅ توجيه فوكس صريح لكل قناة، يمنع القفز العشوائي بين اللوحات
+        leftFocusTargetId?.let { view.nextFocusLeftId = it }
+        rightFocusTargetId?.let { view.nextFocusRightId = it }
+
         return ViewHolder(view)
     }
 

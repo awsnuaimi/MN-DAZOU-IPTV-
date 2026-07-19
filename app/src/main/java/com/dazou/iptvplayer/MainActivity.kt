@@ -53,7 +53,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     private var pendingGroupCode: String? = null
     private val categoryGroupMap = mutableMapOf<String, List<String>>()
 
-    // ✅ لتتبع العنصر المُشغَّل حاليًا لأجل حفظ تقدّم المشاهدة (أفلام/مسلسلات فقط، مو البث المباشر)
     private var currentPlayingType: String = ""
     private var currentPlayingId: Int = -1
 
@@ -94,7 +93,9 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                 Toast.makeText(this, "لا توجد مجموعات – تأكد من الحساب", Toast.LENGTH_LONG).show()
             }
             val displayCategories = CategoryGrouper.buildDisplayCategories(categories, categoryGroupMap)
-            binding.categoryList.adapter = CategoryAdapter(displayCategories) { category -> openCategory(category) }
+            binding.categoryList.adapter = CategoryAdapter(displayCategories, R.id.channel_list) { category ->
+                openCategory(category)
+            }
 
             val code = pendingGroupCode
             if (code != null) {
@@ -171,10 +172,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
     }
 
-    /**
-     * نقطة الدخول لتشغيل فيلم/مسلسل من خارج شاشة البث المباشر.
-     * ✅ itemId اختياري: لو انمرر (فيلم أو مسلسل)، بنتحقق من وجود نقطة استكمال محفوظة ونعرضها بحوار قبل التشغيل.
-     */
     fun playExternalMedia(url: String, name: String, type: String, itemId: Int = -1) {
         binding.videoPlayer.visibility = View.VISIBLE
         binding.channelInfo.visibility = View.VISIBLE
@@ -223,10 +220,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         return if (h > 0) String.format("%d:%02d:%02d", h, m, s) else String.format("%02d:%02d", m, s)
     }
 
-    /**
-     * ✅ يحفظ موقع التشغيل الحالي دوريًا (كل 5 ثواني) طالما فيه فيلم/مسلسل شغّال —
-     * البث المباشر مستثنى لأنه ما يحتاج استكمال.
-     */
     private fun startProgressTracking() {
         val runnable = object : Runnable {
             override fun run() {
@@ -340,9 +333,19 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     private fun applyChannelResults(channels: List<XtreamChannel>) {
         currentChannelList = channels
-        binding.channelList.adapter = ChannelAdapter(channels, (application as App).container.favoritesManager) { channel ->
+        binding.channelList.adapter = ChannelAdapter(
+            channels,
+            (application as App).container.favoritesManager,
+            R.id.category_list,
+            R.id.btn_play_pause
+        ) { channel ->
             val index = channels.indexOf(channel)
-            playChannelAt(index)
+            // ✅ ضغطة على القناة الشغّالة أصلاً حاليًا = تكبير مباشر لملء الشاشة
+            if (index == currentChannelIndex && playerManager.isPlaying) {
+                toggleFullscreen()
+            } else {
+                playChannelAt(index)
+            }
         }
         val pendingId = pendingAutoPlayChannelId
         if (pendingId != null) {
