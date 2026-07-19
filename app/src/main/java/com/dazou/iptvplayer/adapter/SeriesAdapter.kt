@@ -12,6 +12,7 @@ import com.dazou.iptvplayer.R
 import com.dazou.iptvplayer.data.FavoritesManager
 import com.dazou.iptvplayer.model.FavoriteItem
 import com.dazou.iptvplayer.model.XtreamSeries
+import com.dazou.iptvplayer.utils.FocusAnimator
 
 class SeriesAdapter(
     private val seriesList: List<XtreamSeries>,
@@ -28,6 +29,7 @@ class SeriesAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_series, parent, false)
+        FocusAnimator.attach(view)
         return ViewHolder(view)
     }
 

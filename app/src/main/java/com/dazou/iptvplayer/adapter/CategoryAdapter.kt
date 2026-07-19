@@ -8,6 +8,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.dazou.iptvplayer.R
 import com.dazou.iptvplayer.model.XtreamCategory
+import com.dazou.iptvplayer.utils.FocusAnimator
 
 class CategoryAdapter(
     private val categories: List<XtreamCategory>,
@@ -26,6 +27,7 @@ class CategoryAdapter(
         view.isFocusableInTouchMode = true
         view.isClickable = true
         view.setBackgroundResource(R.drawable.tv_button_selector)
+        FocusAnimator.attach(view)
 
         val textView = view.findViewById<TextView>(android.R.id.text1)
         textView.setTextColor(ContextCompat.getColor(parent.context, R.color.text_white))

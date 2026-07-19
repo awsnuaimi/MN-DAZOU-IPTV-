@@ -612,12 +612,11 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        if (fullscreen) {
-            toggleFullscreen()
-        } else if (binding.channelsPanel.visibility == View.VISIBLE) {
-            hideChannelsPanel()
-        } else {
-            super.onBackPressed()
+        when {
+            fullscreen -> toggleFullscreen()
+            binding.channelsPanel.visibility == View.VISIBLE -> hideChannelsPanel()
+            binding.fragmentContainer.visibility == View.VISIBLE -> goToHome()
+            else -> super.onBackPressed()
         }
     }
 
