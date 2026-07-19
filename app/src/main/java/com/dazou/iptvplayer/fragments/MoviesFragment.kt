@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
@@ -57,9 +58,7 @@ class MoviesFragment : Fragment() {
 
             if (!hasRequestedInitialFocus && categories.isNotEmpty()) {
                 hasRequestedInitialFocus = true
-                binding.rvMovieCategories.post {
-                    binding.rvMovieCategories.requestFocus()
-                }
+                requestFocusWhenReady(binding.rvMovieCategories)
             }
         }
 
@@ -72,6 +71,24 @@ class MoviesFragment : Fragment() {
         }
 
         moviesViewModel.loadCategories()
+    }
+
+    /**
+     * يطلب الفوكس بشكل مضمون التوقيت: لو الشاشة خلصت ترتيبها (layout) فعليًا يطلب الفوكس فورًا،
+     * وإلا ينتظر حدث اكتمال الترتيب بالضبط قبل ما يطلبه — عشان يتجنب فشل requestFocus() الصامت
+     * لما يُستدعى قبل ما تصير للـ View أبعاد فعلية على الشاشة.
+     */
+    private fun requestFocusWhenReady(view: View) {
+        if (view.isLaidOut && view.width > 0 && view.height > 0) {
+            view.requestFocus()
+        } else {
+            view.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+                override fun onGlobalLayout() {
+                    view.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    view.requestFocus()
+                }
+            })
+        }
     }
 
     private fun openCategory(category: XtreamCategory) {
