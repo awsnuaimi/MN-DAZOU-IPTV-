@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
+import android.widget.SeekBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
@@ -36,14 +37,26 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     private var fullscreen = false
     private var currentChannelName = ""
+    private var currentType = "live"
     private var wasPlayingBeforeBackground = false
     private var lastCategories: List<XtreamCategory> = emptyList()
     private var currentChannelList: List<XtreamChannel> = emptyList()
     private var currentChannelIndex: Int = -1
     private var wasChannelsPanelOpenBeforeFullscreen = false
+    private var isMuted = false
+    private var currentCategoryId: String? = null
+    private var currentCategoryName: String = ""
+    private var pendingAutoPlayChannelId: Int? = null
 
     private val clockHandler = Handler(Looper.getMainLooper())
     private var clockRunnable: Runnable? = null
+
+    private val controlsHandler = Handler(Looper.getMainLooper())
+    private var controlsRunnable: Runnable? = null
+
+    private val seekHandler = Handler(Looper.getMainLooper())
+    private var seekRunnable: Runnable? = null
+    private var userSeeking = false
 
     private lateinit var connectivityManager: ConnectivityManager
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
@@ -77,6 +90,12 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                 val index = channels.indexOf(channel)
                 playChannelAt(index)
             }
+            val pendingId = pendingAutoPlayChannelId
+            if (pendingId != null) {
+                pendingAutoPlayChannelId = null
+                val index = channels.indexOfFirst { it.streamId == pendingId }
+                if (index >= 0) playChannelAt(index)
+            }
         }
 
         binding.channelsPanelBack.setOnClickListener {
@@ -89,16 +108,52 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         setupPlayerErrorHandling()
         setupControls()
         setupMenu()
+        startSeekUpdater()
 
         val hasAccount = app.container.accountManager.getActiveAccount() != null
 
         if (hasAccount) {
             showMainUi()
-            showCategories()
+            restoreLastSessionOrShowCategories()
             binding.menuHome.requestFocus()
         } else {
             showLoginUi()
             loadFragment(LoginFragment())
+        }
+    }
+
+    private fun savePlaybackState(channel: XtreamChannel) {
+        val prefs = getSharedPreferences("dazou_prefs", MODE_PRIVATE)
+        prefs.edit()
+            .putString("last_category_id", currentCategoryId)
+            .putString("last_category_name", currentCategoryName)
+            .putInt("last_channel_id", channel.streamId)
+            .apply()
+    }
+
+    private fun restoreLastSessionOrShowCategories() {
+        clearContentFragment()
+        binding.sidebar.visibility = View.VISIBLE
+        binding.videoPlayer.visibility = View.VISIBLE
+        binding.channelInfo.visibility = View.VISIBLE
+        binding.playerControls.visibility = View.VISIBLE
+        binding.liveEpgPanel.visibility = View.VISIBLE
+        if (lastCategories.isEmpty()) {
+            liveViewModel.loadCategories()
+        }
+
+        val prefs = getSharedPreferences("dazou_prefs", MODE_PRIVATE)
+        val savedCategoryId = prefs.getString("last_category_id", null)
+        val savedCategoryName = prefs.getString("last_category_name", null)
+        val savedChannelId = prefs.getInt("last_channel_id", -1)
+
+        if (savedCategoryId != null && savedChannelId != -1) {
+            currentCategoryId = savedCategoryId
+            currentCategoryName = savedCategoryName ?: ""
+            pendingAutoPlayChannelId = savedChannelId
+            binding.channelsPanelTitle.text = currentCategoryName
+            binding.channelsPanel.visibility = View.VISIBLE
+            liveViewModel.loadChannels(savedCategoryId)
         }
     }
 
@@ -150,6 +205,55 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     private fun formatEpgTime(timestamp: Long): String {
         val sdf = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
         return sdf.format(java.util.Date(timestamp * 1000))
+    }
+
+    private fun formatDuration(ms: Long): String {
+        if (ms < 0) return "00:00"
+        val totalSec = ms / 1000
+        val h = totalSec / 3600
+        val m = (totalSec % 3600) / 60
+        val s = totalSec % 60
+        return if (h > 0) String.format("%d:%02d:%02d", h, m, s) else String.format("%02d:%02d", m, s)
+    }
+
+    private fun showControls() {
+        binding.playerControls.visibility = View.VISIBLE
+        controlsRunnable?.let { controlsHandler.removeCallbacks(it) }
+        val runnable = Runnable {
+            if (!binding.playerControls.hasFocus()) {
+                binding.playerControls.visibility = View.INVISIBLE
+            } else {
+                showControls()
+            }
+        }
+        controlsRunnable = runnable
+        controlsHandler.postDelayed(runnable, 4500)
+    }
+
+    private fun startSeekUpdater() {
+        val runnable = object : Runnable {
+            override fun run() {
+                if (currentType != "live" && !userSeeking && playerManager.player.duration > 0) {
+                    val pos = playerManager.player.currentPosition
+                    val dur = playerManager.player.duration
+                    val progress = ((pos.toFloat() / dur.toFloat()) * 1000).toInt()
+                    binding.seekBar.progress = progress
+                    binding.tvElapsed.text = formatDuration(pos)
+                    binding.tvDuration.text = formatDuration(dur)
+                }
+                seekHandler.postDelayed(this, 500)
+            }
+        }
+        seekRunnable = runnable
+        seekHandler.post(runnable)
+    }
+
+    private fun updateMediaTypeUi() {
+        val isLive = currentType == "live"
+        binding.liveBadge.visibility = if (isLive) View.VISIBLE else View.GONE
+        binding.seekBar.visibility = if (isLive) View.GONE else View.VISIBLE
+        binding.tvElapsed.visibility = if (isLive) View.GONE else View.VISIBLE
+        binding.tvDuration.visibility = if (isLive) View.GONE else View.VISIBLE
     }
 
     private fun setupWifiStatus() {
@@ -222,6 +326,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     }
 
     private fun openCategory(category: XtreamCategory) {
+        currentCategoryId = category.categoryId
+        currentCategoryName = category.categoryName
         binding.channelsPanelTitle.text = category.categoryName
         binding.channelsPanel.visibility = View.VISIBLE
         liveViewModel.loadChannels(category.categoryId)
@@ -243,6 +349,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         val url = XtreamAPI.getStreamUrl(server, channel.streamId, channel.containerExtension, "live")
         playStream(url, channel.name, "live")
         updateNowPlayingPanel(channel)
+        savePlaybackState(channel)
     }
 
     fun goToHome() {
@@ -273,6 +380,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         playerManager.player.addListener(object : Player.Listener {
 
             override fun onPlayerError(error: PlaybackException) {
+                binding.playerLoading.visibility = View.GONE
                 val isNetworkError = error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
                     error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT ||
                     error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS
@@ -299,14 +407,21 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
             override fun onPlaybackStateChanged(state: Int) {
                 when (state) {
-                    Player.STATE_BUFFERING -> binding.channelInfo.text = "⏳ جاري التحميل..."
+                    Player.STATE_BUFFERING -> {
+                        binding.channelInfo.text = "⏳ جاري التحميل..."
+                        binding.playerLoading.visibility = View.VISIBLE
+                    }
                     Player.STATE_READY -> {
                         playerManager.resetRetry()
+                        binding.playerLoading.visibility = View.GONE
                         if (currentChannelName.isNotEmpty()) {
                             binding.channelInfo.text = "📺 $currentChannelName"
                         } else {
                             binding.channelInfo.text = ""
                         }
+                    }
+                    Player.STATE_ENDED -> {
+                        binding.playerLoading.visibility = View.GONE
                     }
                 }
             }
@@ -315,8 +430,10 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     private fun setupControls(){
 
-        binding.btnPlayPause.setOnClickListener {
+        val focusShowListener = View.OnFocusChangeListener { _, hasFocus -> if (hasFocus) showControls() }
 
+        binding.btnPlayPause.setOnClickListener {
+            showControls()
             if(playerManager.isPlaying){
                 playerManager.pause()
                 binding.btnPlayPause.setImageResource(R.drawable.ic_play_small)
@@ -324,20 +441,57 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                 playerManager.resume()
                 binding.btnPlayPause.setImageResource(R.drawable.ic_pause)
             }
-
         }
+        binding.btnPlayPause.onFocusChangeListener = focusShowListener
 
         binding.btnFullscreen.setOnClickListener {
+            showControls()
             toggleFullscreen()
         }
+        binding.btnFullscreen.onFocusChangeListener = focusShowListener
 
         binding.btnPrev.setOnClickListener {
+            showControls()
             onPreviousChannel()
         }
+        binding.btnPrev.onFocusChangeListener = focusShowListener
 
         binding.btnNext.setOnClickListener {
+            showControls()
             onNextChannel()
         }
+        binding.btnNext.onFocusChangeListener = focusShowListener
+
+        binding.btnVolume.setOnClickListener {
+            showControls()
+            toggleMute()
+        }
+        binding.btnVolume.onFocusChangeListener = focusShowListener
+
+        binding.videoPlayer.setOnClickListener {
+            showControls()
+        }
+
+        binding.seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                showControls()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) { userSeeking = true }
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                userSeeking = false
+                val dur = playerManager.player.duration
+                if (dur > 0 && seekBar != null) {
+                    val target = (dur * (seekBar.progress.toFloat() / 1000f)).toLong()
+                    playerManager.player.seekTo(target)
+                }
+            }
+        })
+    }
+
+    private fun toggleMute() {
+        isMuted = !isMuted
+        playerManager.player.volume = if (isMuted) 0f else 1f
+        binding.btnVolume.setImageResource(if (isMuted) R.drawable.ic_volume_off else R.drawable.ic_volume_on)
     }
 
     private fun toggleFullscreen() {
@@ -351,6 +505,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             binding.channelsPanel.visibility = View.GONE
             binding.liveEpgPanel.visibility = View.GONE
             binding.fragmentContainer.visibility = View.GONE
+            binding.btnFullscreen.setImageResource(R.drawable.ic_fullscreen_exit)
 
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = (
@@ -361,6 +516,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         } else {
             binding.topBar.visibility = View.VISIBLE
             binding.sidebar.visibility = View.VISIBLE
+            binding.btnFullscreen.setImageResource(R.drawable.ic_fullscreen_enter)
             if (wasChannelsPanelOpenBeforeFullscreen) {
                 binding.channelsPanel.visibility = View.VISIBLE
             }
@@ -412,10 +568,12 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     override fun playStream(url:String, name:String, type:String){
         currentChannelName = name
+        currentType = type
         playerManager.play(url, name, type)
         binding.channelInfo.text = "📺 $name"
         binding.btnPlayPause.setImageResource(R.drawable.ic_pause)
-        binding.btnPlayPause.requestFocus()
+        updateMediaTypeUi()
+        showControls()
     }
 
     override fun onNextChannel(){
@@ -448,6 +606,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     override fun onDestroy(){
         clockRunnable?.let { clockHandler.removeCallbacks(it) }
+        controlsRunnable?.let { controlsHandler.removeCallbacks(it) }
+        seekRunnable?.let { seekHandler.removeCallbacks(it) }
         networkCallback?.let {
             try { connectivityManager.unregisterNetworkCallback(it) } catch (_: Exception) {}
         }
