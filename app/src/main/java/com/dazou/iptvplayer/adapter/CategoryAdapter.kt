@@ -25,7 +25,7 @@ class CategoryAdapter(
         view.isFocusable = true
         view.isFocusableInTouchMode = true
         view.isClickable = true
-        view.setBackgroundResource(android.R.drawable.list_selector_background)
+        view.setBackgroundResource(R.drawable.tv_button_selector)
 
         val textView = view.findViewById<TextView>(android.R.id.text1)
         textView.setTextColor(ContextCompat.getColor(parent.context, R.color.text_white))

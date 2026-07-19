@@ -26,6 +26,7 @@ class MoviesFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var moviesViewModel: MoviesViewModel
+    private var hasRequestedInitialFocus = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -52,6 +53,13 @@ class MoviesFragment : Fragment() {
             }
             binding.rvMovieCategories.adapter = CategoryAdapter(categories) { category ->
                 openCategory(category)
+            }
+
+            if (!hasRequestedInitialFocus && categories.isNotEmpty()) {
+                hasRequestedInitialFocus = true
+                binding.rvMovieCategories.post {
+                    binding.rvMovieCategories.requestFocus()
+                }
             }
         }
 

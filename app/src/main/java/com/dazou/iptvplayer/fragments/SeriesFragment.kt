@@ -28,6 +28,7 @@ class SeriesFragment : Fragment() {
 
     private lateinit var seriesViewModel: SeriesViewModel
     private var selectedSeries: XtreamSeries? = null
+    private var hasRequestedInitialFocus = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -54,6 +55,13 @@ class SeriesFragment : Fragment() {
             }
             binding.rvSeriesCategories.adapter = CategoryAdapter(categories) { category ->
                 openCategory(category)
+            }
+
+            if (!hasRequestedInitialFocus && categories.isNotEmpty()) {
+                hasRequestedInitialFocus = true
+                binding.rvSeriesCategories.post {
+                    binding.rvSeriesCategories.requestFocus()
+                }
             }
         }
 
