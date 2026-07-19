@@ -18,6 +18,7 @@ import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import com.bumptech.glide.Glide
 import androidx.fragment.app.Fragment
@@ -55,6 +56,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     private var currentCategoryId: String? = null
     private var currentCategoryName: String = ""
     private var pendingAutoPlayChannelId: Int? = null
+    private var pendingGroupCode: String? = null
+    private val categoryGroupMap = mutableMapOf<String, List<String>>()
 
     private val clockHandler = Handler(Looper.getMainLooper())
     private var clockRunnable: Runnable? = null
@@ -89,23 +92,19 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             if (categories.isEmpty()) {
                 Toast.makeText(this, "لا توجد مجموعات – تأكد من الحساب", Toast.LENGTH_LONG).show()
             }
-            binding.categoryList.adapter = CategoryAdapter(categories) { category -> openCategory(category) }
+            val displayCategories = buildDisplayCategories(categories)
+            binding.categoryList.adapter = CategoryAdapter(displayCategories) { category -> openCategory(category) }
+
+            val code = pendingGroupCode
+            if (code != null) {
+                pendingGroupCode = null
+                val ids = categoryGroupMap[code] ?: emptyList()
+                loadMergedChannels(ids) { merged -> applyChannelResults(merged) }
+            }
         }
 
         liveViewModel.channels.observe(this) { channels ->
-            currentChannelList = channels
-            binding.channelList.adapter = ChannelAdapter(channels) { channel ->
-                val index = channels.indexOf(channel)
-                playChannelAt(index)
-            }
-            val pendingId = pendingAutoPlayChannelId
-            if (pendingId != null) {
-                pendingAutoPlayChannelId = null
-                val index = channels.indexOfFirst { it.streamId == pendingId }
-                if (index >= 0) playChannelAt(index)
-            } else {
-                buildChannelStrip()
-            }
+            applyChannelResults(channels)
         }
 
         binding.channelsPanelBack.setOnClickListener {
@@ -114,6 +113,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
         startClock()
         setupWifiStatus()
+        setupThemeToggle()
 
         setupPlayerErrorHandling()
         setupControls()
@@ -131,8 +131,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             loadFragment(LoginFragment())
         }
     }
-
-    // ===================== حفظ واسترجاع آخر مجموعة/قناة =====================
 
     private fun savePlaybackState(channel: XtreamChannel) {
         val prefs = getSharedPreferences("dazou_prefs", MODE_PRIVATE)
@@ -165,7 +163,12 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             pendingAutoPlayChannelId = savedChannelId
             binding.channelsPanelTitle.text = currentCategoryName
             binding.channelsPanel.visibility = View.VISIBLE
-            liveViewModel.loadChannels(savedCategoryId)
+
+            if (savedCategoryId.startsWith("GROUP:")) {
+                pendingGroupCode = savedCategoryId.removePrefix("GROUP:")
+            } else {
+                liveViewModel.loadChannels(savedCategoryId)
+            }
         }
     }
 
@@ -237,8 +240,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         return if (h > 0) String.format("%d:%02d:%02d", h, m, s) else String.format("%02d:%02d", m, s)
     }
 
-    // ===================== شريط التحكم: إخفاء/إظهار تلقائي =====================
-
     private fun showControls() {
         binding.playerControls.visibility = View.VISIBLE
         controlsRunnable?.let { controlsHandler.removeCallbacks(it) }
@@ -250,7 +251,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         controlsHandler.postDelayed(runnable, 5000)
     }
 
-    /** يلتقط زر تبديل القناة الفعلي بالريموت (P+ / P-) بالإضافة لأي مفتاح آخر لإظهار شريط التحكم */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN && binding.videoPlayer.visibility == View.VISIBLE) {
             when (event.keyCode) {
@@ -302,8 +302,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.btnPlayPause.requestFocus()
     }
 
-    // ===================== شريط التقدم (للأفلام/المسلسلات) =====================
-
     private fun startSeekUpdater() {
         val runnable = object : Runnable {
             override fun run() {
@@ -332,8 +330,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             binding.channelStripScroll.visibility = View.GONE
         }
     }
-
-    // ===================== شريط القنوات المجاورة داخل لوحة التحكم =====================
 
     private fun buildChannelStrip() {
         binding.channelStripTrack.removeAllViews()
@@ -398,7 +394,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             cells.add(cell)
         }
 
-        // ربط التنقل بالأسهم يمين/يسار بين خلايا الشريط (RTL: أول عنصر = أقصى اليمين)
         for (i in cells.indices) {
             if (i > 0) cells[i].nextFocusRightId = cells[i - 1].id
             if (i < cells.size - 1) cells[i].nextFocusLeftId = cells[i + 1].id
@@ -413,11 +408,115 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             binding.btnFullscreen.nextFocusDownId = currentCellId
         }
 
-        // تمرير الشريط ليصبح المؤشر الحالي بالمنتصف تقريبًا
         binding.channelStripScroll.post {
             val cellWidth = dp(76)
             val scrollX = (currentChannelIndex * cellWidth) - (binding.channelStripScroll.width / 2) + (cellWidth / 2)
             binding.channelStripScroll.smoothScrollTo(scrollX.coerceAtLeast(0), 0)
+        }
+    }
+
+    private fun setupThemeToggle() {
+        val prefs = getSharedPreferences("dazou_prefs", MODE_PRIVATE)
+        val isLight = prefs.getBoolean("is_light_theme", false)
+        binding.themeToggle.setImageResource(if (isLight) R.drawable.ic_theme_light else R.drawable.ic_theme_dark)
+
+        binding.themeToggle.setOnClickListener {
+            val newIsLight = !prefs.getBoolean("is_light_theme", false)
+            prefs.edit().putBoolean("is_light_theme", newIsLight).apply()
+            AppCompatDelegate.setDefaultNightMode(
+                if (newIsLight) AppCompatDelegate.MODE_NIGHT_NO else AppCompatDelegate.MODE_NIGHT_YES
+            )
+            recreate()
+        }
+    }
+
+    private val countryNames = mapOf(
+        "PL" to "بولندا", "SA" to "السعودية", "AE" to "الإمارات", "QA" to "قطر",
+        "KW" to "الكويت", "BH" to "البحرين", "OM" to "عُمان", "EG" to "مصر",
+        "LB" to "لبنان", "JO" to "الأردن", "SY" to "سوريا", "IQ" to "العراق",
+        "MA" to "المغرب", "TN" to "تونس", "DZ" to "الجزائر", "TR" to "تركيا",
+        "US" to "أمريكا", "UK" to "بريطانيا", "DE" to "ألمانيا", "FR" to "فرنسا",
+        "IT" to "إيطاليا", "ES" to "إسبانيا", "NL" to "هولندا", "RU" to "روسيا",
+        "IN" to "الهند", "PK" to "باكستان", "GR" to "اليونان", "PT" to "البرتغال"
+    )
+
+    private fun countryCodeToFlagEmoji(code: String): String? {
+        if (code.length != 2) return null
+        val c1 = code[0].uppercaseChar()
+        val c2 = code[1].uppercaseChar()
+        if (c1 !in 'A'..'Z' || c2 !in 'A'..'Z') return null
+        val base = 0x1F1E6 - 'A'.code
+        return try {
+            String(Character.toChars(base + c1.code)) + String(Character.toChars(base + c2.code))
+        } catch (e: Exception) { null }
+    }
+
+    private fun buildDisplayCategories(categories: List<XtreamCategory>): List<XtreamCategory> {
+        val prefixRegex = Regex("^\\[([A-Za-z]{2,3})\\]")
+        val groups = LinkedHashMap<String, MutableList<XtreamCategory>>()
+        val ungrouped = mutableListOf<XtreamCategory>()
+
+        categories.forEach { cat ->
+            val match = prefixRegex.find(cat.categoryName.trim())
+            if (match != null) {
+                val code = match.groupValues[1].uppercase()
+                groups.getOrPut(code) { mutableListOf() }.add(cat)
+            } else {
+                ungrouped.add(cat)
+            }
+        }
+
+        categoryGroupMap.clear()
+        val result = mutableListOf<XtreamCategory>()
+        groups.forEach { (code, catsInGroup) ->
+            if (catsInGroup.size >= 2) {
+                val flag = countryCodeToFlagEmoji(code)
+                val name = countryNames[code]
+                val label = when {
+                    flag != null && name != null -> "$flag $name"
+                    flag != null -> "$flag $code"
+                    else -> "📁 $code"
+                }
+                result.add(XtreamCategory("GROUP:$code", label, 0))
+                categoryGroupMap[code] = catsInGroup.map { it.categoryId }
+            } else {
+                result.addAll(catsInGroup)
+            }
+        }
+        result.addAll(ungrouped)
+        return result
+    }
+
+    private fun loadMergedChannels(categoryIds: List<String>, onComplete: (List<XtreamChannel>) -> Unit) {
+        val server = liveViewModel.getServer()
+        if (server == null || categoryIds.isEmpty()) {
+            onComplete(emptyList())
+            return
+        }
+        val combined = mutableListOf<XtreamChannel>()
+        var remaining = categoryIds.size
+        categoryIds.forEach { catId ->
+            XtreamAPI.getLiveStreams(server, catId) { channels ->
+                combined.addAll(channels)
+                remaining--
+                if (remaining <= 0) onComplete(combined)
+            }
+        }
+    }
+
+    private fun applyChannelResults(channels: List<XtreamChannel>) {
+        currentChannelList = channels
+        binding.channelList.adapter = ChannelAdapter(channels) { channel ->
+            val index = channels.indexOf(channel)
+            playChannelAt(index)
+        }
+        val pendingId = pendingAutoPlayChannelId
+        if (pendingId != null) {
+            pendingAutoPlayChannelId = null
+            val index = channels.indexOfFirst { it.streamId == pendingId }
+            if (index >= 0) playChannelAt(index)
+        } else {
+            buildChannelStrip()
         }
     }
 
@@ -495,7 +594,14 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         currentCategoryName = category.categoryName
         binding.channelsPanelTitle.text = category.categoryName
         binding.channelsPanel.visibility = View.VISIBLE
-        liveViewModel.loadChannels(category.categoryId)
+
+        if (category.categoryId.startsWith("GROUP:")) {
+            val code = category.categoryId.removePrefix("GROUP:")
+            val ids = categoryGroupMap[code] ?: emptyList()
+            loadMergedChannels(ids) { merged -> applyChannelResults(merged) }
+        } else {
+            liveViewModel.loadChannels(category.categoryId)
+        }
     }
 
     private fun hideChannelsPanel() {
