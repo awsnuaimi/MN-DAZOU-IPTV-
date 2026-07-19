@@ -40,6 +40,7 @@
         android:focusable="true"
         android:focusableInTouchMode="true"
         android:descendantFocusability="afterDescendants"
+        android:nextFocusUp="@id/menu_home"
         android:visibility="gone" />
 
     <TextView
@@ -61,5 +62,6 @@
         android:layout_weight="1"
         android:focusable="true"
         android:focusableInTouchMode="true"
-        android:descendantFocusability="afterDescendants" />
+        android:descendantFocusability="afterDescendants"
+        android:nextFocusUp="@id/menu_home" />
 </LinearLayout>

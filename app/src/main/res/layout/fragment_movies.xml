@@ -28,7 +28,8 @@
             android:layout_weight="1"
             android:focusable="true"
             android:focusableInTouchMode="true"
-            android:descendantFocusability="afterDescendants"/>
+            android:descendantFocusability="afterDescendants"
+            android:nextFocusUp="@id/menu_movies"/>
     </LinearLayout>
 
     <LinearLayout
@@ -37,6 +38,19 @@
         android:layout_weight="1"
         android:orientation="vertical"
         android:padding="8dp">
+
+        <EditText
+            android:id="@+id/etSearchMovies"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="🔍 ابحث عن فيلم..."
+            android:textColorHint="@color/text_gray"
+            android:textColor="@color/text_white"
+            android:background="@drawable/bg_input_field_selector"
+            android:padding="10dp"
+            android:singleLine="true"
+            android:imeOptions="actionSearch"
+            android:nextFocusUp="@id/menu_movies"/>
 
         <TextView
             android:id="@+id/tvMoviesStatus"

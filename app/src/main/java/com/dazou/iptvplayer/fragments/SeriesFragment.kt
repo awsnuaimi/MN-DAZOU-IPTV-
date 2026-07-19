@@ -1,17 +1,24 @@
 package com.dazou.iptvplayer.fragments
 
+import android.app.AlertDialog
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
+import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.bumptech.glide.Glide
 import com.dazou.iptvplayer.App
 import com.dazou.iptvplayer.MainActivity
+import com.dazou.iptvplayer.R
 import com.dazou.iptvplayer.adapter.CategoryAdapter
 import com.dazou.iptvplayer.adapter.SeriesAdapter
 import com.dazou.iptvplayer.api.XtreamAPI
@@ -31,6 +38,7 @@ class SeriesFragment : Fragment() {
     private lateinit var seriesViewModel: SeriesViewModel
     private var selectedSeries: XtreamSeries? = null
     private var hasRequestedInitialFocus = false
+    private var allSeriesInCategory: List<XtreamSeries> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -66,14 +74,24 @@ class SeriesFragment : Fragment() {
         }
 
         seriesViewModel.seriesList.observe(viewLifecycleOwner) { list ->
-            binding.tvSeriesStatus.text = if (list.isEmpty())
-                "لا توجد مسلسلات بهذه المجموعة"
-            else
-                "${list.size} مسلسل"
-            binding.rvSeries.adapter = SeriesAdapter(list, app.container.favoritesManager) { series ->
-                onSeriesClicked(series)
-            }
+            allSeriesInCategory = list
+            binding.etSearchSeries.text?.clear()
+            displaySeries(list)
         }
+
+        binding.etSearchSeries.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val query = s?.toString()?.trim().orEmpty()
+                val filtered = if (query.isEmpty()) {
+                    allSeriesInCategory
+                } else {
+                    allSeriesInCategory.filter { it.name.contains(query, ignoreCase = true) }
+                }
+                displaySeries(filtered, isSearchResult = query.isNotEmpty())
+            }
+        })
 
         seriesViewModel.episodes.observe(viewLifecycleOwner) { episodes ->
             val series = selectedSeries ?: return@observe
@@ -81,6 +99,18 @@ class SeriesFragment : Fragment() {
         }
 
         seriesViewModel.loadCategories()
+    }
+
+    private fun displaySeries(list: List<XtreamSeries>, isSearchResult: Boolean = false) {
+        if (_binding == null) return
+        binding.tvSeriesStatus.text = when {
+            list.isEmpty() && isSearchResult -> "لا نتائج مطابقة للبحث"
+            list.isEmpty() -> "لا توجد مسلسلات بهذه المجموعة"
+            else -> "${list.size} مسلسل"
+        }
+        binding.rvSeries.adapter = SeriesAdapter(list, requireApp().container.favoritesManager) { series ->
+            showSeriesDetails(series)
+        }
     }
 
     private fun requestFocusWhenReady(view: View) {
@@ -101,6 +131,39 @@ class SeriesFragment : Fragment() {
         seriesViewModel.loadSeries(category.categoryId)
     }
 
+    private fun showSeriesDetails(series: XtreamSeries) {
+        val dialogView = LayoutInflater.from(requireContext())
+            .inflate(R.layout.dialog_media_details, null)
+
+        val poster = dialogView.findViewById<ImageView>(R.id.ivDetailsPoster)
+        val meta = dialogView.findViewById<TextView>(R.id.tvDetailsMeta)
+        val plot = dialogView.findViewById<TextView>(R.id.tvDetailsPlot)
+        val cast = dialogView.findViewById<TextView>(R.id.tvDetailsCast)
+
+        Glide.with(this).load(series.cover).into(poster)
+
+        val metaParts = mutableListOf<String>()
+        if (series.year.isNotBlank()) metaParts.add(series.year)
+        if (series.genre.isNotBlank()) metaParts.add(series.genre)
+        if (series.rating.isNotBlank()) metaParts.add("⭐ ${series.rating}")
+        meta.text = metaParts.joinToString("  •  ")
+
+        plot.text = series.plot.ifBlank { "لا يوجد وصف متاح." }
+
+        val castParts = mutableListOf<String>()
+        if (series.cast.isNotBlank()) castParts.add("🎭 ${series.cast}")
+        if (series.director.isNotBlank()) castParts.add("🎬 إخراج: ${series.director}")
+        cast.text = castParts.joinToString("\n")
+        cast.visibility = if (castParts.isEmpty()) View.GONE else View.VISIBLE
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(series.name)
+            .setView(dialogView)
+            .setPositiveButton("📺 عرض الحلقات") { _, _ -> onSeriesClicked(series) }
+            .setNegativeButton("إغلاق", null)
+            .show()
+    }
+
     private fun onSeriesClicked(series: XtreamSeries) {
         selectedSeries = series
         Toast.makeText(requireContext(), "⏳ جاري تحميل الحلقات...", Toast.LENGTH_SHORT).show()
@@ -117,7 +180,7 @@ class SeriesFragment : Fragment() {
         val sorted = episodes.sortedWith(compareBy({ it.seasonNum }, { it.episodeNum }))
         val labels = sorted.map { "الموسم ${it.seasonNum} • الحلقة ${it.episodeNum}: ${it.title}" }.toTypedArray()
 
-        android.app.AlertDialog.Builder(requireContext())
+        AlertDialog.Builder(requireContext())
             .setTitle(series.name)
             .setItems(labels) { _, which ->
                 playEpisode(sorted[which])
@@ -132,8 +195,7 @@ class SeriesFragment : Fragment() {
 
         val series = selectedSeries
         if (series != null) {
-            val app = requireActivity().application as App
-            app.container.historyManager.addOrUpdateHistory(
+            requireApp().container.historyManager.addOrUpdateHistory(
                 HistoryItem(
                     type = "series",
                     id = series.seriesId,
@@ -147,6 +209,8 @@ class SeriesFragment : Fragment() {
 
         (activity as? MainActivity)?.playExternalMedia(url, episode.title, "series", series?.seriesId ?: -1)
     }
+
+    private fun requireApp(): App = requireActivity().application as App
 
     override fun onDestroyView() {
         super.onDestroyView()

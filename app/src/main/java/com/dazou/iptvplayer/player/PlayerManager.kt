@@ -9,6 +9,7 @@ import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 
 class PlayerManager(context: Context) {
 
@@ -32,9 +33,18 @@ class PlayerManager(context: Context) {
         )
         .build()
 
+    // ✅ يفعّل الترجمة تلقائيًا لو متوفرة بالبث، بدون أي زر أو تدخل من المستخدم
+    private val trackSelector = DefaultTrackSelector(context).apply {
+        setParameters(
+            buildUponParameters()
+                .setSelectUndeterminedTextLanguage(true)
+        )
+    }
+
     val player: ExoPlayer = ExoPlayer.Builder(context)
         .setMediaSourceFactory(mediaSourceFactory)
         .setLoadControl(loadControl)
+        .setTrackSelector(trackSelector)
         .build()
 
     var currentStreamUrl: String? = null

@@ -1,17 +1,24 @@
 package com.dazou.iptvplayer.fragments
 
+import android.app.AlertDialog
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
+import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.bumptech.glide.Glide
 import com.dazou.iptvplayer.App
 import com.dazou.iptvplayer.MainActivity
+import com.dazou.iptvplayer.R
 import com.dazou.iptvplayer.adapter.CategoryAdapter
 import com.dazou.iptvplayer.adapter.MovieAdapter
 import com.dazou.iptvplayer.api.XtreamAPI
@@ -29,6 +36,7 @@ class MoviesFragment : Fragment() {
 
     private lateinit var moviesViewModel: MoviesViewModel
     private var hasRequestedInitialFocus = false
+    private var allMoviesInCategory: List<XtreamMovie> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -64,16 +72,38 @@ class MoviesFragment : Fragment() {
         }
 
         moviesViewModel.movies.observe(viewLifecycleOwner) { movies ->
-            binding.tvMoviesStatus.text = if (movies.isEmpty())
-                "لا توجد أفلام بهذه المجموعة"
-            else
-                "${movies.size} فيلم"
-            binding.rvMovies.adapter = MovieAdapter(movies, app.container.favoritesManager) { movie ->
-                playMovie(movie)
-            }
+            allMoviesInCategory = movies
+            binding.etSearchMovies.text?.clear()
+            displayMovies(movies)
         }
 
+        binding.etSearchMovies.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val query = s?.toString()?.trim().orEmpty()
+                val filtered = if (query.isEmpty()) {
+                    allMoviesInCategory
+                } else {
+                    allMoviesInCategory.filter { it.name.contains(query, ignoreCase = true) }
+                }
+                displayMovies(filtered, isSearchResult = query.isNotEmpty())
+            }
+        })
+
         moviesViewModel.loadCategories()
+    }
+
+    private fun displayMovies(movies: List<XtreamMovie>, isSearchResult: Boolean = false) {
+        if (_binding == null) return
+        binding.tvMoviesStatus.text = when {
+            movies.isEmpty() && isSearchResult -> "لا نتائج مطابقة للبحث"
+            movies.isEmpty() -> "لا توجد أفلام بهذه المجموعة"
+            else -> "${movies.size} فيلم"
+        }
+        binding.rvMovies.adapter = MovieAdapter(movies, requireApp().container.favoritesManager) { movie ->
+            showMovieDetails(movie)
+        }
     }
 
     private fun requestFocusWhenReady(view: View) {
@@ -94,12 +124,44 @@ class MoviesFragment : Fragment() {
         moviesViewModel.loadMovies(category.categoryId)
     }
 
+    private fun showMovieDetails(movie: XtreamMovie) {
+        val dialogView = LayoutInflater.from(requireContext())
+            .inflate(R.layout.dialog_media_details, null)
+
+        val poster = dialogView.findViewById<ImageView>(R.id.ivDetailsPoster)
+        val meta = dialogView.findViewById<TextView>(R.id.tvDetailsMeta)
+        val plot = dialogView.findViewById<TextView>(R.id.tvDetailsPlot)
+        val cast = dialogView.findViewById<TextView>(R.id.tvDetailsCast)
+
+        Glide.with(this).load(movie.streamIcon).into(poster)
+
+        val metaParts = mutableListOf<String>()
+        if (movie.year.isNotBlank()) metaParts.add(movie.year)
+        if (movie.genre.isNotBlank()) metaParts.add(movie.genre)
+        if (movie.rating.isNotBlank()) metaParts.add("⭐ ${movie.rating}")
+        meta.text = metaParts.joinToString("  •  ")
+
+        plot.text = movie.plot.ifBlank { "لا يوجد وصف متاح." }
+
+        val castParts = mutableListOf<String>()
+        if (movie.cast.isNotBlank()) castParts.add("🎭 ${movie.cast}")
+        if (movie.director.isNotBlank()) castParts.add("🎬 إخراج: ${movie.director}")
+        cast.text = castParts.joinToString("\n")
+        cast.visibility = if (castParts.isEmpty()) View.GONE else View.VISIBLE
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(movie.name)
+            .setView(dialogView)
+            .setPositiveButton("▶ تشغيل") { _, _ -> playMovie(movie) }
+            .setNegativeButton("إغلاق", null)
+            .show()
+    }
+
     private fun playMovie(movie: XtreamMovie) {
         val server = moviesViewModel.getServer() ?: return
         val url = XtreamAPI.getMovieUrl(server, movie.streamId, movie.containerExtension)
 
-        val app = requireActivity().application as App
-        app.container.historyManager.addOrUpdateHistory(
+        requireApp().container.historyManager.addOrUpdateHistory(
             HistoryItem(
                 type = "movie",
                 id = movie.streamId,
@@ -112,6 +174,8 @@ class MoviesFragment : Fragment() {
 
         (activity as? MainActivity)?.playExternalMedia(url, movie.name, "movie", movie.streamId)
     }
+
+    private fun requireApp(): App = requireActivity().application as App
 
     override fun onDestroyView() {
         super.onDestroyView()
