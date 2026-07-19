@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DAZOU IPTV</string>
+    <string name="tab_home">Start</string>
+    <string name="tab_live">Na żywo</string>
+    <string name="tab_movies">Filmy</string>
+    <string name="tab_series">Seriale</string>
+    <string name="tab_favorites">Ulubione</string>
+    <string name="tab_accounts">Konta</string>
+    <string name="tab_settings">Ustawienia</string>
+    <string name="settings_title">Diagnostyka i ustawienia</string>
+    <string name="btn_check_errors">🔍 Sprawdź błędy aplikacji</string>
+    <string name="no_crash_logs">Brak zarejestrowanych błędów ✅</string>
+    <string name="crash_logs_found">Znaleziono %d błąd(ów)</string>
+
+    <string name="common_cancel">Anuluj</string>
+    <string name="common_close">Zamknij</string>
+    <string name="common_save">Zapisz</string>
+    <string name="common_yes">Tak</string>
+    <string name="common_loading">Ładowanie...</string>
+    <string name="common_choose_account_first">Najpierw wybierz konto IPTV</string>
+    <string name="common_fill_all_fields">Proszę wypełnić wszystkie pola</string>
+
+    <string name="live_no_categories">Nie znaleziono kategorii – sprawdź konto</string>
+    <string name="live_feature_unsupported">Ta funkcja nie jest obsługiwana na tym urządzeniu</string>
+    <string name="live_pip_failed">Nie udało się włączyć obrazu w obrazie</string>
+    <string name="live_connection_lost">⚠️ Utracono połączenie, ponawianie próby...</string>
+    <string name="live_connection_failed">⚠️ Nie udało się połączyć po kilku próbach</string>
+    <string name="live_url_unavailable">Link do kanału jest obecnie niedostępny</string>
+    <string name="live_format_unsupported">Format kanału nie jest obsługiwany na tym urządzeniu</string>
+    <string name="live_playback_failed">Nie można odtworzyć kanału (%s)</string>
+    <string name="live_loading_epg">⏳ Ładowanie informacji o programie...</string>
+    <string name="live_no_epg_data">Brak danych przewodnika dla tego kanału</string>
+    <string name="live_now_playing">▶ Teraz: %s</string>
+    <string name="live_next_program">⏭ Następny: %s (%s)</string>
+    <string name="live_badge">🔴 Na żywo</string>
+
+    <string name="resume_message">Zatrzymano na %s. Chcesz kontynuować od tego miejsca?</string>
+    <string name="resume_continue">Kontynuuj</string>
+    <string name="resume_from_start">Od początku</string>
+
+    <string name="movies_no_categories">Nie znaleziono kategorii filmów – sprawdź konto</string>
+    <string name="movies_no_results_in_category">Brak filmów w tej kategorii</string>
+    <string name="movies_count">%d filmów</string>
+    <string name="movies_no_search_results">Brak wyników wyszukiwania</string>
+    <string name="movies_no_description">Brak dostępnego opisu.</string>
+    <string name="movies_play">▶ Odtwórz</string>
+    <string name="movies_search_hint">🔍 Szukaj filmu...</string>
+
+    <string name="series_no_categories">Nie znaleziono kategorii seriali – sprawdź konto</string>
+    <string name="series_no_results_in_category">Brak seriali w tej kategorii</string>
+    <string name="series_count">%d seriali</string>
+    <string name="series_show_episodes">📺 Pokaż odcinki</string>
+    <string name="series_loading_episodes">⏳ Ładowanie odcinków...</string>
+    <string name="series_no_episodes">Brak dostępnych odcinków dla tego serialu</string>
+    <string name="series_episode_label">Sezon %d • Odcinek %d: %s</string>
+    <string name="series_search_hint">🔍 Szukaj serialu...</string>
+
+    <string name="home_welcome">🎉 Witamy w DAZOU IPTV</string>
+    <string name="home_empty_state">⭐ Brak ulubionych — przytrzymaj film lub serial, aby go dodać</string>
+    <string name="home_favorites_count">⭐ Ulubione (%d)</string>
+    <string name="home_history_label">🕒 Kontynuuj oglądanie</string>
+    <string name="home_favorites_label">⭐ Ulubione</string>
+    <string name="favorite_added">⭐ Dodano do ulubionych</string>
+    <string name="favorite_added_channel">⭐ Dodano do ulubionych</string>
+    <string name="favorite_removed">Usunięto z ulubionych</string>
+
+    <string name="accounts_add_title">⚙️ Dodaj konto Xtream</string>
+    <string name="accounts_server_url_label">Adres URL serwera:</string>
+    <string name="accounts_username_label">Nazwa użytkownika:</string>
+    <string name="accounts_password_label">Hasło:</string>
+    <string name="accounts_saved">✅ Konto zapisane</string>
+    <string name="accounts_set_active">✅ Ustaw jako aktywne konto</string>
+    <string name="accounts_delete">🗑️ Usuń konto</string>
+    <string name="accounts_set_active_success">✅ Zaktualizowano aktywne konto</string>
+    <string name="accounts_delete_confirm_title">Potwierdź usunięcie</string>
+    <string name="accounts_delete_confirm_message">Czy na pewno chcesz usunąć to konto?</string>
+    <string name="accounts_deleted">🗑️ Konto usunięte</string>
+
+    <string name="login_success">✅ Zalogowano pomyślnie</string>
+
+    <string name="epg_no_channels">Brak kanałów do wyświetlenia</string>
+    <string name="epg_url_label">Adres URL: %s</string>
+    <string name="epg_error_label">Błąd: %s</string>
+    <string name="epg_server_response_label">Odpowiedź serwera: %s</string>
+    <string name="epg_showing_count">Wyświetlanie %d z %d kanałów (na razie pierwsze 25)</string>
+    <string name="epg_finished_loading">Zakończono ładowanie przewodnika.</string>
+    <string name="epg_last_error">Ostatni błąd EPG: %s</string>
+    <string name="epg_last_response">Ostatnia odpowiedź EPG: %s</string>
+    <string name="epg_no_program_data">Brak danych programu</string>
+</resources>
