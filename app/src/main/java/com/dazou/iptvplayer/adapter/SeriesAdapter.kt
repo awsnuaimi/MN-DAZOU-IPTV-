@@ -53,9 +53,10 @@ class SeriesAdapter(
                 FavoriteItem("series", item.seriesId, item.name, item.cover, "mp4")
             )
             holder.favoriteBadge.visibility = if (added) View.VISIBLE else View.GONE
+            val ctx = holder.itemView.context
             Toast.makeText(
-                holder.itemView.context,
-                if (added) "⭐ أُضيف للمفضلة" else "تم الحذف من المفضلة",
+                ctx,
+                if (added) ctx.getString(R.string.favorite_added) else ctx.getString(R.string.favorite_removed),
                 Toast.LENGTH_SHORT
             ).show()
             true

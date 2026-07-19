@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.dazou.iptvplayer.App
 import com.dazou.iptvplayer.MainActivity
+import com.dazou.iptvplayer.R
 import com.dazou.iptvplayer.adapter.FavoriteAdapter
 import com.dazou.iptvplayer.adapter.HistoryAdapter
 import com.dazou.iptvplayer.api.XtreamAPI
@@ -61,9 +62,9 @@ class HomeFragment : Fragment() {
 
         val favorites = app.container.favoritesManager.getFavorites()
         binding.tvWelcome.text = if (favorites.isEmpty() && history.isEmpty())
-            "🎉 مرحبًا بك في DAZOU IPTV — شغّل أي محتوى أو اضغط مطولًا لإضافته للمفضلة"
+            getString(R.string.home_empty_state)
         else
-            "🎉 مرحبًا بك في DAZOU IPTV"
+            getString(R.string.home_welcome)
 
         binding.rvFavorites.adapter = FavoriteAdapter(
             favorites,
@@ -84,7 +85,7 @@ class HomeFragment : Fragment() {
         val app = requireActivity().application as App
         val server = app.container.currentRepository?.server
         if (server == null) {
-            Toast.makeText(requireContext(), "اختر حساب IPTV أولاً", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.common_choose_account_first), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -98,7 +99,7 @@ class HomeFragment : Fragment() {
                 (activity as? MainActivity)?.playExternalMedia(url, name, "movie")
             }
             "series" -> {
-                Toast.makeText(requireContext(), "⏳ جاري تحميل الحلقات...", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.series_loading_episodes), Toast.LENGTH_SHORT).show()
                 XtreamAPI.getSeriesInfo(server, id) { episodes ->
                     showEpisodesDialog(name, episodes)
                 }
@@ -109,12 +110,12 @@ class HomeFragment : Fragment() {
     private fun showEpisodesDialog(seriesName: String, episodes: List<XtreamEpisode>) {
         if (!isAdded) return
         if (episodes.isEmpty()) {
-            Toast.makeText(requireContext(), "لا توجد حلقات متاحة لهذا المسلسل", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.series_no_episodes), Toast.LENGTH_SHORT).show()
             return
         }
 
         val sorted = episodes.sortedWith(compareBy({ it.seasonNum }, { it.episodeNum }))
-        val labels = sorted.map { "الموسم ${it.seasonNum} • الحلقة ${it.episodeNum}: ${it.title}" }.toTypedArray()
+        val labels = sorted.map { getString(R.string.series_episode_label, it.seasonNum, it.episodeNum, it.title) }.toTypedArray()
 
         android.app.AlertDialog.Builder(requireContext())
             .setTitle(seriesName)
@@ -125,14 +126,14 @@ class HomeFragment : Fragment() {
                 val url = XtreamAPI.getSeriesEpisodeUrl(server, episode.id, episode.containerExtension)
                 (activity as? MainActivity)?.playExternalMedia(url, episode.title, "series")
             }
-            .setNegativeButton("إغلاق", null)
+            .setNegativeButton(getString(R.string.common_close), null)
             .show()
     }
 
     private fun removeFavorite(item: FavoriteItem) {
         val app = requireActivity().application as App
         app.container.favoritesManager.removeFavorite(item.type, item.id)
-        Toast.makeText(requireContext(), "🗑️ تم الحذف من المفضلة", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.favorite_removed), Toast.LENGTH_SHORT).show()
         loadContent()
     }
 

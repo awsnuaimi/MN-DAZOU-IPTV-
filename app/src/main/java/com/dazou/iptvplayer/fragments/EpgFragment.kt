@@ -62,12 +62,12 @@ class EpgFragment : Fragment() {
             if (channels.isEmpty()) {
                 binding.epgGrid.removeAllViews()
                 val diag = buildString {
-                    append("لا توجد قنوات لعرضها\n")
-                    append("الرابط: ${XtreamAPI.lastRequestUrl}\n")
+                    append(getString(R.string.epg_no_channels)).append("\n")
+                    append(getString(R.string.epg_url_label, XtreamAPI.lastRequestUrl)).append("\n")
                     if (XtreamAPI.lastErrorMessage.isNotEmpty()) {
-                        append("خطأ: ${XtreamAPI.lastErrorMessage}")
+                        append(getString(R.string.epg_error_label, XtreamAPI.lastErrorMessage))
                     } else {
-                        append("رد السيرفر: ${XtreamAPI.lastResponseBody}")
+                        append(getString(R.string.epg_server_response_label, XtreamAPI.lastResponseBody))
                     }
                 }
                 binding.epgStatus.text = diag
@@ -75,7 +75,7 @@ class EpgFragment : Fragment() {
             }
             allChannels = channels
             val limited = channels.take(25)
-            binding.epgStatus.text = "عرض ${limited.size} من ${channels.size} قناة (أول 25 قناة حاليًا)"
+            binding.epgStatus.text = getString(R.string.epg_showing_count, limited.size, channels.size)
 
             binding.epgGrid.removeAllViews()
             addTimeRuler()
@@ -96,11 +96,11 @@ class EpgFragment : Fragment() {
         if (!isAdded) return
         if (loadQueue.isEmpty()) {
             val diag = buildString {
-                append("انتهى تحميل الدليل. ")
+                append(getString(R.string.epg_finished_loading)).append(" ")
                 if (XtreamAPI.lastEpgErrorMessage.isNotEmpty()) {
-                    append("آخر خطأ EPG: ${XtreamAPI.lastEpgErrorMessage}")
+                    append(getString(R.string.epg_last_error, XtreamAPI.lastEpgErrorMessage))
                 } else if (XtreamAPI.lastEpgResponseBody.isNotEmpty()) {
-                    append("آخر رد EPG: ${XtreamAPI.lastEpgResponseBody.take(150)}")
+                    append(getString(R.string.epg_last_response, XtreamAPI.lastEpgResponseBody.take(150)))
                 }
             }
             if (_binding != null) binding.epgStatus.text = diag
@@ -197,7 +197,7 @@ class EpgFragment : Fragment() {
 
         if (visiblePrograms.isEmpty()) {
             val empty = TextView(requireContext())
-            empty.text = "لا توجد بيانات برنامج"
+            empty.text = getString(R.string.epg_no_program_data)
             empty.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_gray))
             empty.textSize = 12f
             empty.gravity = Gravity.CENTER

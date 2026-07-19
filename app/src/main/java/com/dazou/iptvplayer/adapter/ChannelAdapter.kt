@@ -33,7 +33,6 @@ class ChannelAdapter(
             .inflate(R.layout.item_channel, parent, false)
         FocusAnimator.attach(view)
 
-        // ✅ توجيه فوكس صريح لكل قناة، يمنع القفز العشوائي بين اللوحات
         leftFocusTargetId?.let { view.nextFocusLeftId = it }
         rightFocusTargetId?.let { view.nextFocusRightId = it }
 
@@ -60,9 +59,10 @@ class ChannelAdapter(
                 FavoriteItem("live", channel.streamId, channel.name, channel.streamIcon, channel.containerExtension)
             )
             holder.favoriteBadge.visibility = if (added) View.VISIBLE else View.GONE
+            val ctx = holder.itemView.context
             Toast.makeText(
-                holder.itemView.context,
-                if (added) "⭐ أُضيفت للمفضلة" else "تم الحذف من المفضلة",
+                ctx,
+                if (added) ctx.getString(R.string.favorite_added_channel) else ctx.getString(R.string.favorite_removed),
                 Toast.LENGTH_SHORT
             ).show()
             true

@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.dazou.iptvplayer.App
 import com.dazou.iptvplayer.MainActivity
+import com.dazou.iptvplayer.R
 import com.dazou.iptvplayer.databinding.FragmentLoginBinding
 import com.dazou.iptvplayer.model.XtreamServer
 
@@ -41,7 +42,7 @@ class LoginFragment : Fragment() {
         val password = binding.etPass.text.toString().trim()
 
         if (url.isEmpty() || username.isEmpty() || password.isEmpty()) {
-            Toast.makeText(requireContext(), "الرجاء ملء جميع الحقول", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.common_fill_all_fields), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -50,7 +51,7 @@ class LoginFragment : Fragment() {
         val accounts = accountManager.getAccounts()
         accountManager.setActiveAccount(accounts.size - 1)
 
-        Toast.makeText(requireContext(), "✅ تم تسجيل الدخول", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.login_success), Toast.LENGTH_SHORT).show()
 
         (activity as? MainActivity)?.goToHome()
     }

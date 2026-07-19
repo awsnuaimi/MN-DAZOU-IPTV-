@@ -13,6 +13,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.dazou.iptvplayer.App
+import com.dazou.iptvplayer.R
 import com.dazou.iptvplayer.adapter.AccountsAdapter
 import com.dazou.iptvplayer.databinding.FragmentAccountsBinding
 import com.dazou.iptvplayer.model.XtreamServer
@@ -45,7 +46,6 @@ class AccountsFragment : Fragment() {
         return binding.root
     }
 
-    // ========== Setup Functions ==========
     private fun setupRecyclerView() {
         binding.rvAccounts.layoutManager = LinearLayoutManager(requireContext())
         adapter = AccountsAdapter(
@@ -62,7 +62,6 @@ class AccountsFragment : Fragment() {
         }
     }
 
-    // ========== Data Loading ==========
     private fun loadAccounts() {
         val accounts = accountManager.getAccounts()
         adapter.submitList(accounts)
@@ -77,7 +76,6 @@ class AccountsFragment : Fragment() {
         }
     }
 
-    // ========== Dialog Functions ==========
     private fun showAddAccountDialog() {
         val scrollView = ScrollView(requireContext()).apply {
             setPadding(40, 40, 40, 40)
@@ -87,9 +85,8 @@ class AccountsFragment : Fragment() {
             setBackgroundColor(Color.parseColor("#1A1A35"))
         }
 
-        // Title
         layout.addView(TextView(requireContext()).apply {
-            text = "⚙️ إضافة حساب Xtream"
+            text = getString(R.string.accounts_add_title)
             textSize = 18f
             setTextColor(Color.parseColor("#FF6B6B"))
             setTypeface(null, Typeface.BOLD)
@@ -97,31 +94,30 @@ class AccountsFragment : Fragment() {
             setPadding(0, 0, 0, 24)
         })
 
-        // Input Fields
         val etUrl = createEditText("http://example.com:8080", "http://")
         val etUsername = createEditText("username", "")
         val etPassword = createEditText("password", "")
 
-        layout.addView(createLabel("رابط السيرفر:"))
+        layout.addView(createLabel(getString(R.string.accounts_server_url_label)))
         layout.addView(etUrl)
         layout.addView(createSpacer(12))
-        layout.addView(createLabel("اسم المستخدم:"))
+        layout.addView(createLabel(getString(R.string.accounts_username_label)))
         layout.addView(etUsername)
         layout.addView(createSpacer(12))
-        layout.addView(createLabel("كلمة المرور:"))
+        layout.addView(createLabel(getString(R.string.accounts_password_label)))
         layout.addView(etPassword)
 
         scrollView.addView(layout)
 
         AlertDialog.Builder(requireContext())
             .setView(scrollView)
-            .setPositiveButton("حفظ") { _, _ ->
+            .setPositiveButton(getString(R.string.common_save)) { _, _ ->
                 val url = etUrl.text.toString().trim().trimEnd('/')
                 val username = etUsername.text.toString().trim()
                 val password = etPassword.text.toString().trim()
 
                 if (url.isEmpty() || username.isEmpty() || password.isEmpty()) {
-                    Toast.makeText(requireContext(), "الرجاء ملء جميع الحقول", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.common_fill_all_fields), Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
 
@@ -130,9 +126,9 @@ class AccountsFragment : Fragment() {
                 accountManager.setActiveAccount(accounts.size - 1)
                 loadAccounts()
                 refreshLiveChannels()
-                Toast.makeText(requireContext(), "✅ تم حفظ الحساب", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.accounts_saved), Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton("إلغاء", null)
+            .setNegativeButton(getString(R.string.common_cancel), null)
             .setCancelable(false)
             .show()
     }
@@ -140,7 +136,7 @@ class AccountsFragment : Fragment() {
     private fun showAccountOptionsDialog(account: XtreamServer, position: Int) {
         AlertDialog.Builder(requireContext())
             .setTitle("${account.username} @ ${account.url}")
-            .setItems(arrayOf("✅ تعيين كحساب نشط", "🗑️ حذف الحساب")) { _, which ->
+            .setItems(arrayOf(getString(R.string.accounts_set_active), getString(R.string.accounts_delete))) { _, which ->
                 when (which) {
                     0 -> setActiveAccount(position)
                     1 -> deleteAccount(position)
@@ -149,28 +145,26 @@ class AccountsFragment : Fragment() {
             .show()
     }
 
-    // ========== Account Actions ==========
     private fun setActiveAccount(position: Int) {
         accountManager.setActiveAccount(position)
         refreshLiveChannels()
-        Toast.makeText(requireContext(), "✅ تم تعيين الحساب النشط", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.accounts_set_active_success), Toast.LENGTH_SHORT).show()
     }
 
     private fun deleteAccount(position: Int) {
         AlertDialog.Builder(requireContext())
-            .setTitle("تأكيد الحذف")
-            .setMessage("هل أنت متأكد من حذف هذا الحساب؟")
-            .setPositiveButton("نعم") { _, _ ->
+            .setTitle(getString(R.string.accounts_delete_confirm_title))
+            .setMessage(getString(R.string.accounts_delete_confirm_message))
+            .setPositiveButton(getString(R.string.common_yes)) { _, _ ->
                 accountManager.deleteAccount(position)
                 loadAccounts()
                 refreshLiveChannels()
-                Toast.makeText(requireContext(), "🗑️ تم حذف الحساب", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.accounts_deleted), Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton("إلغاء", null)
+            .setNegativeButton(getString(R.string.common_cancel), null)
             .show()
     }
 
-    // ========== Helper Functions ==========
     private fun refreshLiveChannels() {
         try {
             val app = requireActivity().application as App
