@@ -5,19 +5,24 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.dazou.iptvplayer.R
+import com.dazou.iptvplayer.data.FavoritesManager
+import com.dazou.iptvplayer.model.FavoriteItem
 import com.dazou.iptvplayer.model.XtreamChannel
 
 class ChannelAdapter(
     private val channels: List<XtreamChannel>,
+    private val favoritesManager: FavoritesManager,
     private val onChannelClick: (XtreamChannel) -> Unit
 ) : RecyclerView.Adapter<ChannelAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val ivLogo: ImageView = view.findViewById(R.id.ivChannelLogo)
         val tvName: TextView = view.findViewById(R.id.tvChannelName)
+        val favoriteBadge: ImageView = view.findViewById(R.id.ivChannelFavoriteBadge)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -36,7 +41,23 @@ class ChannelAdapter(
             .error(R.drawable.ic_live_tv)
             .into(holder.ivLogo)
 
+        holder.favoriteBadge.visibility =
+            if (favoritesManager.isFavorite("live", channel.streamId)) View.VISIBLE else View.GONE
+
         holder.itemView.setOnClickListener { onChannelClick(channel) }
+
+        holder.itemView.setOnLongClickListener {
+            val added = favoritesManager.toggleFavorite(
+                FavoriteItem("live", channel.streamId, channel.name, channel.streamIcon, channel.containerExtension)
+            )
+            holder.favoriteBadge.visibility = if (added) View.VISIBLE else View.GONE
+            Toast.makeText(
+                holder.itemView.context,
+                if (added) "⭐ أُضيفت للمفضلة" else "تم الحذف من المفضلة",
+                Toast.LENGTH_SHORT
+            ).show()
+            true
+        }
     }
 
     override fun getItemCount() = channels.size

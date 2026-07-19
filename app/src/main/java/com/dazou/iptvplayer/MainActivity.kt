@@ -260,7 +260,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     private fun applyChannelResults(channels: List<XtreamChannel>) {
         currentChannelList = channels
-        binding.channelList.adapter = ChannelAdapter(channels) { channel ->
+        binding.channelList.adapter = ChannelAdapter(channels, (application as App).container.favoritesManager) { channel ->
             val index = channels.indexOf(channel)
             playChannelAt(index)
         }

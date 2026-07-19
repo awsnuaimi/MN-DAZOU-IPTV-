@@ -14,4 +14,13 @@ data class FavoriteItem(
     val icon: String = "",
     val containerExtension: String = "ts"
 )
-data class HistoryItem(val type: String, val id: Int, val name: String, val timestamp: Long)
+data class HistoryItem(
+    val type: String,
+    val id: Int,
+    val name: String,
+    val timestamp: Long,
+    val icon: String = "",
+    val containerExtension: String = "ts",
+    val positionMs: Long = 0L,
+    val durationMs: Long = 0L
+)

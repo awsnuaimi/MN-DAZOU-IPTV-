@@ -16,6 +16,7 @@ import com.dazou.iptvplayer.adapter.CategoryAdapter
 import com.dazou.iptvplayer.adapter.MovieAdapter
 import com.dazou.iptvplayer.api.XtreamAPI
 import com.dazou.iptvplayer.databinding.FragmentMoviesBinding
+import com.dazou.iptvplayer.model.HistoryItem
 import com.dazou.iptvplayer.model.XtreamCategory
 import com.dazou.iptvplayer.model.XtreamMovie
 import com.dazou.iptvplayer.viewmodel.MoviesViewModel
@@ -96,6 +97,19 @@ class MoviesFragment : Fragment() {
     private fun playMovie(movie: XtreamMovie) {
         val server = moviesViewModel.getServer() ?: return
         val url = XtreamAPI.getMovieUrl(server, movie.streamId, movie.containerExtension)
+
+        val app = requireActivity().application as App
+        app.container.historyManager.addOrUpdateHistory(
+            HistoryItem(
+                type = "movie",
+                id = movie.streamId,
+                name = movie.name,
+                timestamp = System.currentTimeMillis(),
+                icon = movie.streamIcon,
+                containerExtension = movie.containerExtension
+            )
+        )
+
         (activity as? MainActivity)?.playExternalMedia(url, movie.name, "movie")
     }
 

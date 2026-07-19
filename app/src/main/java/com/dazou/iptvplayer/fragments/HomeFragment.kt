@@ -7,12 +7,15 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.dazou.iptvplayer.App
 import com.dazou.iptvplayer.MainActivity
 import com.dazou.iptvplayer.adapter.FavoriteAdapter
+import com.dazou.iptvplayer.adapter.HistoryAdapter
 import com.dazou.iptvplayer.api.XtreamAPI
 import com.dazou.iptvplayer.databinding.FragmentHomeBinding
 import com.dazou.iptvplayer.model.FavoriteItem
+import com.dazou.iptvplayer.model.HistoryItem
 import com.dazou.iptvplayer.model.XtreamEpisode
 
 class HomeFragment : Fragment() {
@@ -31,34 +34,53 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.rvHome.layoutManager = GridLayoutManager(requireContext(), 4)
-        loadFavorites()
+        binding.rvHistory.layoutManager =
+            LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        binding.rvFavorites.layoutManager = GridLayoutManager(requireContext(), 4)
+        loadContent()
     }
 
     override fun onResume() {
         super.onResume()
-        // نعيد التحميل كل مرة تُفتح فيها الشاشة، لأن المفضلة ممكن تتغيّر من شاشات ثانية
-        loadFavorites()
+        loadContent()
     }
 
-    private fun loadFavorites() {
+    private fun loadContent() {
         if (_binding == null) return
         val app = requireActivity().application as App
+
+        val history = app.container.historyManager.getHistory()
+        if (history.isEmpty()) {
+            binding.tvHistoryLabel.visibility = View.GONE
+            binding.rvHistory.visibility = View.GONE
+        } else {
+            binding.tvHistoryLabel.visibility = View.VISIBLE
+            binding.rvHistory.visibility = View.VISIBLE
+            binding.rvHistory.adapter = HistoryAdapter(history) { item -> playHistoryItem(item) }
+        }
+
         val favorites = app.container.favoritesManager.getFavorites()
-
-        binding.tvWelcome.text = if (favorites.isEmpty())
-            "⭐ لا توجد عناصر بالمفضلة بعد — اضغط مطولًا على أي فيلم أو مسلسل لإضافته"
+        binding.tvWelcome.text = if (favorites.isEmpty() && history.isEmpty())
+            "🎉 مرحبًا بك في DAZOU IPTV — شغّل أي محتوى أو اضغط مطولًا لإضافته للمفضلة"
         else
-            "⭐ المفضلة (${favorites.size})"
+            "🎉 مرحبًا بك في DAZOU IPTV"
 
-        binding.rvHome.adapter = FavoriteAdapter(
+        binding.rvFavorites.adapter = FavoriteAdapter(
             favorites,
             onClick = { item -> playFavorite(item) },
             onLongClick = { item -> removeFavorite(item) }
         )
     }
 
+    private fun playHistoryItem(item: HistoryItem) {
+        playByTypeAndId(item.type, item.id, item.name, item.containerExtension)
+    }
+
     private fun playFavorite(item: FavoriteItem) {
+        playByTypeAndId(item.type, item.id, item.name, item.containerExtension)
+    }
+
+    private fun playByTypeAndId(type: String, id: Int, name: String, containerExtension: String) {
         val app = requireActivity().application as App
         val server = app.container.currentRepository?.server
         if (server == null) {
@@ -66,25 +88,25 @@ class HomeFragment : Fragment() {
             return
         }
 
-        when (item.type) {
+        when (type) {
             "live" -> {
-                val url = XtreamAPI.getStreamUrl(server, item.id, item.containerExtension, "live")
-                (activity as? MainActivity)?.playExternalMedia(url, item.name, "live")
+                val url = XtreamAPI.getStreamUrl(server, id, containerExtension, "live")
+                (activity as? MainActivity)?.playExternalMedia(url, name, "live")
             }
             "movie" -> {
-                val url = XtreamAPI.getMovieUrl(server, item.id, item.containerExtension)
-                (activity as? MainActivity)?.playExternalMedia(url, item.name, "movie")
+                val url = XtreamAPI.getMovieUrl(server, id, containerExtension)
+                (activity as? MainActivity)?.playExternalMedia(url, name, "movie")
             }
             "series" -> {
                 Toast.makeText(requireContext(), "⏳ جاري تحميل الحلقات...", Toast.LENGTH_SHORT).show()
-                XtreamAPI.getSeriesInfo(server, item.id) { episodes ->
-                    showEpisodesDialog(item, episodes)
+                XtreamAPI.getSeriesInfo(server, id) { episodes ->
+                    showEpisodesDialog(name, episodes)
                 }
             }
         }
     }
 
-    private fun showEpisodesDialog(item: FavoriteItem, episodes: List<XtreamEpisode>) {
+    private fun showEpisodesDialog(seriesName: String, episodes: List<XtreamEpisode>) {
         if (!isAdded) return
         if (episodes.isEmpty()) {
             Toast.makeText(requireContext(), "لا توجد حلقات متاحة لهذا المسلسل", Toast.LENGTH_SHORT).show()
@@ -95,7 +117,7 @@ class HomeFragment : Fragment() {
         val labels = sorted.map { "الموسم ${it.seasonNum} • الحلقة ${it.episodeNum}: ${it.title}" }.toTypedArray()
 
         android.app.AlertDialog.Builder(requireContext())
-            .setTitle(item.name)
+            .setTitle(seriesName)
             .setItems(labels) { _, which ->
                 val server = (requireActivity().application as App).container.currentRepository?.server
                     ?: return@setItems
@@ -111,7 +133,7 @@ class HomeFragment : Fragment() {
         val app = requireActivity().application as App
         app.container.favoritesManager.removeFavorite(item.type, item.id)
         Toast.makeText(requireContext(), "🗑️ تم الحذف من المفضلة", Toast.LENGTH_SHORT).show()
-        loadFavorites()
+        loadContent()
     }
 
     override fun onDestroyView() {

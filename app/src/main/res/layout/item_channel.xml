@@ -56,4 +56,13 @@
             android:visibility="gone" />
     </LinearLayout>
 
+    <ImageView
+        android:id="@+id/ivChannelFavoriteBadge"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:layout_marginStart="6dp"
+        android:src="@drawable/ic_favorite"
+        android:visibility="gone"
+        tools:visibility="visible"/>
+
 </LinearLayout>

@@ -16,6 +16,7 @@ import com.dazou.iptvplayer.adapter.CategoryAdapter
 import com.dazou.iptvplayer.adapter.SeriesAdapter
 import com.dazou.iptvplayer.api.XtreamAPI
 import com.dazou.iptvplayer.databinding.FragmentSeriesBinding
+import com.dazou.iptvplayer.model.HistoryItem
 import com.dazou.iptvplayer.model.XtreamCategory
 import com.dazou.iptvplayer.model.XtreamEpisode
 import com.dazou.iptvplayer.model.XtreamSeries
@@ -128,6 +129,22 @@ class SeriesFragment : Fragment() {
     private fun playEpisode(episode: XtreamEpisode) {
         val server = seriesViewModel.getServer() ?: return
         val url = XtreamAPI.getSeriesEpisodeUrl(server, episode.id, episode.containerExtension)
+
+        val series = selectedSeries
+        if (series != null) {
+            val app = requireActivity().application as App
+            app.container.historyManager.addOrUpdateHistory(
+                HistoryItem(
+                    type = "series",
+                    id = series.seriesId,
+                    name = series.name,
+                    timestamp = System.currentTimeMillis(),
+                    icon = series.cover,
+                    containerExtension = episode.containerExtension
+                )
+            )
+        }
+
         (activity as? MainActivity)?.playExternalMedia(url, episode.title, "series")
     }
 
