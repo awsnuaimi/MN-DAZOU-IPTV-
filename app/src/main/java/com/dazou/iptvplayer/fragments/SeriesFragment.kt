@@ -145,11 +145,11 @@ class SeriesFragment : Fragment() {
             )
         }
 
-        (activity as? MainActivity)?.playExternalMedia(url, episode.title, "series")
+        (activity as? MainActivity)?.playExternalMedia(url, episode.title, "series", series?.seriesId ?: -1)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
     }
-}
+}(activity as? MainActivity)?.playExternalMedia(url, episode.title, "series")

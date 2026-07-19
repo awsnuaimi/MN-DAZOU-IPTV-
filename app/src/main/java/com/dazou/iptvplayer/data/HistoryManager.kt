@@ -34,16 +34,28 @@ class HistoryManager(context: Context) {
         return result
     }
 
-    /** يضيف عنصر جديد لسجل المشاهدة، أو يحدّث توقيته لو موجود أصلاً وينقله لأول القائمة */
+    /**
+     * يضيف عنصر جديد لسجل المشاهدة، أو يحدّث اسمه/وقته لو موجود أصلاً وينقله لأول القائمة.
+     * ✅ يحافظ على موقع التشغيل المحفوظ سابقًا (positionMs/durationMs) لو العنصر موجود أصلاً،
+     * حتى ما ينمسح كل مرة يُفتح فيها نفس الفيلم/المسلسل من جديد.
+     */
     fun addOrUpdateHistory(item: HistoryItem) {
         val current = getHistory().toMutableList()
+        val existing = current.firstOrNull { it.type == item.type && it.id == item.id }
         current.removeAll { it.type == item.type && it.id == item.id }
-        current.add(0, item.copy(timestamp = System.currentTimeMillis()))
+
+        val merged = item.copy(
+            timestamp = System.currentTimeMillis(),
+            positionMs = existing?.positionMs ?: item.positionMs,
+            durationMs = existing?.durationMs ?: item.durationMs
+        )
+
+        current.add(0, merged)
         val trimmed = if (current.size > maxItems) current.take(maxItems) else current
         saveHistory(trimmed)
     }
 
-    /** يحدّث موقع التشغيل الحالي لعنصر موجود بالسجل — يُستخدم لاحقًا لاستكمال المشاهدة */
+    /** يحدّث موقع التشغيل الحالي لعنصر موجود بالسجل — يُستخدم لاستكمال المشاهدة */
     fun updateProgress(type: String, id: Int, positionMs: Long, durationMs: Long) {
         val current = getHistory().toMutableList()
         val index = current.indexOfFirst { it.type == type && it.id == id }

@@ -110,7 +110,7 @@ class MoviesFragment : Fragment() {
             )
         )
 
-        (activity as? MainActivity)?.playExternalMedia(url, movie.name, "movie")
+        (activity as? MainActivity)?.playExternalMedia(url, movie.name, "movie", movie.streamId)
     }
 
     override fun onDestroyView() {

@@ -53,8 +53,15 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     private var pendingGroupCode: String? = null
     private val categoryGroupMap = mutableMapOf<String, List<String>>()
 
+    // ✅ لتتبع العنصر المُشغَّل حاليًا لأجل حفظ تقدّم المشاهدة (أفلام/مسلسلات فقط، مو البث المباشر)
+    private var currentPlayingType: String = ""
+    private var currentPlayingId: Int = -1
+
     private val clockHandler = Handler(Looper.getMainLooper())
     private var clockRunnable: Runnable? = null
+
+    private val progressHandler = Handler(Looper.getMainLooper())
+    private var progressRunnable: Runnable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -106,6 +113,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
 
         startClock()
+        startProgressTracking()
         setupWifiStatus()
         setupThemeToggle()
         setupPlayerErrorHandling()
@@ -163,16 +171,88 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
     }
 
-    fun playExternalMedia(url: String, name: String, type: String) {
+    /**
+     * نقطة الدخول لتشغيل فيلم/مسلسل من خارج شاشة البث المباشر.
+     * ✅ itemId اختياري: لو انمرر (فيلم أو مسلسل)، بنتحقق من وجود نقطة استكمال محفوظة ونعرضها بحوار قبل التشغيل.
+     */
+    fun playExternalMedia(url: String, name: String, type: String, itemId: Int = -1) {
         binding.videoPlayer.visibility = View.VISIBLE
         binding.channelInfo.visibility = View.VISIBLE
         binding.playerControls.visibility = View.VISIBLE
-        playStream(url, name, type)
+        playStreamWithResume(url, name, type, itemId)
+    }
+
+    private fun playStreamWithResume(url: String, name: String, type: String, itemId: Int) {
+        currentPlayingType = type
+        currentPlayingId = itemId
+
+        if (itemId != -1 && type != "live") {
+            val saved = (application as App).container.historyManager.getSavedProgress(type, itemId)
+            val hasResumablePosition = saved != null &&
+                saved.durationMs > 0 &&
+                saved.positionMs > 5_000L &&
+                saved.positionMs < (saved.durationMs * 0.95).toLong()
+
+            if (hasResumablePosition && saved != null) {
+                android.app.AlertDialog.Builder(this)
+                    .setTitle(name)
+                    .setMessage("توقفت سابقًا عند ${formatDurationShort(saved.positionMs)}. تحب تكمل من هناك؟")
+                    .setPositiveButton("متابعة") { _, _ -> startPlayback(url, name, type, saved.positionMs) }
+                    .setNegativeButton("من البداية") { _, _ -> startPlayback(url, name, type, 0L) }
+                    .setCancelable(false)
+                    .show()
+                return
+            }
+        }
+
+        startPlayback(url, name, type, 0L)
+    }
+
+    private fun startPlayback(url: String, name: String, type: String, startPositionMs: Long) {
+        currentChannelName = name
+        playerManager.play(url, name, type, startPositionMs)
+        binding.channelInfo.text = "📺 $name"
+        controlsController.onMediaStarted(type)
+    }
+
+    private fun formatDurationShort(ms: Long): String {
+        val totalSec = ms / 1000
+        val h = totalSec / 3600
+        val m = (totalSec % 3600) / 60
+        val s = totalSec % 60
+        return if (h > 0) String.format("%d:%02d:%02d", h, m, s) else String.format("%02d:%02d", m, s)
+    }
+
+    /**
+     * ✅ يحفظ موقع التشغيل الحالي دوريًا (كل 5 ثواني) طالما فيه فيلم/مسلسل شغّال —
+     * البث المباشر مستثنى لأنه ما يحتاج استكمال.
+     */
+    private fun startProgressTracking() {
+        val runnable = object : Runnable {
+            override fun run() {
+                if (currentPlayingType.isNotEmpty() && currentPlayingType != "live" &&
+                    currentPlayingId != -1 && playerManager.isPlaying
+                ) {
+                    val pos = playerManager.player.currentPosition
+                    val dur = playerManager.player.duration
+                    if (dur > 0 && pos >= 0) {
+                        (application as App).container.historyManager.updateProgress(
+                            currentPlayingType, currentPlayingId, pos, dur
+                        )
+                    }
+                }
+                progressHandler.postDelayed(this, 5000)
+            }
+        }
+        progressRunnable = runnable
+        progressHandler.post(runnable)
     }
 
     fun playChannelFromExternal(channel: XtreamChannel, sourceList: List<XtreamChannel>) {
         currentChannelList = sourceList
         currentChannelIndex = sourceList.indexOf(channel)
+        currentPlayingType = "live"
+        currentPlayingId = -1
         val server = liveViewModel.getServer() ?: return
         val url = XtreamAPI.getStreamUrl(server, channel.streamId, channel.containerExtension, "live")
         playStream(url, channel.name, "live")
@@ -358,6 +438,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
         currentChannelIndex = index
         val channel = currentChannelList[index]
+        currentPlayingType = "live"
+        currentPlayingId = -1
         val url = XtreamAPI.getStreamUrl(server, channel.streamId, channel.containerExtension, "live")
         playStream(url, channel.name, "live")
         updateNowPlayingPanel(channel)
@@ -600,6 +682,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     override fun onDestroy(){
         clockRunnable?.let { clockHandler.removeCallbacks(it) }
+        progressRunnable?.let { progressHandler.removeCallbacks(it) }
         controlsController.release()
         networkMonitor.stop()
         playerManager.release()

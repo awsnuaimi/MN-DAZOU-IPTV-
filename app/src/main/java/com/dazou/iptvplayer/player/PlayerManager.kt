@@ -53,7 +53,8 @@ class PlayerManager(context: Context) {
     fun play(
         url: String,
         name: String = "",
-        type: String = ""
+        type: String = "",
+        startPositionMs: Long = 0L
     ) {
         currentStreamUrl = url
         currentName = name
@@ -63,6 +64,9 @@ class PlayerManager(context: Context) {
         val mediaItem = MediaItem.fromUri(Uri.parse(url))
         player.setMediaItem(mediaItem)
         player.prepare()
+        if (startPositionMs > 0L) {
+            player.seekTo(startPositionMs)
+        }
         player.play()
     }
 
