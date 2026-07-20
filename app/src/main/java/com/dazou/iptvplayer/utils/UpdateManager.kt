@@ -40,9 +40,35 @@ object UpdateManager {
             try {
                 val conn = URL(API_URL).openConnection() as HttpURLConnection
                 conn.requestMethod = "GET"
+                // ✅ GitHub API يرفض أي طلب بدون هذي الترويسة (403 دايمًا بدونها)
+                conn.setRequestProperty("User-Agent", "DAZOU-IPTV-App")
                 conn.setRequestProperty("Accept", "application/vnd.github+json")
                 conn.connectTimeout = 8000
                 conn.readTimeout = 8000
+
+                val responseCode = conn.responseCode
+
+                if (responseCode == 404) {
+                    // لا يوجد أي إصدار منشور بعد على GitHub Releases
+                    conn.disconnect()
+                    if (!silent) {
+                        runOnUiThread {
+                            Toast.makeText(context, context.getString(R.string.update_no_release_published), Toast.LENGTH_LONG).show()
+                        }
+                    }
+                    return@thread
+                }
+
+                if (responseCode !in 200..299) {
+                    conn.disconnect()
+                    if (!silent) {
+                        runOnUiThread {
+                            Toast.makeText(context, context.getString(R.string.update_check_failed), Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    return@thread
+                }
+
                 val text = conn.inputStream.bufferedReader().readText()
                 conn.disconnect()
 
@@ -129,6 +155,7 @@ object UpdateManager {
         thread {
             try {
                 val conn = URL(apkUrl).openConnection() as HttpURLConnection
+                conn.setRequestProperty("User-Agent", "DAZOU-IPTV-App")
                 conn.connectTimeout = 15000
                 conn.readTimeout = 15000
                 conn.instanceFollowRedirects = true

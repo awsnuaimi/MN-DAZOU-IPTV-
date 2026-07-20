@@ -100,4 +100,5 @@
     <string name="update_permission_needed">Please enable \"Install unknown apps\" for this app, then try again</string>
     <string name="update_no_update">✅ You have the latest version</string>
     <string name="update_check_failed">Could not check for updates, check your internet connection</string>
+    <string name="update_no_release_published">No release has been published on GitHub yet</string>
 </resources>

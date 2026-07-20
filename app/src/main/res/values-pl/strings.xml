@@ -100,4 +100,5 @@
     <string name="update_permission_needed">Włącz \"Instaluj nieznane aplikacje\" dla tej aplikacji i spróbuj ponownie</string>
     <string name="update_no_update">✅ Masz najnowszą wersję</string>
     <string name="update_check_failed">Nie można sprawdzić aktualizacji, sprawdź połączenie z internetem</string>
+    <string name="update_no_release_published">Na GitHub nie opublikowano jeszcze żadnej wersji</string>
 </resources>

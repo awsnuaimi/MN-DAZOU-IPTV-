@@ -91,7 +91,6 @@
     <string name="epg_last_response">آخر رد EPG: %s</string>
     <string name="epg_no_program_data">لا توجد بيانات برنامج</string>
 
-    <!-- التحديث التلقائي -->
     <string name="update_available_title">📦 يوجد تحديث جديد</string>
     <string name="update_available_message">إصدار جديد متوفر: %s</string>
     <string name="update_now">تحديث الآن</string>
@@ -101,4 +100,5 @@
     <string name="update_permission_needed">فعّل صلاحية \"تثبيت من مصادر غير معروفة\" لهذا التطبيق، ثم أعد المحاولة</string>
     <string name="update_no_update">✅ لديك أحدث إصدار</string>
     <string name="update_check_failed">تعذر التحقق من التحديثات، تأكد من الاتصال بالإنترنت</string>
+    <string name="update_no_release_published">لا يوجد إصدار منشور على GitHub بعد</string>
 </resources>
