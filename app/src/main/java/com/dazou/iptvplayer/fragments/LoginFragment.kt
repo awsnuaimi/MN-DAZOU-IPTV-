@@ -1,9 +1,11 @@
 package com.dazou.iptvplayer.fragments
 
+import android.animation.ObjectAnimator
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.LinearInterpolator
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.dazou.iptvplayer.App
@@ -17,6 +19,8 @@ class LoginFragment : Fragment() {
     private var _binding: FragmentLoginBinding? = null
     private val binding get() = _binding!!
 
+    private var ringAnimator: ObjectAnimator? = null
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -28,6 +32,15 @@ class LoginFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // ✅ دوران مستمر للدائرة المتقطعة بس (المثلث بالنص يضل ثابت) — نفس شعار
+        // التطبيق الحقيقي، بحركة سلسة بدون توقف طول ما شاشة تسجيل الدخول ظاهرة
+        ringAnimator = ObjectAnimator.ofFloat(binding.ivLogoRing, "rotation", 0f, 360f).apply {
+            duration = 3000L
+            repeatCount = ObjectAnimator.INFINITE
+            interpolator = LinearInterpolator()
+            start()
+        }
 
         binding.etUrl.requestFocus()
 
@@ -58,6 +71,10 @@ class LoginFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        // ✅ إيقاف الحركة صراحة قبل تدمير الشاشة — يمنع أي تسريب ذاكرة
+        // من استمرار الأنيميشن على View ما عاد موجود
+        ringAnimator?.cancel()
+        ringAnimator = null
         _binding = null
     }
 }
