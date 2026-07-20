@@ -9,10 +9,6 @@ import android.graphics.drawable.StateListDrawable
 import android.view.View
 import com.dazou.iptvplayer.databinding.ActivityMainBinding
 
-/**
- * يدير لون العلامة التجارية (Accent) للتطبيق — يبني ألوان الفوكس والتمييز برمجيًا
- * وقت التشغيل بدل الاعتماد على ألوان ثابتة بملفات XML، حتى نقدر نبدّل التيم بسهولة.
- */
 object ThemeManager {
 
     enum class AppTheme(val id: String, val accent: Int, val accentDark: Int) {
@@ -39,7 +35,6 @@ object ThemeManager {
 
     private fun dp(context: Context, value: Float): Float = value * context.resources.displayMetrics.density
 
-    /** خلفية مستطيلة بزوايا مدوّرة — لعناصر القائمة النصية (الرئيسية/القنوات/أفلام...) */
     private fun rectFocusSelector(theme: AppTheme, radiusDp: Float): StateListDrawable {
         val focused = GradientDrawable().apply {
             setColor(theme.accent)
@@ -55,7 +50,6 @@ object ThemeManager {
         }
     }
 
-    /** حلقة دائرية رفيعة — لأيقونات الشريط العلوي المستديرة */
     private fun ringFocusSelector(theme: AppTheme): StateListDrawable {
         val pressed = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
@@ -77,7 +71,6 @@ object ThemeManager {
         }
     }
 
-    /** خلفية مستطيلة مليانة (للأزرار العريضة زي "القنوات المباشرة") */
     private fun filledFocusSelector(theme: AppTheme, radiusDp: Float): StateListDrawable {
         val focused = GradientDrawable().apply {
             setColor(theme.accent)
@@ -94,7 +87,6 @@ object ThemeManager {
         }
     }
 
-    /** ✅ جديد: نفس خلفية بطاقات المجلدات (item_category.xml) — بيضاوي بحواف مدوّرة كبيرة */
     private fun cardFocusSelector(theme: AppTheme, radiusDp: Float): StateListDrawable {
         val focused = GradientDrawable().apply {
             setColor(theme.accent)
@@ -116,7 +108,6 @@ object ThemeManager {
         }
     }
 
-    /** يطبّق التيم المحفوظ على كل عناصر الشريط العلوي وعناصر التحكم الأساسية بالمرحلة الأولى */
     fun applyToMainScreen(activity: Activity, binding: ActivityMainBinding) {
         val theme = getSavedTheme(activity)
         val radius18 = dp(activity, 18f)
@@ -128,7 +119,7 @@ object ThemeManager {
         listOf(
             binding.account, binding.themeToggle, binding.settings, binding.searchIcon,
             binding.channelsPanelBack, binding.btnPrev, binding.btnPlayPause, binding.btnNext,
-            binding.btnVolume, binding.btnFullscreen, binding.btnPip
+            binding.btnVolume, binding.btnFullscreen, binding.btnPip, binding.btnSleepTimer
         ).forEach { it.background = ringFocusSelector(theme) }
 
         binding.sidebarLiveButton.background = filledFocusSelector(theme, radius12)
@@ -142,18 +133,11 @@ object ThemeManager {
         binding.playerLoading.indeterminateTintList = accentList
     }
 
-    /**
-     * ✅ جديد (المرحلة 2): يطبّق خلفية التمييز الموحّدة على أي View لبطاقة مجلد
-     * (يُستخدم من داخل CategoryAdapter لكل صف بقائمة الدول/الأفلام/المسلسلات)
-     */
     fun applyCardFocusBackground(view: View) {
         val theme = getSavedTheme(view.context)
         view.background = cardFocusSelector(theme, dp(view.context, 16f))
     }
 
-    /**
-     * ✅ جديد: يطبّق خلفية زر عريض موحّد (يُستخدم بشاشة الحسابات وأي زر عريض مشابه)
-     */
     fun applyButtonFocusBackground(view: View) {
         val theme = getSavedTheme(view.context)
         view.background = filledFocusSelector(theme, dp(view.context, 12f))

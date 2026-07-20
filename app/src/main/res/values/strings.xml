@@ -117,6 +117,18 @@
     <string name="series_search_hint">🔍 ابحث عن مسلسل...</string>
     <string name="series_next_episode_title">▶ الحلقة التالية</string>
     <string name="series_next_episode_countdown">تشغيل الحلقة التالية خلال %d ثانية</string>
+
+    <!-- مؤقت النوم -->
+    <string name="sleep_timer_title">⏰ مؤقت النوم</string>
+    <string name="sleep_timer_off">إيقاف</string>
+    <string name="sleep_timer_15">15 دقيقة</string>
+    <string name="sleep_timer_30">30 دقيقة</string>
+    <string name="sleep_timer_45">45 دقيقة</string>
+    <string name="sleep_timer_60">60 دقيقة</string>
+    <string name="sleep_timer_set">⏰ تم ضبط مؤقت النوم على %d دقيقة</string>
+    <string name="sleep_timer_cancelled">تم إيقاف مؤقت النوم</string>
+    <string name="sleep_timer_finished">⏰ انتهى مؤقت النوم — تم إيقاف التشغيل</string>
+
     <!-- الرئيسية / المفضلة / السجل -->
     <string name="home_welcome">🎉 مرحبًا بك في DAZOU IPTV</string>
     <string name="home_empty_state">⭐ لا توجد عناصر بالمفضلة بعد — اضغط مطولًا على أي فيلم أو مسلسل لإضافته</string>

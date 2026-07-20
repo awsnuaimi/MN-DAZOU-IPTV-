@@ -64,10 +64,13 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     private var currentPlayingType: String = ""
     private var currentPlayingId: Int = -1
 
-    // ✅ جديد: تشغيل الحلقة التالية تلقائيًا
     private var nextEpisodeProvider: (() -> Unit)? = null
     private var autoNextTimer: CountDownTimer? = null
     private var autoNextDialog: AlertDialog? = null
+
+    // ✅ جديد: مؤقت النوم
+    private var sleepTimer: CountDownTimer? = null
+    private var sleepMinutesActive: Int = 0
 
     private val clockHandler = Handler(Looper.getMainLooper())
     private var clockRunnable: Runnable? = null
@@ -96,6 +99,10 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             onFullscreenToggle = { toggleFullscreen() },
             onPip = { enterPipMode() }
         )
+
+        binding.btnSleepTimer.setOnClickListener {
+            showSleepTimerPicker()
+        }
 
         val app = application as App
         liveViewModel = ViewModelProvider(this, ViewModelFactory(app.container.currentRepository))
@@ -153,15 +160,70 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         // ✅ فحص تحديث صامت عند فتح التطبيق (ما بيطلع شي لو ما في تحديث جديد)
         UpdateManager.checkForUpdate(this, silent = true)
 
-        // ✅ لازم يكون آخر سطر بالدالة — حتى ما في أي كود تاني (متل إعداد المشغّل أو
-        // القوائم) يقدر يكتب فوق ألوان التيم المختار بعد ما نطبّقه
+        // ✅ لازم يكون آخر سطر بالدالة — حتى ما في أي كود تاني يقدر يكتب فوق ألوان التيم
         ThemeManager.applyToMainScreen(this, binding)
     }
 
-    /**
-     * ✅ تستدعيها SeriesFragment بعد ما تبدأ حلقة، وتمررلها دالة تشغّل الحلقة التالية
-     * (أو null لو ما في حلقة تالية). MainActivity بتستخدمها تلقائيًا لما الحلقة تخلص.
-     */
+    /** ✅ يفتح قائمة اختيار مدة مؤقت النوم، أو إيقافه لو مفعّل حاليًا */
+    private fun showSleepTimerPicker() {
+        val options = listOf(
+            getString(R.string.sleep_timer_off) to 0,
+            getString(R.string.sleep_timer_15) to 15,
+            getString(R.string.sleep_timer_30) to 30,
+            getString(R.string.sleep_timer_45) to 45,
+            getString(R.string.sleep_timer_60) to 60
+        )
+        val labels = options.map { it.first }.toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.sleep_timer_title))
+            .setItems(labels) { _, which ->
+                val minutes = options[which].second
+                if (minutes == 0) {
+                    cancelSleepTimer()
+                } else {
+                    startSleepTimer(minutes)
+                }
+            }
+            .show()
+    }
+
+    private fun startSleepTimer(minutes: Int) {
+        sleepTimer?.cancel()
+        sleepMinutesActive = minutes
+        updateSleepTimerIcon()
+
+        sleepTimer = object : CountDownTimer(minutes * 60_000L, 60_000L) {
+            override fun onTick(millisUntilFinished: Long) {}
+            override fun onFinish() {
+                playerManager.pause()
+                sleepMinutesActive = 0
+                updateSleepTimerIcon()
+                Toast.makeText(this@MainActivity, getString(R.string.sleep_timer_finished), Toast.LENGTH_LONG).show()
+            }
+        }.start()
+
+        Toast.makeText(this, getString(R.string.sleep_timer_set, minutes), Toast.LENGTH_SHORT).show()
+    }
+
+    private fun cancelSleepTimer() {
+        sleepTimer?.cancel()
+        sleepTimer = null
+        sleepMinutesActive = 0
+        updateSleepTimerIcon()
+        Toast.makeText(this, getString(R.string.sleep_timer_cancelled), Toast.LENGTH_SHORT).show()
+    }
+
+    /** ✅ يلوّن أيقونة مؤقت النوم بلون التيم المختار لما يكون مفعّل، وشفاف لما يكون متوقف */
+    private fun updateSleepTimerIcon() {
+        if (sleepMinutesActive > 0) {
+            val theme = ThemeManager.getSavedTheme(this)
+            binding.btnSleepTimer.setColorFilter(theme.accent)
+        } else {
+            binding.btnSleepTimer.clearColorFilter()
+        }
+    }
+
     fun setNextEpisodeProvider(provider: (() -> Unit)?) {
         nextEpisodeProvider = provider
     }
@@ -199,10 +261,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }.start()
     }
 
-    /**
-     * ✅ دوران مستمر للدائرة المتقطعة بالشعار الظاهر بالشريط العلوي — نفس شعار
-     * التطبيق الحقيقي، بحركة سلسة ومستمرة بكل شاشات التطبيق (بما إن الشريط العلوي مشترك بينهم).
-     */
     private fun startTopBarLogoAnimation() {
         topBarLogoAnimator = ObjectAnimator.ofFloat(binding.ivTopBarLogoRing, "rotation", 0f, 360f).apply {
             duration = 3000L
@@ -212,11 +270,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
     }
 
-    /**
-     * ✅ يطلب الفوكس بشكل مضمون التوقيت: لو الشاشة خلصت ترتيبها فعليًا يطلب الفوكس فورًا،
-     * وإلا ينتظر حدث اكتمال الترتيب بالضبط قبل ما يطلبه — يمنع فشل requestFocus() الصامت
-     * لما تُستدعى قبل ما تصير للعنصر أبعاد فعلية على الشاشة (زي لما تظهر لوحة جديدة للتو).
-     */
     private fun requestFocusWhenReady(view: View) {
         if (view.isLaidOut && view.width > 0 && view.height > 0) {
             view.requestFocus()
@@ -278,8 +331,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     }
 
     private fun playStreamWithResume(url: String, name: String, type: String, itemId: Int) {
-        // ✅ أي تشغيل جديد يصفّر إعداد الحلقة التالية — لو كان النوع "series"،
-        // SeriesFragment رح تعيد ضبطه فورًا بعد هالاستدعاء
         nextEpisodeProvider = null
         autoNextTimer?.cancel()
         autoNextDialog?.dismiss()
@@ -662,7 +713,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                     }
                     Player.STATE_ENDED -> {
                         binding.playerLoading.visibility = View.GONE
-                        // ✅ لو خلصت حلقة مسلسل وفيه حلقة تالية معروفة، يبدأ العد التنازلي
                         if (currentPlayingType == "series" && nextEpisodeProvider != null) {
                             triggerAutoNextEpisode()
                         }
@@ -834,6 +884,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         topBarLogoAnimator?.cancel()
         autoNextTimer?.cancel()
         autoNextDialog?.dismiss()
+        sleepTimer?.cancel()
         controlsController.release()
         networkMonitor.stop()
         playerManager.release()

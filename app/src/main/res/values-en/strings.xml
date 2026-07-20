@@ -110,6 +110,17 @@
     <string name="series_search_hint">🔍 Search for a series...</string>
     <string name="series_next_episode_title">▶ Next Episode</string>
     <string name="series_next_episode_countdown">Playing next episode in %d seconds</string>
+
+    <string name="sleep_timer_title">⏰ Sleep Timer</string>
+    <string name="sleep_timer_off">Off</string>
+    <string name="sleep_timer_15">15 minutes</string>
+    <string name="sleep_timer_30">30 minutes</string>
+    <string name="sleep_timer_45">45 minutes</string>
+    <string name="sleep_timer_60">60 minutes</string>
+    <string name="sleep_timer_set">⏰ Sleep timer set for %d minutes</string>
+    <string name="sleep_timer_cancelled">Sleep timer cancelled</string>
+    <string name="sleep_timer_finished">⏰ Sleep timer finished — playback stopped</string>
+
     <string name="home_welcome">🎉 Welcome to DAZOU IPTV</string>
     <string name="home_empty_state">⭐ No favorites yet — long-press any movie or series to add it</string>
     <string name="home_favorites_count">⭐ Favorites (%d)</string>

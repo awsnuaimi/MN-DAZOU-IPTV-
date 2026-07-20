@@ -110,6 +110,17 @@
     <string name="series_search_hint">🔍 Szukaj serialu...</string>
     <string name="series_next_episode_title">▶ Następny odcinek</string>
     <string name="series_next_episode_countdown">Następny odcinek za %d sekund</string>
+
+    <string name="sleep_timer_title">⏰ Wyłącznik czasowy</string>
+    <string name="sleep_timer_off">Wyłącz</string>
+    <string name="sleep_timer_15">15 minut</string>
+    <string name="sleep_timer_30">30 minut</string>
+    <string name="sleep_timer_45">45 minut</string>
+    <string name="sleep_timer_60">60 minut</string>
+    <string name="sleep_timer_set">⏰ Ustawiono wyłącznik czasowy na %d minut</string>
+    <string name="sleep_timer_cancelled">Wyłącznik czasowy anulowany</string>
+    <string name="sleep_timer_finished">⏰ Wyłącznik czasowy zakończony — odtwarzanie zatrzymane</string>
+
     <string name="home_welcome">🎉 Witamy w DAZOU IPTV</string>
     <string name="home_empty_state">⭐ Brak ulubionych — przytrzymaj film lub serial, aby go dodać</string>
     <string name="home_favorites_count">⭐ Ulubione (%d)</string>
