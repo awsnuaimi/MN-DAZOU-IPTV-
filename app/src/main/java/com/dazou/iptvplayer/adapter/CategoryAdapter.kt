@@ -1,5 +1,6 @@
 package com.dazou.iptvplayer.adapter
 
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -31,13 +32,18 @@ class CategoryAdapter(
         view.setBackgroundResource(R.drawable.tv_button_selector)
         FocusAnimator.attach(view)
 
-        // ✅ توجيه فوكس صريح لكل صف (بدل الاعتماد على البحث التلقائي اللي بيتوه بالـ RTL)
         nextFocusRightId?.let { view.nextFocusRightId = it }
         nextFocusLeftId?.let { view.nextFocusLeftId = it }
 
         val textView = view.findViewById<TextView>(android.R.id.text1)
         textView.setTextColor(ContextCompat.getColor(parent.context, R.color.text_white))
         textView.setPadding(24, 24, 24, 24)
+
+        // ✅ نجبر كل أسماء المجلدات تبلش من نفس الجهة (اليسار) دايمًا، بغض النظر إذا كان
+        // اسم المجلد عربي أو فيه علم دولة أو إنجليزي — يمنع تشتت المحاذاة بين الصفوف،
+        // مع الحفاظ الكامل على شكل الحروف العربية الصحيح المتصل.
+        textView.textDirection = View.TEXT_DIRECTION_LTR
+        textView.gravity = Gravity.START or Gravity.CENTER_VERTICAL
 
         return ViewHolder(view)
     }
