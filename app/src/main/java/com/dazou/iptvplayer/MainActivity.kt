@@ -9,6 +9,7 @@ import android.os.Looper
 import android.util.Rational
 import android.view.KeyEvent
 import android.view.View
+import android.view.ViewTreeObserver
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -137,6 +138,24 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
         // ✅ فحص تحديث صامت عند فتح التطبيق (ما بيطلع شي لو ما في تحديث جديد)
         UpdateManager.checkForUpdate(this, silent = true)
+    }
+
+    /**
+     * ✅ يطلب الفوكس بشكل مضمون التوقيت: لو الشاشة خلصت ترتيبها فعليًا يطلب الفوكس فورًا،
+     * وإلا ينتظر حدث اكتمال الترتيب بالضبط قبل ما يطلبه — يمنع فشل requestFocus() الصامت
+     * لما تُستدعى قبل ما تصير للعنصر أبعاد فعلية على الشاشة (زي لما تظهر لوحة جديدة للتو).
+     */
+    private fun requestFocusWhenReady(view: View) {
+        if (view.isLaidOut && view.width > 0 && view.height > 0) {
+            view.requestFocus()
+        } else {
+            view.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+                override fun onGlobalLayout() {
+                    view.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    view.requestFocus()
+                }
+            })
+        }
     }
 
     private fun savePlaybackState(channel: XtreamChannel) {
@@ -353,6 +372,13 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                 playChannelAt(index)
             }
         }
+
+        // ✅ يخلي الفوكس يقفز مباشرة لأول قناة بالقائمة الجديدة، بدل ما يضل عالق
+        // على القائمة اليسار وقتها القائمة ما زالت ما اترتبت بصريًا على الشاشة
+        if (channels.isNotEmpty()) {
+            requestFocusWhenReady(binding.channelList)
+        }
+
         val pendingId = pendingAutoPlayChannelId
         if (pendingId != null) {
             pendingAutoPlayChannelId = null
@@ -445,6 +471,11 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             R.id.category_list
         ) { subCategory ->
             openRealCategory(subCategory)
+        }
+
+        // ✅ نفس منطق الفوكس التلقائي — يقفز فورًا لأول مجلد فرعي (دولة) بالقائمة
+        if (cleanedSubCategories.isNotEmpty()) {
+            requestFocusWhenReady(binding.channelList)
         }
     }
 
