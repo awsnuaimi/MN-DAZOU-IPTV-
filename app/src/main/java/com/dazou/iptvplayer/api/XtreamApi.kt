@@ -14,12 +14,11 @@ import kotlin.concurrent.thread
 object XtreamAPI {
     private const val TAG = "XtreamAPI"
 
-    var lastRequestUrl: String = ""
-    var lastResponseBody: String = ""
-    var lastErrorMessage: String = ""
-    var lastItemCount: Int = -1
+    @Volatile var lastRequestUrl: String = ""
+    @Volatile var lastResponseBody: String = ""
+    @Volatile var lastErrorMessage: String = ""
+    @Volatile var lastItemCount: Int = -1
 
-    // ترميز آمن لاسم المستخدم/كلمة المرور بالرابط (يمنع كسر الطلب لو فيها رموز خاصة)
     private fun enc(value: String): String =
         try { URLEncoder.encode(value, "UTF-8") } catch (_: Exception) { value }
 
@@ -46,10 +45,8 @@ object XtreamAPI {
                 lastRequestUrl = url
                 val json = fetchJson(url)
                 lastResponseBody = json.take(500)
-                Log.d(TAG, "Live streams JSON first 500: $lastResponseBody")
                 val channels = parseChannels(json)
                 lastItemCount = channels.size
-                Log.d(TAG, "Parsed ${channels.size} live channels")
                 runOnUiThread { callback(channels) }
             } catch (e: Exception) {
                 Log.e(TAG, "live streams error", e)
@@ -84,10 +81,8 @@ object XtreamAPI {
                 lastRequestUrl = url
                 val json = fetchJson(url)
                 lastResponseBody = json.take(500)
-                Log.d(TAG, "VOD streams JSON first 500: $lastResponseBody")
                 val movies = parseMovies(json)
                 lastItemCount = movies.size
-                Log.d(TAG, "Parsed ${movies.size} movies")
                 runOnUiThread { callback(movies) }
             } catch (e: Exception) {
                 Log.e(TAG, "vod streams error", e)
@@ -99,7 +94,6 @@ object XtreamAPI {
         }
     }
 
-    // مصحَّحة: تجلب تصنيفات المسلسلات الحقيقية بدل تصنيفات الأفلام
     fun getSeriesCategories(server: XtreamServer, callback: (List<XtreamCategory>) -> Unit) {
         thread {
             try {
@@ -123,10 +117,8 @@ object XtreamAPI {
                 lastRequestUrl = url
                 val json = fetchJson(url)
                 lastResponseBody = json.take(500)
-                Log.d(TAG, "Series JSON first 500: $lastResponseBody")
                 val series = parseSeries(json)
                 lastItemCount = series.size
-                Log.d(TAG, "Parsed ${series.size} series")
                 runOnUiThread { callback(series) }
             } catch (e: Exception) {
                 Log.e(TAG, "series error", e)
@@ -152,9 +144,9 @@ object XtreamAPI {
         }
     }
 
-    var lastEpgRequestUrl: String = ""
-    var lastEpgResponseBody: String = ""
-    var lastEpgErrorMessage: String = ""
+    @Volatile var lastEpgRequestUrl: String = ""
+    @Volatile var lastEpgResponseBody: String = ""
+    @Volatile var lastEpgErrorMessage: String = ""
 
     fun getShortEpg(server: XtreamServer, streamId: Int, callback: (List<XtreamEpgProgram>) -> Unit) {
         thread {

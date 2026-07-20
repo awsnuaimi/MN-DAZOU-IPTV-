@@ -14,7 +14,14 @@
 -keep class com.google.crypto.tink.** { *; }
 -keep class androidx.security.crypto.** { *; }
 
-# ✅ Tink فيها إشارات لميزة اختيارية (تحميل مفاتيح من رابط) غير مستخدمة بمشروعنا إطلاقًا،
-# وتعتمد على مكتبات غير موجودة أصلًا بالتبعيات — هذا كود ميت آمن نتجاهله
 -dontwarn com.google.api.client.http.**
 -dontwarn org.joda.time.**
+
+# ✅ يشيل كل استدعاءات Log.d / Log.v / Log.i نهائيًا من نسخة Release —
+# حماية إضافية من تسريب أي بيانات حساسة (روابط، أسماء مستخدمين...) بسجلات الجهاز بالغلط،
+# حتى لو انضاف سطر Log جديد مستقبلاً وما انتبهنا نشيله يدويًا
+-assumenosideeffects class android.util.Log {
+    public static int d(...);
+    public static int v(...);
+    public static int i(...);
+}
