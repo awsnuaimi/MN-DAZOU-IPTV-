@@ -11,6 +11,12 @@
     <string name="settings_title">التشخيص والإعدادات</string>
     <string name="settings_language">🌐 اللغة</string>
     <string name="settings_check_updates">🔄 التحقق من التحديثات</string>
+    <string name="settings_theme_color">🎨 لون الواجهة</string>
+    <string name="theme_burgundy">🟣 بنفسجي (افتراضي)</string>
+    <string name="theme_black">⚫ أسود</string>
+    <string name="theme_blue">🔵 أزرق كحلي</string>
+    <string name="theme_green">🟢 أخضر غامق</string>
+    <string name="theme_red">🔴 أحمر غامق</string>
     <string name="btn_check_errors">🔍 فحص أخطاء التطبيق</string>
     <string name="no_crash_logs">لا توجد أخطاء مسجّلة ✅</string>
     <string name="crash_logs_found">تم العثور على %d خطأ مسجّل</string>

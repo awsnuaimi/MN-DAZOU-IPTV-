@@ -11,6 +11,12 @@
     <string name="settings_title">Diagnostics &amp; Settings</string>
     <string name="settings_language">🌐 Language</string>
     <string name="settings_check_updates">🔄 Check for Updates</string>
+    <string name="settings_theme_color">🎨 App Theme Color</string>
+    <string name="theme_burgundy">🟣 Burgundy (Default)</string>
+    <string name="theme_black">⚫ Black</string>
+    <string name="theme_blue">🔵 Navy Blue</string>
+    <string name="theme_green">🟢 Dark Green</string>
+    <string name="theme_red">🔴 Dark Red</string>
     <string name="btn_check_errors">🔍 Check App Errors</string>
     <string name="no_crash_logs">No errors logged ✅</string>
     <string name="crash_logs_found">%d error(s) found</string>

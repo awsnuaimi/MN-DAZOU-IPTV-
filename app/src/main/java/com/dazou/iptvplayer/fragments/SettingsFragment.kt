@@ -11,6 +11,7 @@ import androidx.core.os.LocaleListCompat
 import androidx.fragment.app.Fragment
 import com.dazou.iptvplayer.R
 import com.dazou.iptvplayer.databinding.FragmentSettingsBinding
+import com.dazou.iptvplayer.utils.ThemeManager
 import com.dazou.iptvplayer.utils.UpdateManager
 import java.io.File
 
@@ -26,6 +27,14 @@ class SettingsFragment : Fragment() {
         "pl" to "Polski"
     )
 
+    private val supportedThemes = listOf(
+        ThemeManager.AppTheme.BURGUNDY to R.string.theme_burgundy,
+        ThemeManager.AppTheme.BLACK to R.string.theme_black,
+        ThemeManager.AppTheme.BLUE to R.string.theme_blue,
+        ThemeManager.AppTheme.GREEN to R.string.theme_green,
+        ThemeManager.AppTheme.RED to R.string.theme_red
+    )
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -35,6 +44,10 @@ class SettingsFragment : Fragment() {
 
         binding.btnLanguage.setOnClickListener {
             showLanguagePicker()
+        }
+
+        binding.btnThemeColor.setOnClickListener {
+            showThemePicker()
         }
 
         binding.btnCheckUpdates.setOnClickListener {
@@ -76,8 +89,19 @@ class SettingsFragment : Fragment() {
                 AppCompatDelegate.setApplicationLocales(
                     LocaleListCompat.forLanguageTags(languageTag)
                 )
-                // ✅ نجبر إعادة بناء الشاشة بالكامل فورًا (مو الاعتماد بس على السلوك
-                // التلقائي، اللي أحيانًا ما يحدّث كل التطبيق على بعض أجهزة التلفاز)
+                requireActivity().recreate()
+            }
+            .show()
+    }
+
+    private fun showThemePicker() {
+        val labels = supportedThemes.map { getString(it.second) }.toTypedArray()
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.settings_theme_color))
+            .setItems(labels) { _, which ->
+                val chosen = supportedThemes[which].first
+                ThemeManager.saveTheme(requireContext(), chosen)
                 requireActivity().recreate()
             }
             .show()
