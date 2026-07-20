@@ -8,6 +8,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.dazou.iptvplayer.R
 import com.dazou.iptvplayer.data.FavoritesManager
 import com.dazou.iptvplayer.model.FavoriteItem
@@ -45,6 +46,7 @@ class ChannelAdapter(
 
         Glide.with(holder.ivLogo.context)
             .load(channel.streamIcon)
+            .diskCacheStrategy(DiskCacheStrategy.ALL)
             .placeholder(R.drawable.ic_live_tv)
             .error(R.drawable.ic_live_tv)
             .into(holder.ivLogo)
