@@ -33,6 +33,40 @@
     <string name="sidebar_live_channels">☰ القنوات المباشرة</string>
     <string name="live_select_channel_prompt">اختر قناة لعرض معلومات البرنامج</string>
 
+    <!-- أسماء الدول (مجلدات البث المباشر) -->
+    <string name="country_ar">AR</string>
+    <string name="country_albania">ألبانيا</string>
+    <string name="country_lithuania">ليتوانيا</string>
+    <string name="country_japan">اليابان</string>
+    <string name="country_poland">بولندا</string>
+    <string name="country_saudi">السعودية</string>
+    <string name="country_uae">الإمارات</string>
+    <string name="country_qatar">قطر</string>
+    <string name="country_kuwait">الكويت</string>
+    <string name="country_bahrain">البحرين</string>
+    <string name="country_oman">عُمان</string>
+    <string name="country_egypt">مصر</string>
+    <string name="country_lebanon">لبنان</string>
+    <string name="country_jordan">الأردن</string>
+    <string name="country_syria">سوريا</string>
+    <string name="country_iraq">العراق</string>
+    <string name="country_morocco">المغرب</string>
+    <string name="country_tunisia">تونس</string>
+    <string name="country_algeria">الجزائر</string>
+    <string name="country_turkey">تركيا</string>
+    <string name="country_usa">أمريكا</string>
+    <string name="country_uk">بريطانيا</string>
+    <string name="country_germany">ألمانيا</string>
+    <string name="country_france">فرنسا</string>
+    <string name="country_italy">إيطاليا</string>
+    <string name="country_spain">إسبانيا</string>
+    <string name="country_netherlands">هولندا</string>
+    <string name="country_russia">روسيا</string>
+    <string name="country_india">الهند</string>
+    <string name="country_pakistan">باكستان</string>
+    <string name="country_greece">اليونان</string>
+    <string name="country_portugal">البرتغال</string>
+
     <!-- البث المباشر -->
     <string name="live_no_categories">لا توجد مجموعات – تأكد من الحساب</string>
     <string name="live_feature_unsupported">الميزة غير مدعومة على هذا الجهاز</string>

@@ -1,52 +1,51 @@
 package com.dazou.iptvplayer.utils
 
+import android.content.Context
+import com.dazou.iptvplayer.R
 import com.dazou.iptvplayer.model.XtreamCategory
 
-data class GroupOverride(val flag: String?, val name: String, val suppressFlag: Boolean = false)
+data class GroupOverride(val flag: String?, val nameResId: Int, val suppressFlag: Boolean = false)
 
-/** منطق تجميع المجموعات المتكررة بنفس رمز البلد [XX] بمجلد واحد بعلم — منطق بيانات صرف، بلا أي علاقة بالواجهة */
+/** منطق تجميع المجموعات المتكررة بنفس رمز البلد [XX] بمجلد واحد بعلم — الأسماء هلق بتترجم حسب لغة التطبيق */
 object CategoryGrouper {
 
     private val groupOverrides = mapOf(
-        // ✅ الاسم صار "AR" بدل "عربي" بناءً على طلبك — وهو هلق يستخدم صورة شعار
-        // جامعة الدول العربية الحقيقية بدل رمز نصي، فما إلها داعي أي علم إيموجي
-        "AR" to GroupOverride(null, "AR", suppressFlag = true),
-        "ARABIC" to GroupOverride(null, "AR", suppressFlag = true),
-        "ALB" to GroupOverride("🇦🇱", "ألبانيا"),
-        // ✅ ليتوانيا واليابان هلق بتستخدموا صور أعلام حقيقية بدل الإيموجي
-        "LT" to GroupOverride(null, "ليتوانيا", suppressFlag = true),
-        "JAPAN" to GroupOverride(null, "اليابان", suppressFlag = true),
-        "JP" to GroupOverride(null, "اليابان", suppressFlag = true),
-        "PL" to GroupOverride("🇵🇱", "بولندا"),
-        "SA" to GroupOverride("🇸🇦", "السعودية"),
-        "AE" to GroupOverride("🇦🇪", "الإمارات"),
-        "UAE" to GroupOverride("🇦🇪", "الإمارات"),
-        "QA" to GroupOverride("🇶🇦", "قطر"),
-        "KW" to GroupOverride("🇰🇼", "الكويت"),
-        "BH" to GroupOverride("🇧🇭", "البحرين"),
-        "OM" to GroupOverride("🇴🇲", "عُمان"),
-        "EG" to GroupOverride("🇪🇬", "مصر"),
-        "LB" to GroupOverride("🇱🇧", "لبنان"),
-        "JO" to GroupOverride("🇯🇴", "الأردن"),
-        "SY" to GroupOverride("🇸🇾", "سوريا"),
-        "IQ" to GroupOverride("🇮🇶", "العراق"),
-        "MA" to GroupOverride("🇲🇦", "المغرب"),
-        "TN" to GroupOverride("🇹🇳", "تونس"),
-        "DZ" to GroupOverride("🇩🇿", "الجزائر"),
-        "TR" to GroupOverride("🇹🇷", "تركيا"),
-        "US" to GroupOverride("🇺🇸", "أمريكا"),
-        "USA" to GroupOverride("🇺🇸", "أمريكا"),
-        "UK" to GroupOverride("🇬🇧", "بريطانيا"),
-        "DE" to GroupOverride("🇩🇪", "ألمانيا"),
-        "FR" to GroupOverride("🇫🇷", "فرنسا"),
-        "IT" to GroupOverride("🇮🇹", "إيطاليا"),
-        "ES" to GroupOverride("🇪🇸", "إسبانيا"),
-        "NL" to GroupOverride("🇳🇱", "هولندا"),
-        "RU" to GroupOverride("🇷🇺", "روسيا"),
-        "IN" to GroupOverride("🇮🇳", "الهند"),
-        "PK" to GroupOverride("🇵🇰", "باكستان"),
-        "GR" to GroupOverride("🇬🇷", "اليونان"),
-        "PT" to GroupOverride("🇵🇹", "البرتغال")
+        "AR" to GroupOverride(null, R.string.country_ar, suppressFlag = true),
+        "ARABIC" to GroupOverride(null, R.string.country_ar, suppressFlag = true),
+        "ALB" to GroupOverride("🇦🇱", R.string.country_albania),
+        "LT" to GroupOverride(null, R.string.country_lithuania, suppressFlag = true),
+        "JAPAN" to GroupOverride(null, R.string.country_japan, suppressFlag = true),
+        "JP" to GroupOverride(null, R.string.country_japan, suppressFlag = true),
+        "PL" to GroupOverride("🇵🇱", R.string.country_poland),
+        "SA" to GroupOverride("🇸🇦", R.string.country_saudi),
+        "AE" to GroupOverride("🇦🇪", R.string.country_uae),
+        "UAE" to GroupOverride("🇦🇪", R.string.country_uae),
+        "QA" to GroupOverride("🇶🇦", R.string.country_qatar),
+        "KW" to GroupOverride("🇰🇼", R.string.country_kuwait),
+        "BH" to GroupOverride("🇧🇭", R.string.country_bahrain),
+        "OM" to GroupOverride("🇴🇲", R.string.country_oman),
+        "EG" to GroupOverride("🇪🇬", R.string.country_egypt),
+        "LB" to GroupOverride("🇱🇧", R.string.country_lebanon),
+        "JO" to GroupOverride("🇯🇴", R.string.country_jordan),
+        "SY" to GroupOverride("🇸🇾", R.string.country_syria),
+        "IQ" to GroupOverride("🇮🇶", R.string.country_iraq),
+        "MA" to GroupOverride("🇲🇦", R.string.country_morocco),
+        "TN" to GroupOverride("🇹🇳", R.string.country_tunisia),
+        "DZ" to GroupOverride("🇩🇿", R.string.country_algeria),
+        "TR" to GroupOverride("🇹🇷", R.string.country_turkey),
+        "US" to GroupOverride("🇺🇸", R.string.country_usa),
+        "USA" to GroupOverride("🇺🇸", R.string.country_usa),
+        "UK" to GroupOverride("🇬🇧", R.string.country_uk),
+        "DE" to GroupOverride("🇩🇪", R.string.country_germany),
+        "FR" to GroupOverride("🇫🇷", R.string.country_france),
+        "IT" to GroupOverride("🇮🇹", R.string.country_italy),
+        "ES" to GroupOverride("🇪🇸", R.string.country_spain),
+        "NL" to GroupOverride("🇳🇱", R.string.country_netherlands),
+        "RU" to GroupOverride("🇷🇺", R.string.country_russia),
+        "IN" to GroupOverride("🇮🇳", R.string.country_india),
+        "PK" to GroupOverride("🇵🇰", R.string.country_pakistan),
+        "GR" to GroupOverride("🇬🇷", R.string.country_greece),
+        "PT" to GroupOverride("🇵🇹", R.string.country_portugal)
     )
 
     fun countryCodeToFlagEmoji(code: String): String? {
@@ -61,11 +60,11 @@ object CategoryGrouper {
     }
 
     /**
-     * يبني قائمة عرض من المجموعات الخام.
-     * - categoryGroupMap: (رمز البلد → قائمة معرّفات المجموعات الأصلية) — للتوافق القديم فقط.
-     * - categoryGroupDetailsMap: (رمز البلد → قائمة الأقسام الأصلية كاملة) — تُستخدم لبناء المجلدات الفرعية (رياضة/أفلام/مسلسلات).
+     * يبني قائمة عرض من المجموعات الخام. لازم نمرر Context هلق حتى نقدر نترجم أسماء الدول
+     * حسب لغة التطبيق الحالية بدل أسماء عربية ثابتة.
      */
     fun buildDisplayCategories(
+        context: Context,
         categories: List<XtreamCategory>,
         categoryGroupMap: MutableMap<String, List<String>>,
         categoryGroupDetailsMap: MutableMap<String, List<XtreamCategory>>
@@ -95,7 +94,7 @@ object CategoryGrouper {
                     override != null -> override.flag
                     else -> countryCodeToFlagEmoji(code)
                 }
-                val name = override?.name
+                val name = override?.let { context.getString(it.nameResId) }
                 val label = when {
                     flag != null && name != null -> "$flag $name"
                     flag != null -> "$flag $code"
@@ -113,7 +112,6 @@ object CategoryGrouper {
         return result
     }
 
-    /** يشيل بادئة رمز البلد [XX] من اسم القسم الفرعي، عشان يظهر نظيف بقائمة المجلدات الفرعية */
     fun stripCountryPrefix(categoryName: String): String {
         val regex = Regex("^\\[([A-Za-z]{2,8})\\]\\s*")
         val cleaned = regex.replace(categoryName.trim(), "").trim()

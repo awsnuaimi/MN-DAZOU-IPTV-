@@ -102,7 +102,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                 Toast.makeText(this, getString(R.string.live_no_categories), Toast.LENGTH_LONG).show()
             }
             val displayCategories = CategoryGrouper.buildDisplayCategories(
-                categories, categoryGroupMap, categoryGroupDetailsMap
+                this@MainActivity, categories, categoryGroupMap, categoryGroupDetailsMap
             )
             binding.categoryList.adapter = CategoryAdapter(displayCategories, R.id.channel_list) { category ->
                 openCategory(category)
