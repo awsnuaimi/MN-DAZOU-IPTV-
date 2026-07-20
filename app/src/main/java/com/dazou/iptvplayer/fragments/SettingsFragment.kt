@@ -1,10 +1,14 @@
 package com.dazou.iptvplayer.fragments
 
+import android.app.AlertDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.fragment.app.Fragment
+import com.dazou.iptvplayer.R
 import com.dazou.iptvplayer.databinding.FragmentSettingsBinding
 import java.io.File
 
@@ -13,12 +17,24 @@ class SettingsFragment : Fragment() {
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
 
+    // رمز اللغة ↔ الاسم المعروض بلغته الأصلية (حتى المستخدم يقدر يميّزها حتى لو التطبيق حاليًا بلغة ما يفهمها)
+    private val supportedLanguages = listOf(
+        "ar" to "العربية",
+        "en" to "English",
+        "de" to "Deutsch",
+        "pl" to "Polski"
+    )
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentSettingsBinding.inflate(inflater, container, false)
+
+        binding.btnLanguage.setOnClickListener {
+            showLanguagePicker()
+        }
 
         binding.btnCheckErrors.setOnClickListener {
             checkForErrors()
@@ -27,20 +43,33 @@ class SettingsFragment : Fragment() {
         return binding.root
     }
 
+    private fun showLanguagePicker() {
+        val labels = supportedLanguages.map { it.second }.toTypedArray()
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.settings_language))
+            .setItems(labels) { _, which ->
+                val languageTag = supportedLanguages[which].first
+                AppCompatDelegate.setApplicationLocales(
+                    LocaleListCompat.forLanguageTags(languageTag)
+                )
+                // ✅ تغيير اللغة بيعيد بناء الواجهة تلقائيًا بمجرد تطبيقها
+            }
+            .show()
+    }
+
     private fun checkForErrors() {
-        // ===== تم التعديل هنا =====
-        val dir = File(requireContext().filesDir, "crash_logs")  // ← تغيير المسار
+        val dir = File(requireContext().filesDir, "crash_logs")
         val files = dir.listFiles()?.sortedByDescending { it.lastModified() } ?: emptyList()
 
         binding.tvDiagnosticsResult.visibility = View.VISIBLE
 
         if (files.isEmpty()) {
-            binding.tvDiagnosticsResult.text = getString(com.dazou.iptvplayer.R.string.no_crash_logs)
+            binding.tvDiagnosticsResult.text = getString(R.string.no_crash_logs)
         } else {
             val latest = files.first()
             val content = latest.readText()
-            binding.tvDiagnosticsResult.text =
-                "📄 ${latest.name}\n\n$content"
+            binding.tvDiagnosticsResult.text = "📄 ${latest.name}\n\n$content"
         }
     }
 

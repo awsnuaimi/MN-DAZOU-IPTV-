@@ -9,6 +9,7 @@
     <string name="tab_accounts">Konta</string>
     <string name="tab_settings">Ustawienia</string>
     <string name="settings_title">Diagnostyka i ustawienia</string>
+    <string name="settings_language">🌐 Język</string>
     <string name="btn_check_errors">🔍 Sprawdź błędy aplikacji</string>
     <string name="no_crash_logs">Brak zarejestrowanych błędów ✅</string>
     <string name="crash_logs_found">Znaleziono %d błąd(ów)</string>
