@@ -76,6 +76,9 @@ class SettingsFragment : Fragment() {
                 AppCompatDelegate.setApplicationLocales(
                     LocaleListCompat.forLanguageTags(languageTag)
                 )
+                // ✅ نجبر إعادة بناء الشاشة بالكامل فورًا (مو الاعتماد بس على السلوك
+                // التلقائي، اللي أحيانًا ما يحدّث كل التطبيق على بعض أجهزة التلفاز)
+                requireActivity().recreate()
             }
             .show()
     }
