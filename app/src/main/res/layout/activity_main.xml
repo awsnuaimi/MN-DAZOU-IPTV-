@@ -42,8 +42,28 @@
             <TextView android:id="@+id/menu_live" style="@style/TvMenuItem" android:text="القنوات" android:nextFocusRight="@id/menu_movies" android:nextFocusLeft="@id/menu_home" android:nextFocusDown="@id/sidebar_live_button"/>
             <TextView android:id="@+id/menu_home" style="@style/TvMenuItem" android:text="الرئيسية" android:nextFocusRight="@id/menu_live" android:nextFocusDown="@id/btn_play_pause"/>
 
-            <Space android:layout_width="32dp" android:layout_height="1dp"/>
-            <TextView android:id="@+id/app_logo" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📺 DAZOU" android:textColor="@color/accent" android:textSize="24sp" android:textStyle="bold"/>
+            <Space android:layout_width="24dp" android:layout_height="1dp"/>
+
+            <FrameLayout
+                android:id="@+id/topBarLogoContainer"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_marginEnd="8dp">
+
+                <ImageView
+                    android:id="@+id/ivTopBarLogoRing"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/logo_ring" />
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/logo_triangle" />
+
+            </FrameLayout>
+
+            <TextView android:id="@+id/app_logo" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="DAZOU" android:textColor="@color/accent" android:textSize="22sp" android:textStyle="bold"/>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 

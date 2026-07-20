@@ -1,5 +1,6 @@
 package com.dazou.iptvplayer
 
+import android.animation.ObjectAnimator
 import android.app.PictureInPictureParams
 import android.content.res.Configuration
 import android.os.Build
@@ -10,6 +11,7 @@ import android.util.Rational
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewTreeObserver
+import android.view.animation.LinearInterpolator
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -65,10 +67,14 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     private val progressHandler = Handler(Looper.getMainLooper())
     private var progressRunnable: Runnable? = null
 
+    private var topBarLogoAnimator: ObjectAnimator? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        startTopBarLogoAnimation()
 
         playerManager = PlayerManager(this)
         binding.videoPlayer.player = playerManager.player
@@ -138,6 +144,19 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
         // ✅ فحص تحديث صامت عند فتح التطبيق (ما بيطلع شي لو ما في تحديث جديد)
         UpdateManager.checkForUpdate(this, silent = true)
+    }
+
+    /**
+     * ✅ دوران مستمر للدائرة المتقطعة بالشعار الظاهر بالشريط العلوي — نفس شعار
+     * التطبيق الحقيقي، بحركة سلسة ومستمرة بكل شاشات التطبيق (بما إن الشريط العلوي مشترك بينهم).
+     */
+    private fun startTopBarLogoAnimation() {
+        topBarLogoAnimator = ObjectAnimator.ofFloat(binding.ivTopBarLogoRing, "rotation", 0f, 360f).apply {
+            duration = 3000L
+            repeatCount = ObjectAnimator.INFINITE
+            interpolator = LinearInterpolator()
+            start()
+        }
     }
 
     /**
@@ -373,8 +392,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             }
         }
 
-        // ✅ يخلي الفوكس يقفز مباشرة لأول قناة بالقائمة الجديدة، بدل ما يضل عالق
-        // على القائمة اليسار وقتها القائمة ما زالت ما اترتبت بصريًا على الشاشة
         if (channels.isNotEmpty()) {
             requestFocusWhenReady(binding.channelList)
         }
@@ -473,7 +490,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             openRealCategory(subCategory)
         }
 
-        // ✅ نفس منطق الفوكس التلقائي — يقفز فورًا لأول مجلد فرعي (دولة) بالقائمة
         if (cleanedSubCategories.isNotEmpty()) {
             requestFocusWhenReady(binding.channelList)
         }
@@ -744,6 +760,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     override fun onDestroy(){
         clockRunnable?.let { clockHandler.removeCallbacks(it) }
         progressRunnable?.let { progressHandler.removeCallbacks(it) }
+        topBarLogoAnimator?.cancel()
         controlsController.release()
         networkMonitor.stop()
         playerManager.release()
