@@ -18,4 +18,7 @@
     <color name="player_info_bg">#CCFFFFFF</color>
     <color name="live_red">#7A1F3D</color>
     <color name="input_border">#E3D3D6</color>
+
+    <!-- ✅ خلفية أيقونة التطبيق — بيضاء مطابقة لتصميم الشعار الأصلي -->
+    <color name="launcher_icon_bg">#FFFFFF</color>
 </resources>
