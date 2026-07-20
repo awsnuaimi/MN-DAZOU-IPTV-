@@ -11,6 +11,7 @@ import androidx.core.os.LocaleListCompat
 import androidx.fragment.app.Fragment
 import com.dazou.iptvplayer.R
 import com.dazou.iptvplayer.databinding.FragmentSettingsBinding
+import com.dazou.iptvplayer.utils.UpdateManager
 import java.io.File
 
 class SettingsFragment : Fragment() {
@@ -36,6 +37,10 @@ class SettingsFragment : Fragment() {
             showLanguagePicker()
         }
 
+        binding.btnCheckUpdates.setOnClickListener {
+            UpdateManager.checkForUpdate(requireContext(), silent = false)
+        }
+
         binding.btnCheckErrors.setOnClickListener {
             checkForErrors()
         }
@@ -45,8 +50,6 @@ class SettingsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        // ✅ توجيه الفوكس تلقائيًا لأول زر بالشاشة، لأنه القائمة الجانبية تختفي هون
-        // وبدون هذا ما في شي يستلم الفوكس أول ما تفتح الشاشة
         requestFocusWhenReady(binding.btnLanguage)
     }
 

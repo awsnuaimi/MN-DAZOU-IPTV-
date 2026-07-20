@@ -33,6 +33,19 @@
             android:layout_marginBottom="12dp" />
 
         <Button
+            android:id="@+id/btn_check_updates"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_check_updates"
+            android:background="@drawable/tv_button_selector"
+            android:textColor="@color/text_white"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:stateListAnimator="@null"
+            android:padding="16dp"
+            android:layout_marginBottom="12dp" />
+
+        <Button
             android:id="@+id/btn_check_errors"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

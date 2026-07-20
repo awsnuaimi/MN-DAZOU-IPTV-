@@ -10,6 +10,7 @@
     <string name="tab_settings">Ustawienia</string>
     <string name="settings_title">Diagnostyka i ustawienia</string>
     <string name="settings_language">🌐 Język</string>
+    <string name="settings_check_updates">🔄 Sprawdź aktualizacje</string>
     <string name="btn_check_errors">🔍 Sprawdź błędy aplikacji</string>
     <string name="no_crash_logs">Brak zarejestrowanych błędów ✅</string>
     <string name="crash_logs_found">Znaleziono %d błąd(ów)</string>
@@ -89,4 +90,14 @@
     <string name="epg_last_error">Ostatni błąd EPG: %s</string>
     <string name="epg_last_response">Ostatnia odpowiedź EPG: %s</string>
     <string name="epg_no_program_data">Brak danych programu</string>
+
+    <string name="update_available_title">📦 Dostępna aktualizacja</string>
+    <string name="update_available_message">Dostępna jest nowa wersja: %s</string>
+    <string name="update_now">Aktualizuj teraz</string>
+    <string name="update_later">Później</string>
+    <string name="update_downloading">⏳ Pobieranie aktualizacji...</string>
+    <string name="update_download_failed">Pobieranie aktualizacji nie powiodło się, spróbuj ponownie później</string>
+    <string name="update_permission_needed">Włącz \"Instaluj nieznane aplikacje\" dla tej aplikacji i spróbuj ponownie</string>
+    <string name="update_no_update">✅ Masz najnowszą wersję</string>
+    <string name="update_check_failed">Nie można sprawdzić aktualizacji, sprawdź połączenie z internetem</string>
 </resources>

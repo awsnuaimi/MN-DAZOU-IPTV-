@@ -10,11 +10,11 @@
     <string name="tab_settings">الإعدادات</string>
     <string name="settings_title">التشخيص والإعدادات</string>
     <string name="settings_language">🌐 اللغة</string>
+    <string name="settings_check_updates">🔄 التحقق من التحديثات</string>
     <string name="btn_check_errors">🔍 فحص أخطاء التطبيق</string>
     <string name="no_crash_logs">لا توجد أخطاء مسجّلة ✅</string>
     <string name="crash_logs_found">تم العثور على %d خطأ مسجّل</string>
 
-    <!-- عام -->
     <string name="common_cancel">إلغاء</string>
     <string name="common_close">إغلاق</string>
     <string name="common_save">حفظ</string>
@@ -23,7 +23,6 @@
     <string name="common_choose_account_first">اختر حساب IPTV أولاً</string>
     <string name="common_fill_all_fields">الرجاء ملء جميع الحقول</string>
 
-    <!-- البث المباشر -->
     <string name="live_no_categories">لا توجد مجموعات – تأكد من الحساب</string>
     <string name="live_feature_unsupported">الميزة غير مدعومة على هذا الجهاز</string>
     <string name="live_pip_failed">تعذر تفعيل الصورة داخل الصورة</string>
@@ -38,12 +37,10 @@
     <string name="live_next_program">⏭ التالي: %s (%s)</string>
     <string name="live_badge">🔴 بث مباشر</string>
 
-    <!-- استكمال المشاهدة -->
     <string name="resume_message">توقفت سابقًا عند %s. تحب تكمل من هناك؟</string>
     <string name="resume_continue">متابعة</string>
     <string name="resume_from_start">من البداية</string>
 
-    <!-- الأفلام -->
     <string name="movies_no_categories">لا توجد مجموعات أفلام – تأكد من الحساب</string>
     <string name="movies_no_results_in_category">لا توجد أفلام بهذه المجموعة</string>
     <string name="movies_count">%d فيلم</string>
@@ -52,7 +49,6 @@
     <string name="movies_play">▶ تشغيل</string>
     <string name="movies_search_hint">🔍 ابحث عن فيلم...</string>
 
-    <!-- المسلسلات -->
     <string name="series_no_categories">لا توجد مجموعات مسلسلات – تأكد من الحساب</string>
     <string name="series_no_results_in_category">لا توجد مسلسلات بهذه المجموعة</string>
     <string name="series_count">%d مسلسل</string>
@@ -62,7 +58,6 @@
     <string name="series_episode_label">الموسم %d • الحلقة %d: %s</string>
     <string name="series_search_hint">🔍 ابحث عن مسلسل...</string>
 
-    <!-- الرئيسية / المفضلة / السجل -->
     <string name="home_welcome">🎉 مرحبًا بك في DAZOU IPTV</string>
     <string name="home_empty_state">⭐ لا توجد عناصر بالمفضلة بعد — اضغط مطولًا على أي فيلم أو مسلسل لإضافته</string>
     <string name="home_favorites_count">⭐ المفضلة (%d)</string>
@@ -72,7 +67,6 @@
     <string name="favorite_added_channel">⭐ أُضيفت للمفضلة</string>
     <string name="favorite_removed">تم الحذف من المفضلة</string>
 
-    <!-- الحسابات -->
     <string name="accounts_add_title">⚙️ إضافة حساب Xtream</string>
     <string name="accounts_server_url_label">رابط السيرفر:</string>
     <string name="accounts_username_label">اسم المستخدم:</string>
@@ -85,10 +79,8 @@
     <string name="accounts_delete_confirm_message">هل أنت متأكد من حذف هذا الحساب؟</string>
     <string name="accounts_deleted">🗑️ تم حذف الحساب</string>
 
-    <!-- تسجيل الدخول -->
     <string name="login_success">✅ تم تسجيل الدخول</string>
 
-    <!-- دليل البرامج (EPG) -->
     <string name="epg_no_channels">لا توجد قنوات لعرضها</string>
     <string name="epg_url_label">الرابط: %s</string>
     <string name="epg_error_label">خطأ: %s</string>
@@ -98,4 +90,15 @@
     <string name="epg_last_error">آخر خطأ EPG: %s</string>
     <string name="epg_last_response">آخر رد EPG: %s</string>
     <string name="epg_no_program_data">لا توجد بيانات برنامج</string>
+
+    <!-- التحديث التلقائي -->
+    <string name="update_available_title">📦 يوجد تحديث جديد</string>
+    <string name="update_available_message">إصدار جديد متوفر: %s</string>
+    <string name="update_now">تحديث الآن</string>
+    <string name="update_later">لاحقًا</string>
+    <string name="update_downloading">⏳ جاري تحميل التحديث...</string>
+    <string name="update_download_failed">فشل تحميل التحديث، حاول لاحقًا</string>
+    <string name="update_permission_needed">فعّل صلاحية \"تثبيت من مصادر غير معروفة\" لهذا التطبيق، ثم أعد المحاولة</string>
+    <string name="update_no_update">✅ لديك أحدث إصدار</string>
+    <string name="update_check_failed">تعذر التحقق من التحديثات، تأكد من الاتصال بالإنترنت</string>
 </resources>

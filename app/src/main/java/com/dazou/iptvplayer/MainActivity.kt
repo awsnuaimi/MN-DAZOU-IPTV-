@@ -29,6 +29,7 @@ import com.dazou.iptvplayer.player.PlayerControlsController
 import com.dazou.iptvplayer.player.PlayerManager
 import com.dazou.iptvplayer.utils.CategoryGrouper
 import com.dazou.iptvplayer.utils.NetworkMonitor
+import com.dazou.iptvplayer.utils.UpdateManager
 import com.dazou.iptvplayer.viewmodel.LiveViewModel
 import com.dazou.iptvplayer.viewmodel.ViewModelFactory
 
@@ -133,6 +134,9 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             showLoginUi()
             loadFragment(LoginFragment())
         }
+
+        // ✅ فحص تحديث صامت عند فتح التطبيق (ما بيطلع شي لو ما في تحديث جديد)
+        UpdateManager.checkForUpdate(this, silent = true)
     }
 
     private fun savePlaybackState(channel: XtreamChannel) {
