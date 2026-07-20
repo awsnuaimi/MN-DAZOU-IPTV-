@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.fragment.app.Fragment
@@ -17,7 +18,6 @@ class SettingsFragment : Fragment() {
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
 
-    // رمز اللغة ↔ الاسم المعروض بلغته الأصلية (حتى المستخدم يقدر يميّزها حتى لو التطبيق حاليًا بلغة ما يفهمها)
     private val supportedLanguages = listOf(
         "ar" to "العربية",
         "en" to "English",
@@ -43,6 +43,26 @@ class SettingsFragment : Fragment() {
         return binding.root
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        // ✅ توجيه الفوكس تلقائيًا لأول زر بالشاشة، لأنه القائمة الجانبية تختفي هون
+        // وبدون هذا ما في شي يستلم الفوكس أول ما تفتح الشاشة
+        requestFocusWhenReady(binding.btnLanguage)
+    }
+
+    private fun requestFocusWhenReady(view: View) {
+        if (view.isLaidOut && view.width > 0 && view.height > 0) {
+            view.requestFocus()
+        } else {
+            view.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+                override fun onGlobalLayout() {
+                    view.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    view.requestFocus()
+                }
+            })
+        }
+    }
+
     private fun showLanguagePicker() {
         val labels = supportedLanguages.map { it.second }.toTypedArray()
 
@@ -53,7 +73,6 @@ class SettingsFragment : Fragment() {
                 AppCompatDelegate.setApplicationLocales(
                     LocaleListCompat.forLanguageTags(languageTag)
                 )
-                // ✅ تغيير اللغة بيعيد بناء الواجهة تلقائيًا بمجرد تطبيقها
             }
             .show()
     }
