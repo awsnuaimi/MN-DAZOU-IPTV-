@@ -108,7 +108,8 @@
     <string name="series_no_episodes">No episodes available for this series</string>
     <string name="series_episode_label">Season %d • Episode %d: %s</string>
     <string name="series_search_hint">🔍 Search for a series...</string>
-
+    <string name="series_next_episode_title">▶ Next Episode</string>
+    <string name="series_next_episode_countdown">Playing next episode in %d seconds</string>
     <string name="home_welcome">🎉 Welcome to DAZOU IPTV</string>
     <string name="home_empty_state">⭐ No favorites yet — long-press any movie or series to add it</string>
     <string name="home_favorites_count">⭐ Favorites (%d)</string>

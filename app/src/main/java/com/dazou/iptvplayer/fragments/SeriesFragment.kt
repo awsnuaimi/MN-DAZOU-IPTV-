@@ -40,6 +40,9 @@ class SeriesFragment : Fragment() {
     private var hasRequestedInitialFocus = false
     private var allSeriesInCategory: List<XtreamSeries> = emptyList()
 
+    // ✅ جديد: القائمة المرتبة الحالية للحلقات — تستخدم لمعرفة "الحلقة التالية"
+    private var currentEpisodeList: List<XtreamEpisode> = emptyList()
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -178,6 +181,8 @@ class SeriesFragment : Fragment() {
         }
 
         val sorted = episodes.sortedWith(compareBy({ it.seasonNum }, { it.episodeNum }))
+        // ✅ نحتفظ بالقائمة المرتبة عشان نعرف الحلقة التالية وقت التشغيل التلقائي
+        currentEpisodeList = sorted
         val labels = sorted.map { getString(R.string.series_episode_label, it.seasonNum, it.episodeNum, it.title) }.toTypedArray()
 
         AlertDialog.Builder(requireContext())
@@ -208,6 +213,16 @@ class SeriesFragment : Fragment() {
         }
 
         (activity as? MainActivity)?.playExternalMedia(url, episode.title, "series", series?.seriesId ?: -1)
+
+        // ✅ نحدد الحلقة التالية (لو موجودة) ونسجّلها عند MainActivity حتى تشتغل
+        // تلقائيًا بعد ما هالحلقة تخلص
+        val currentIndex = currentEpisodeList.indexOf(episode)
+        val nextEpisode = if (currentIndex >= 0) currentEpisodeList.getOrNull(currentIndex + 1) else null
+        (activity as? MainActivity)?.setNextEpisodeProvider(
+            if (nextEpisode != null) {
+                { playEpisode(nextEpisode) }
+            } else null
+        )
     }
 
     private fun requireApp(): App = requireActivity().application as App

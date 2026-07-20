@@ -108,7 +108,8 @@
     <string name="series_no_episodes">Brak dostępnych odcinków dla tego serialu</string>
     <string name="series_episode_label">Sezon %d • Odcinek %d: %s</string>
     <string name="series_search_hint">🔍 Szukaj serialu...</string>
-
+    <string name="series_next_episode_title">▶ Następny odcinek</string>
+    <string name="series_next_episode_countdown">Następny odcinek za %d sekund</string>
     <string name="home_welcome">🎉 Witamy w DAZOU IPTV</string>
     <string name="home_empty_state">⭐ Brak ulubionych — przytrzymaj film lub serial, aby go dodać</string>
     <string name="home_favorites_count">⭐ Ulubione (%d)</string>

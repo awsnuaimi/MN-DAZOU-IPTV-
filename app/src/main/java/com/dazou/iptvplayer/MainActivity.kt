@@ -1,10 +1,12 @@
 package com.dazou.iptvplayer
 
 import android.animation.ObjectAnimator
+import android.app.AlertDialog
 import android.app.PictureInPictureParams
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
+import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
 import android.util.Rational
@@ -32,6 +34,7 @@ import com.dazou.iptvplayer.player.PlayerControlsController
 import com.dazou.iptvplayer.player.PlayerManager
 import com.dazou.iptvplayer.utils.CategoryGrouper
 import com.dazou.iptvplayer.utils.NetworkMonitor
+import com.dazou.iptvplayer.utils.ThemeManager
 import com.dazou.iptvplayer.utils.UpdateManager
 import com.dazou.iptvplayer.viewmodel.LiveViewModel
 import com.dazou.iptvplayer.viewmodel.ViewModelFactory
@@ -61,6 +64,11 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     private var currentPlayingType: String = ""
     private var currentPlayingId: Int = -1
 
+    // ✅ جديد: تشغيل الحلقة التالية تلقائيًا
+    private var nextEpisodeProvider: (() -> Unit)? = null
+    private var autoNextTimer: CountDownTimer? = null
+    private var autoNextDialog: AlertDialog? = null
+
     private val clockHandler = Handler(Looper.getMainLooper())
     private var clockRunnable: Runnable? = null
 
@@ -73,7 +81,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        com.dazou.iptvplayer.utils.ThemeManager.applyToMainScreen(this, binding)
 
         startTopBarLogoAnimation()
 
@@ -145,6 +152,51 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
         // ✅ فحص تحديث صامت عند فتح التطبيق (ما بيطلع شي لو ما في تحديث جديد)
         UpdateManager.checkForUpdate(this, silent = true)
+
+        // ✅ لازم يكون آخر سطر بالدالة — حتى ما في أي كود تاني (متل إعداد المشغّل أو
+        // القوائم) يقدر يكتب فوق ألوان التيم المختار بعد ما نطبّقه
+        ThemeManager.applyToMainScreen(this, binding)
+    }
+
+    /**
+     * ✅ تستدعيها SeriesFragment بعد ما تبدأ حلقة، وتمررلها دالة تشغّل الحلقة التالية
+     * (أو null لو ما في حلقة تالية). MainActivity بتستخدمها تلقائيًا لما الحلقة تخلص.
+     */
+    fun setNextEpisodeProvider(provider: (() -> Unit)?) {
+        nextEpisodeProvider = provider
+    }
+
+    private fun triggerAutoNextEpisode() {
+        val provider = nextEpisodeProvider ?: return
+        autoNextTimer?.cancel()
+        autoNextDialog?.dismiss()
+
+        var secondsLeft = 5
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(getString(R.string.series_next_episode_title))
+            .setMessage(getString(R.string.series_next_episode_countdown, secondsLeft))
+            .setNegativeButton(getString(R.string.common_cancel)) { d, _ ->
+                autoNextTimer?.cancel()
+                d.dismiss()
+            }
+            .setCancelable(true)
+            .create()
+        dialog.show()
+        autoNextDialog = dialog
+
+        autoNextTimer = object : CountDownTimer(5000L, 1000L) {
+            override fun onTick(millisUntilFinished: Long) {
+                secondsLeft = ((millisUntilFinished + 999) / 1000).toInt()
+                if (dialog.isShowing) {
+                    dialog.setMessage(getString(R.string.series_next_episode_countdown, secondsLeft))
+                }
+            }
+
+            override fun onFinish() {
+                if (dialog.isShowing) dialog.dismiss()
+                nextEpisodeProvider?.invoke()
+            }
+        }.start()
     }
 
     /**
@@ -226,6 +278,12 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     }
 
     private fun playStreamWithResume(url: String, name: String, type: String, itemId: Int) {
+        // ✅ أي تشغيل جديد يصفّر إعداد الحلقة التالية — لو كان النوع "series"،
+        // SeriesFragment رح تعيد ضبطه فورًا بعد هالاستدعاء
+        nextEpisodeProvider = null
+        autoNextTimer?.cancel()
+        autoNextDialog?.dismiss()
+
         currentPlayingType = type
         currentPlayingId = itemId
 
@@ -288,6 +346,10 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     }
 
     fun playChannelFromExternal(channel: XtreamChannel, sourceList: List<XtreamChannel>) {
+        nextEpisodeProvider = null
+        autoNextTimer?.cancel()
+        autoNextDialog?.dismiss()
+
         currentChannelList = sourceList
         currentChannelIndex = sourceList.indexOf(channel)
         currentPlayingType = "live"
@@ -515,6 +577,10 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             Toast.makeText(this, getString(R.string.common_choose_account_first), Toast.LENGTH_SHORT).show()
             return
         }
+        nextEpisodeProvider = null
+        autoNextTimer?.cancel()
+        autoNextDialog?.dismiss()
+
         currentChannelIndex = index
         val channel = currentChannelList[index]
         currentPlayingType = "live"
@@ -596,6 +662,10 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                     }
                     Player.STATE_ENDED -> {
                         binding.playerLoading.visibility = View.GONE
+                        // ✅ لو خلصت حلقة مسلسل وفيه حلقة تالية معروفة، يبدأ العد التنازلي
+                        if (currentPlayingType == "series" && nextEpisodeProvider != null) {
+                            triggerAutoNextEpisode()
+                        }
                     }
                 }
             }
@@ -762,6 +832,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         clockRunnable?.let { clockHandler.removeCallbacks(it) }
         progressRunnable?.let { progressHandler.removeCallbacks(it) }
         topBarLogoAnimator?.cancel()
+        autoNextTimer?.cancel()
+        autoNextDialog?.dismiss()
         controlsController.release()
         networkMonitor.stop()
         playerManager.release()

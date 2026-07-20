@@ -115,7 +115,8 @@
     <string name="series_no_episodes">لا توجد حلقات متاحة لهذا المسلسل</string>
     <string name="series_episode_label">الموسم %d • الحلقة %d: %s</string>
     <string name="series_search_hint">🔍 ابحث عن مسلسل...</string>
-
+    <string name="series_next_episode_title">▶ الحلقة التالية</string>
+    <string name="series_next_episode_countdown">تشغيل الحلقة التالية خلال %d ثانية</string>
     <!-- الرئيسية / المفضلة / السجل -->
     <string name="home_welcome">🎉 مرحبًا بك في DAZOU IPTV</string>
     <string name="home_empty_state">⭐ لا توجد عناصر بالمفضلة بعد — اضغط مطولًا على أي فيلم أو مسلسل لإضافته</string>
