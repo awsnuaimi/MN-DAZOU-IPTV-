@@ -10,6 +10,7 @@ import com.dazou.iptvplayer.R
 import com.dazou.iptvplayer.model.XtreamCategory
 import com.dazou.iptvplayer.utils.CategoryIconMapper
 import com.dazou.iptvplayer.utils.FocusAnimator
+import com.dazou.iptvplayer.utils.ThemeManager
 
 class CategoryAdapter(
     private val categories: List<XtreamCategory>,
@@ -33,6 +34,9 @@ class CategoryAdapter(
         view.isClickable = true
         FocusAnimator.attach(view)
 
+        // ✅ يستخدم لون التيم المختار حاليًا بدل لون ثابت
+        ThemeManager.applyCardFocusBackground(view)
+
         nextFocusRightId?.let { view.nextFocusRightId = it }
         nextFocusLeftId?.let { view.nextFocusLeftId = it }
 
@@ -43,7 +47,6 @@ class CategoryAdapter(
         val category = categories[position]
         val (icon, name) = splitIconAndName(category.categoryName)
 
-        // ✅ لو فيه صورة حقيقية (علم/لوغو) مخصصة لهالمجلد، نعرضها بدل الرمز النصي
         val customIcon = CategoryIconMapper.iconFor(category)
         if (customIcon != null) {
             holder.imageIconView.setImageResource(customIcon)

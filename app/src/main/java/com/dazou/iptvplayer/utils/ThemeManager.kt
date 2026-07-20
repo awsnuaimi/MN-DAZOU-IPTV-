@@ -6,6 +6,7 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.StateListDrawable
+import android.view.View
 import com.dazou.iptvplayer.databinding.ActivityMainBinding
 
 /**
@@ -34,7 +35,9 @@ object ThemeManager {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_THEME, theme.id).apply()
     }
 
-    private fun dp(activity: Activity, value: Float): Float = value * activity.resources.displayMetrics.density
+    fun currentAccentColor(context: Context): Int = getSavedTheme(context).accent
+
+    private fun dp(context: Context, value: Float): Float = value * context.resources.displayMetrics.density
 
     /** خلفية مستطيلة بزوايا مدوّرة — لعناصر القائمة النصية (الرئيسية/القنوات/أفلام...) */
     private fun rectFocusSelector(theme: AppTheme, radiusDp: Float): StateListDrawable {
@@ -91,6 +94,28 @@ object ThemeManager {
         }
     }
 
+    /** ✅ جديد: نفس خلفية بطاقات المجلدات (item_category.xml) — بيضاوي بحواف مدوّرة كبيرة */
+    private fun cardFocusSelector(theme: AppTheme, radiusDp: Float): StateListDrawable {
+        val focused = GradientDrawable().apply {
+            setColor(theme.accent)
+            cornerRadius = radiusDp
+            setStroke(2, Color.WHITE)
+        }
+        val pressed = GradientDrawable().apply {
+            setColor(theme.accent)
+            cornerRadius = radiusDp
+        }
+        val normal = GradientDrawable().apply {
+            setColor(Color.parseColor("#2A2A38"))
+            cornerRadius = radiusDp
+        }
+        return StateListDrawable().apply {
+            addState(intArrayOf(android.R.attr.state_focused), focused)
+            addState(intArrayOf(android.R.attr.state_pressed), pressed)
+            addState(intArrayOf(), normal)
+        }
+    }
+
     /** يطبّق التيم المحفوظ على كل عناصر الشريط العلوي وعناصر التحكم الأساسية بالمرحلة الأولى */
     fun applyToMainScreen(activity: Activity, binding: ActivityMainBinding) {
         val theme = getSavedTheme(activity)
@@ -115,5 +140,22 @@ object ThemeManager {
         binding.pbNowProgress.progressTintList = accentList
         binding.pbControlsProgress.progressTintList = accentList
         binding.playerLoading.indeterminateTintList = accentList
+    }
+
+    /**
+     * ✅ جديد (المرحلة 2): يطبّق خلفية التمييز الموحّدة على أي View لبطاقة مجلد
+     * (يُستخدم من داخل CategoryAdapter لكل صف بقائمة الدول/الأفلام/المسلسلات)
+     */
+    fun applyCardFocusBackground(view: View) {
+        val theme = getSavedTheme(view.context)
+        view.background = cardFocusSelector(theme, dp(view.context, 16f))
+    }
+
+    /**
+     * ✅ جديد: يطبّق خلفية زر عريض موحّد (يُستخدم بشاشة الحسابات وأي زر عريض مشابه)
+     */
+    fun applyButtonFocusBackground(view: View) {
+        val theme = getSavedTheme(view.context)
+        view.background = filledFocusSelector(theme, dp(view.context, 12f))
     }
 }

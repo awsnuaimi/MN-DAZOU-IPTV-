@@ -17,6 +17,7 @@ import com.dazou.iptvplayer.R
 import com.dazou.iptvplayer.adapter.AccountsAdapter
 import com.dazou.iptvplayer.databinding.FragmentAccountsBinding
 import com.dazou.iptvplayer.model.XtreamServer
+import com.dazou.iptvplayer.utils.ThemeManager
 import com.dazou.iptvplayer.viewmodel.LiveViewModel
 import com.dazou.iptvplayer.viewmodel.ViewModelFactory
 
@@ -42,6 +43,9 @@ class AccountsFragment : Fragment() {
         setupRecyclerView()
         setupListeners()
         loadAccounts()
+
+        // ✅ يستخدم لون التيم المختار حاليًا بدل اللون الثابت
+        ThemeManager.applyButtonFocusBackground(binding.btnAddAccount)
 
         return binding.root
     }
