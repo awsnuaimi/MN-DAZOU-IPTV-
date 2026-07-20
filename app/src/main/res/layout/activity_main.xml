@@ -12,7 +12,9 @@
         android:id="@+id/top_bar"
         android:layout_width="0dp"
         android:layout_height="72dp"
+        android:alpha="0.96"
         app:cardBackgroundColor="@color/nav_background"
+        app:cardElevation="3dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -71,7 +73,10 @@
         android:id="@+id/sidebar"
         android:layout_width="260dp"
         android:layout_height="0dp"
+        android:alpha="0.94"
         app:cardBackgroundColor="@color/nav_background"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="8dp"
         app:layout_constraintTop_toBottomOf="@id/top_bar"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -111,7 +116,10 @@
         android:layout_width="300dp"
         android:layout_height="0dp"
         android:visibility="gone"
+        android:alpha="0.94"
         app:cardBackgroundColor="@color/panel_dark"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="8dp"
         app:layout_constraintTop_toBottomOf="@id/top_bar"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@id/sidebar">
