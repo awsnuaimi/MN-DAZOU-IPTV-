@@ -14,14 +14,28 @@
     android:focusableInTouchMode="true"
     android:clickable="true">
 
-    <TextView
-        android:id="@+id/tvCategoryIcon"
+    <FrameLayout
         android:layout_width="34dp"
         android:layout_height="34dp"
-        android:gravity="center"
-        android:textSize="22sp"
-        android:layout_marginEnd="14dp"
-        tools:text="🏳️" />
+        android:layout_marginEnd="14dp">
+
+        <TextView
+            android:id="@+id/tvCategoryIcon"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:textSize="22sp"
+            tools:text="🏳️" />
+
+        <ImageView
+            android:id="@+id/ivCategoryIcon"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitCenter"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+    </FrameLayout>
 
     <TextView
         android:id="@+id/tvCategoryName"

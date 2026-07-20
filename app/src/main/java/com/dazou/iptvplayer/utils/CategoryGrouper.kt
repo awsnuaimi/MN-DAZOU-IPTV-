@@ -8,11 +8,15 @@ data class GroupOverride(val flag: String?, val name: String, val suppressFlag: 
 object CategoryGrouper {
 
     private val groupOverrides = mapOf(
-        "AR" to GroupOverride(null, "عربي", suppressFlag = true),
-        "ARABIC" to GroupOverride(null, "عربي", suppressFlag = true),
+        // ✅ الاسم صار "AR" بدل "عربي" بناءً على طلبك — وهو هلق يستخدم صورة شعار
+        // جامعة الدول العربية الحقيقية بدل رمز نصي، فما إلها داعي أي علم إيموجي
+        "AR" to GroupOverride(null, "AR", suppressFlag = true),
+        "ARABIC" to GroupOverride(null, "AR", suppressFlag = true),
         "ALB" to GroupOverride("🇦🇱", "ألبانيا"),
-        "JAPAN" to GroupOverride("🇯🇵", "اليابان"),
-        "JP" to GroupOverride("🇯🇵", "اليابان"),
+        // ✅ ليتوانيا واليابان هلق بتستخدموا صور أعلام حقيقية بدل الإيموجي
+        "LT" to GroupOverride(null, "ليتوانيا", suppressFlag = true),
+        "JAPAN" to GroupOverride(null, "اليابان", suppressFlag = true),
+        "JP" to GroupOverride(null, "اليابان", suppressFlag = true),
         "PL" to GroupOverride("🇵🇱", "بولندا"),
         "SA" to GroupOverride("🇸🇦", "السعودية"),
         "AE" to GroupOverride("🇦🇪", "الإمارات"),
