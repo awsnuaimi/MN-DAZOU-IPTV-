@@ -5,11 +5,16 @@ import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import androidx.media3.common.MediaItem
+import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
+import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import java.io.File
 
 class PlayerManager(context: Context) {
 
@@ -21,8 +26,23 @@ class PlayerManager(context: Context) {
         .setReadTimeoutMs(15000)
         .setAllowCrossProtocolRedirects(true)
 
+    // ✅ تخزين مؤقت محلي (بحد أقصى 300 ميجابايت) — يسرّع إعادة تشغيل نفس الفيلم/الحلقة
+    // أو الرجوع لقناة اتفتحت قبل قليل، بدل ما يعيد التحميل من الصفر كل مرة.
+    // يُخزَّن بمجلد الكاش الخاص بالتطبيق، فالنظام قادر يحرره تلقائيًا لو المساحة قلّت.
+    private val cache: SimpleCache by lazy {
+        val cacheDir = File(context.cacheDir, "media_cache")
+        val evictor = LeastRecentlyUsedCacheEvictor(300L * 1024 * 1024)
+        val databaseProvider = StandaloneDatabaseProvider(context)
+        SimpleCache(cacheDir, evictor, databaseProvider)
+    }
+
+    private val cacheDataSourceFactory = CacheDataSource.Factory()
+        .setCache(cache)
+        .setUpstreamDataSourceFactory(httpDataSourceFactory)
+        .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+
     private val mediaSourceFactory = DefaultMediaSourceFactory(context)
-        .setDataSourceFactory(httpDataSourceFactory)
+        .setDataSourceFactory(cacheDataSourceFactory)
 
     private val loadControl = DefaultLoadControl.Builder()
         .setBufferDurationsMs(
@@ -33,7 +53,6 @@ class PlayerManager(context: Context) {
         )
         .build()
 
-    // ✅ يفعّل الترجمة تلقائيًا لو متوفرة بالبث، بدون أي زر أو تدخل من المستخدم
     private val trackSelector = DefaultTrackSelector(context).apply {
         setParameters(
             buildUponParameters()
@@ -107,5 +126,6 @@ class PlayerManager(context: Context) {
     fun release() {
         retryHandler.removeCallbacksAndMessages(null)
         player.release()
+        cache.release()
     }
 }
