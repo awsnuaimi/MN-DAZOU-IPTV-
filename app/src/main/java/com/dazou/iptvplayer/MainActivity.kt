@@ -1,729 +1,770 @@
-private lateinit var binding: ActivityMainBinding
-lateinit var playerManager: PlayerManager
-private lateinit var liveViewModel: LiveViewModel
-private lateinit var controlsController: PlayerControlsController
-private lateinit var networkMonitor: NetworkMonitor
+package com.dazou.iptvplayer
 
-private var fullscreen = false
-private var currentChannelName = ""
-private var wasPlayingBeforeBackground = false
-private var lastCategories: List<XtreamCategory> = emptyList()
-private var currentChannelList: List<XtreamChannel> = emptyList()
-private var currentChannelIndex: Int = -1
-private var wasChannelsPanelOpenBeforeFullscreen = false
-private var currentCategoryId: String? = null
-private var currentCategoryName: String = ""
-private var pendingAutoPlayChannelId: Int? = null
-private var pendingGroupCode: String? = null
-private val categoryGroupMap = mutableMapOf<String, List<String>>()
-private val categoryGroupDetailsMap = mutableMapOf<String, List<XtreamCategory>>()
+import android.animation.ObjectAnimator
+import android.app.PictureInPictureParams
+import android.content.res.Configuration
+import android.os.Build
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.util.Rational
+import android.view.KeyEvent
+import android.view.View
+import android.view.ViewTreeObserver
+import android.view.animation.LinearInterpolator
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.dazou.iptvplayer.adapter.CategoryAdapter
+import com.dazou.iptvplayer.adapter.ChannelAdapter
+import com.dazou.iptvplayer.api.XtreamAPI
+import com.dazou.iptvplayer.databinding.ActivityMainBinding
+import com.dazou.iptvplayer.fragments.*
+import com.dazou.iptvplayer.model.XtreamCategory
+import com.dazou.iptvplayer.model.XtreamChannel
+import com.dazou.iptvplayer.player.PlayerCallback
+import com.dazou.iptvplayer.player.PlayerControlsController
+import com.dazou.iptvplayer.player.PlayerManager
+import com.dazou.iptvplayer.utils.CategoryGrouper
+import com.dazou.iptvplayer.utils.NetworkMonitor
+import com.dazou.iptvplayer.utils.UpdateManager
+import com.dazou.iptvplayer.viewmodel.LiveViewModel
+import com.dazou.iptvplayer.viewmodel.ViewModelFactory
 
-private var currentPlayingType: String = ""
-private var currentPlayingId: Int = -1
+class MainActivity : AppCompatActivity(), PlayerCallback {
 
-private val clockHandler = Handler(Looper.getMainLooper())
-private var clockRunnable: Runnable? = null
+    private lateinit var binding: ActivityMainBinding
+    lateinit var playerManager: PlayerManager
+    private lateinit var liveViewModel: LiveViewModel
+    private lateinit var controlsController: PlayerControlsController
+    private lateinit var networkMonitor: NetworkMonitor
 
-private val progressHandler = Handler(Looper.getMainLooper())
-private var progressRunnable: Runnable? = null
+    private var fullscreen = false
+    private var currentChannelName = ""
+    private var wasPlayingBeforeBackground = false
+    private var lastCategories: List<XtreamCategory> = emptyList()
+    private var currentChannelList: List<XtreamChannel> = emptyList()
+    private var currentChannelIndex: Int = -1
+    private var wasChannelsPanelOpenBeforeFullscreen = false
+    private var currentCategoryId: String? = null
+    private var currentCategoryName: String = ""
+    private var pendingAutoPlayChannelId: Int? = null
+    private var pendingGroupCode: String? = null
+    private val categoryGroupMap = mutableMapOf<String, List<String>>()
+    private val categoryGroupDetailsMap = mutableMapOf<String, List<XtreamCategory>>()
 
-private var topBarLogoAnimator: ObjectAnimator? = null
+    private var currentPlayingType: String = ""
+    private var currentPlayingId: Int = -1
 
-override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    binding = ActivityMainBinding.inflate(layoutInflater)
-    setContentView(binding.root)
-    com.dazou.iptvplayer.utils.ThemeManager.applyToMainScreen(this, binding)
+    private val clockHandler = Handler(Looper.getMainLooper())
+    private var clockRunnable: Runnable? = null
 
-    startTopBarLogoAnimation()
+    private val progressHandler = Handler(Looper.getMainLooper())
+    private var progressRunnable: Runnable? = null
 
-    playerManager = PlayerManager(this)
-    binding.videoPlayer.player = playerManager.player
+    private var topBarLogoAnimator: ObjectAnimator? = null
 
-    controlsController = PlayerControlsController(this, binding, playerManager) { index ->
-        playChannelAt(index)
-    }
-    controlsController.setup(
-        onPrev = { onPreviousChannel() },
-        onNext = { onNextChannel() },
-        onFullscreenToggle = { toggleFullscreen() },
-        onPip = { enterPipMode() }
-    )
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        com.dazou.iptvplayer.utils.ThemeManager.applyToMainScreen(this, binding)
 
-    val app = application as App
-    liveViewModel = ViewModelProvider(this, ViewModelFactory(app.container.currentRepository))
-        .get(LiveViewModel::class.java)
+        startTopBarLogoAnimation()
 
-    binding.categoryList.layoutManager = LinearLayoutManager(this)
-    binding.channelList.layoutManager = LinearLayoutManager(this)
+        playerManager = PlayerManager(this)
+        binding.videoPlayer.player = playerManager.player
 
-    liveViewModel.categories.observe(this) { categories ->
-        lastCategories = categories
-        if (categories.isEmpty()) {
-            Toast.makeText(this, getString(R.string.live_no_categories), Toast.LENGTH_LONG).show()
+        controlsController = PlayerControlsController(this, binding, playerManager) { index ->
+            playChannelAt(index)
         }
-        val displayCategories = CategoryGrouper.buildDisplayCategories(
-            this@MainActivity, categories, categoryGroupMap, categoryGroupDetailsMap
+        controlsController.setup(
+            onPrev = { onPreviousChannel() },
+            onNext = { onNextChannel() },
+            onFullscreenToggle = { toggleFullscreen() },
+            onPip = { enterPipMode() }
         )
-        binding.categoryList.adapter = CategoryAdapter(displayCategories, R.id.channel_list) { category ->
-            openCategory(category)
+
+        val app = application as App
+        liveViewModel = ViewModelProvider(this, ViewModelFactory(app.container.currentRepository))
+            .get(LiveViewModel::class.java)
+
+        binding.categoryList.layoutManager = LinearLayoutManager(this)
+        binding.channelList.layoutManager = LinearLayoutManager(this)
+
+        liveViewModel.categories.observe(this) { categories ->
+            lastCategories = categories
+            if (categories.isEmpty()) {
+                Toast.makeText(this, getString(R.string.live_no_categories), Toast.LENGTH_LONG).show()
+            }
+            val displayCategories = CategoryGrouper.buildDisplayCategories(
+                this@MainActivity, categories, categoryGroupMap, categoryGroupDetailsMap
+            )
+            binding.categoryList.adapter = CategoryAdapter(displayCategories, R.id.channel_list) { category ->
+                openCategory(category)
+            }
+
+            val code = pendingGroupCode
+            if (code != null) {
+                pendingGroupCode = null
+                val ids = categoryGroupMap[code] ?: emptyList()
+                loadMergedChannels(ids) { merged -> applyChannelResults(merged) }
+            }
         }
 
-        val code = pendingGroupCode
-        if (code != null) {
-            pendingGroupCode = null
-            val ids = categoryGroupMap[code] ?: emptyList()
-            loadMergedChannels(ids) { merged -> applyChannelResults(merged) }
+        liveViewModel.channels.observe(this) { channels ->
+            applyChannelResults(channels)
+        }
+
+        binding.channelsPanelBack.setOnClickListener {
+            hideChannelsPanel()
+        }
+
+        startClock()
+        startProgressTracking()
+        setupWifiStatus()
+        setupThemeToggle()
+        setupPlayerErrorHandling()
+        setupMenu()
+
+        val hasAccount = app.container.accountManager.getActiveAccount() != null
+
+        if (hasAccount) {
+            showMainUi()
+            restoreLastSessionOrShowCategories()
+            binding.menuHome.requestFocus()
+        } else {
+            showLoginUi()
+            loadFragment(LoginFragment())
+        }
+
+        // ✅ فحص تحديث صامت عند فتح التطبيق (ما بيطلع شي لو ما في تحديث جديد)
+        UpdateManager.checkForUpdate(this, silent = true)
+    }
+
+    /**
+     * ✅ دوران مستمر للدائرة المتقطعة بالشعار الظاهر بالشريط العلوي — نفس شعار
+     * التطبيق الحقيقي، بحركة سلسة ومستمرة بكل شاشات التطبيق (بما إن الشريط العلوي مشترك بينهم).
+     */
+    private fun startTopBarLogoAnimation() {
+        topBarLogoAnimator = ObjectAnimator.ofFloat(binding.ivTopBarLogoRing, "rotation", 0f, 360f).apply {
+            duration = 3000L
+            repeatCount = ObjectAnimator.INFINITE
+            interpolator = LinearInterpolator()
+            start()
         }
     }
 
-    liveViewModel.channels.observe(this) { channels ->
-        applyChannelResults(channels)
+    /**
+     * ✅ يطلب الفوكس بشكل مضمون التوقيت: لو الشاشة خلصت ترتيبها فعليًا يطلب الفوكس فورًا،
+     * وإلا ينتظر حدث اكتمال الترتيب بالضبط قبل ما يطلبه — يمنع فشل requestFocus() الصامت
+     * لما تُستدعى قبل ما تصير للعنصر أبعاد فعلية على الشاشة (زي لما تظهر لوحة جديدة للتو).
+     */
+    private fun requestFocusWhenReady(view: View) {
+        if (view.isLaidOut && view.width > 0 && view.height > 0) {
+            view.requestFocus()
+        } else {
+            view.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+                override fun onGlobalLayout() {
+                    view.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    view.requestFocus()
+                }
+            })
+        }
     }
 
-    binding.channelsPanelBack.setOnClickListener {
-        hideChannelsPanel()
+    private fun savePlaybackState(channel: XtreamChannel) {
+        val prefs = getSharedPreferences("dazou_prefs", MODE_PRIVATE)
+        prefs.edit()
+            .putString("last_category_id", currentCategoryId)
+            .putString("last_category_name", currentCategoryName)
+            .putInt("last_channel_id", channel.streamId)
+            .apply()
     }
 
-    startClock()
-    startProgressTracking()
-    setupWifiStatus()
-    setupThemeToggle()
-    setupPlayerErrorHandling()
-    setupMenu()
+    private fun restoreLastSessionOrShowCategories() {
+        clearContentFragment()
+        binding.sidebar.visibility = View.VISIBLE
+        binding.videoPlayer.visibility = View.VISIBLE
+        binding.channelInfo.visibility = View.VISIBLE
+        binding.playerControls.visibility = View.VISIBLE
+        binding.liveEpgPanel.visibility = View.VISIBLE
+        if (lastCategories.isEmpty()) {
+            liveViewModel.loadCategories()
+        }
 
-    val hasAccount = app.container.accountManager.getActiveAccount() != null
+        val prefs = getSharedPreferences("dazou_prefs", MODE_PRIVATE)
+        val savedCategoryId = prefs.getString("last_category_id", null)
+        val savedCategoryName = prefs.getString("last_category_name", null)
+        val savedChannelId = prefs.getInt("last_channel_id", -1)
 
-    if (hasAccount) {
+        if (savedCategoryId != null && savedChannelId != -1) {
+            currentCategoryId = savedCategoryId
+            currentCategoryName = savedCategoryName ?: ""
+            pendingAutoPlayChannelId = savedChannelId
+            binding.channelsPanelTitle.text = currentCategoryName
+            binding.channelsPanel.visibility = View.VISIBLE
+
+            if (savedCategoryId.startsWith("GROUP:")) {
+                pendingGroupCode = savedCategoryId.removePrefix("GROUP:")
+            } else {
+                liveViewModel.loadChannels(savedCategoryId)
+            }
+        }
+    }
+
+    fun playExternalMedia(url: String, name: String, type: String, itemId: Int = -1) {
+        binding.videoPlayer.visibility = View.VISIBLE
+        binding.channelInfo.visibility = View.VISIBLE
+        binding.playerControls.visibility = View.VISIBLE
+        playStreamWithResume(url, name, type, itemId)
+    }
+
+    private fun playStreamWithResume(url: String, name: String, type: String, itemId: Int) {
+        currentPlayingType = type
+        currentPlayingId = itemId
+
+        if (itemId != -1 && type != "live") {
+            val saved = (application as App).container.historyManager.getSavedProgress(type, itemId)
+            val hasResumablePosition = saved != null &&
+                saved.durationMs > 0 &&
+                saved.positionMs > 5_000L &&
+                saved.positionMs < (saved.durationMs * 0.95).toLong()
+
+            if (hasResumablePosition && saved != null) {
+                android.app.AlertDialog.Builder(this)
+                    .setTitle(name)
+                    .setMessage(getString(R.string.resume_message, formatDurationShort(saved.positionMs)))
+                    .setPositiveButton(getString(R.string.resume_continue)) { _, _ -> startPlayback(url, name, type, saved.positionMs) }
+                    .setNegativeButton(getString(R.string.resume_from_start)) { _, _ -> startPlayback(url, name, type, 0L) }
+                    .setCancelable(false)
+                    .show()
+                return
+            }
+        }
+
+        startPlayback(url, name, type, 0L)
+    }
+
+    private fun startPlayback(url: String, name: String, type: String, startPositionMs: Long) {
+        currentChannelName = name
+        playerManager.play(url, name, type, startPositionMs)
+        binding.channelInfo.text = "📺 $name"
+        controlsController.onMediaStarted(type)
+    }
+
+    private fun formatDurationShort(ms: Long): String {
+        val totalSec = ms / 1000
+        val h = totalSec / 3600
+        val m = (totalSec % 3600) / 60
+        val s = totalSec % 60
+        return if (h > 0) String.format("%d:%02d:%02d", h, m, s) else String.format("%02d:%02d", m, s)
+    }
+
+    private fun startProgressTracking() {
+        val runnable = object : Runnable {
+            override fun run() {
+                if (currentPlayingType.isNotEmpty() && currentPlayingType != "live" &&
+                    currentPlayingId != -1 && playerManager.isPlaying
+                ) {
+                    val pos = playerManager.player.currentPosition
+                    val dur = playerManager.player.duration
+                    if (dur > 0 && pos >= 0) {
+                        (application as App).container.historyManager.updateProgress(
+                            currentPlayingType, currentPlayingId, pos, dur
+                        )
+                    }
+                }
+                progressHandler.postDelayed(this, 5000)
+            }
+        }
+        progressRunnable = runnable
+        progressHandler.post(runnable)
+    }
+
+    fun playChannelFromExternal(channel: XtreamChannel, sourceList: List<XtreamChannel>) {
+        currentChannelList = sourceList
+        currentChannelIndex = sourceList.indexOf(channel)
+        currentPlayingType = "live"
+        currentPlayingId = -1
+        val server = liveViewModel.getServer() ?: return
+        val url = XtreamAPI.getStreamUrl(server, channel.streamId, channel.containerExtension, "live")
+        playStream(url, channel.name, "live")
+        updateNowPlayingPanel(channel)
+        controlsController.onChannelListChanged(currentChannelList, currentChannelIndex)
+    }
+
+    private fun updateNowPlayingPanel(channel: XtreamChannel) {
+        val server = liveViewModel.getServer() ?: return
+        binding.tvNowTitle.text = getString(R.string.live_loading_epg)
+        binding.tvNowTime.text = ""
+        binding.tvNextTitle.text = ""
+        binding.pbNowProgress.progress = 0
+        binding.tvControlsNow.text = getString(R.string.live_loading_epg)
+        binding.pbControlsProgress.visibility = View.GONE
+
+        XtreamAPI.getShortEpg(server, channel.streamId) { programs ->
+            if (programs.isEmpty()) {
+                binding.tvNowTitle.text = "📺 ${channel.name}"
+                binding.tvNowTime.text = getString(R.string.live_no_epg_data)
+                binding.tvNextTitle.text = ""
+                binding.pbNowProgress.progress = 0
+                binding.tvControlsNow.text = "📺 ${channel.name}"
+                binding.pbControlsProgress.visibility = View.GONE
+                return@getShortEpg
+            }
+
+            val now = programs.firstOrNull { it.nowPlaying } ?: programs.first()
+            val nowIndex = programs.indexOf(now)
+            val next = programs.getOrNull(nowIndex + 1)
+
+            binding.tvNowTitle.text = getString(R.string.live_now_playing, now.title)
+            binding.pbNowProgress.progress = now.progressPercent()
+            binding.tvNowTime.text = "${formatEpgTime(now.startTimestamp)} - ${formatEpgTime(now.stopTimestamp)}"
+            binding.tvNextTitle.text = if (next != null)
+                getString(R.string.live_next_program, next.title, formatEpgTime(next.startTimestamp))
+            else ""
+
+            binding.tvControlsNow.text = "${channel.name}  •  ${now.title}"
+            binding.pbControlsProgress.visibility = View.VISIBLE
+            binding.pbControlsProgress.progress = now.progressPercent()
+        }
+    }
+
+    private fun formatEpgTime(timestamp: Long): String {
+        val sdf = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+        return sdf.format(java.util.Date(timestamp * 1000))
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN && binding.videoPlayer.visibility == View.VISIBLE) {
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_CHANNEL_UP -> {
+                    onNextChannel()
+                    return true
+                }
+                KeyEvent.KEYCODE_CHANNEL_DOWN -> {
+                    onPreviousChannel()
+                    return true
+                }
+                else -> {
+                    if (controlsController.handleControlKeyEvent(event)) return true
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
+    private fun loadMergedChannels(categoryIds: List<String>, onComplete: (List<XtreamChannel>) -> Unit) {
+        val server = liveViewModel.getServer()
+        if (server == null || categoryIds.isEmpty()) {
+            onComplete(emptyList())
+            return
+        }
+        val combined = mutableListOf<XtreamChannel>()
+        var remaining = categoryIds.size
+        categoryIds.forEach { catId ->
+            XtreamAPI.getLiveStreams(server, catId) { channels ->
+                combined.addAll(channels)
+                remaining--
+                if (remaining <= 0) onComplete(combined)
+            }
+        }
+    }
+
+    private fun applyChannelResults(channels: List<XtreamChannel>) {
+        currentChannelList = channels
+        binding.channelList.adapter = ChannelAdapter(
+            channels,
+            (application as App).container.favoritesManager,
+            R.id.category_list,
+            R.id.btn_play_pause
+        ) { channel ->
+            val index = channels.indexOf(channel)
+            if (index == currentChannelIndex && playerManager.isPlaying) {
+                toggleFullscreen()
+            } else {
+                playChannelAt(index)
+            }
+        }
+
+        if (channels.isNotEmpty()) {
+            requestFocusWhenReady(binding.channelList)
+        }
+
+        val pendingId = pendingAutoPlayChannelId
+        if (pendingId != null) {
+            pendingAutoPlayChannelId = null
+            val index = channels.indexOfFirst { it.streamId == pendingId }
+            if (index >= 0) playChannelAt(index)
+        } else {
+            controlsController.onChannelListChanged(currentChannelList, currentChannelIndex)
+        }
+    }
+
+    private fun setupWifiStatus() {
+        networkMonitor = NetworkMonitor(this)
+        networkMonitor.start { connected ->
+            runOnUiThread {
+                binding.wifiIcon.setImageResource(if (connected) R.drawable.ic_wifi else R.drawable.ic_wifi_off)
+                binding.wifiIcon.alpha = if (connected) 1f else 0.5f
+            }
+        }
+    }
+
+    private fun setupThemeToggle() {
+        val prefs = getSharedPreferences("dazou_prefs", MODE_PRIVATE)
+        val isLight = prefs.getBoolean("is_light_theme", false)
+        binding.themeToggle.setImageResource(if (isLight) R.drawable.ic_theme_light else R.drawable.ic_theme_dark)
+
+        binding.themeToggle.setOnClickListener {
+            val newIsLight = !prefs.getBoolean("is_light_theme", false)
+            prefs.edit().putBoolean("is_light_theme", newIsLight).apply()
+            AppCompatDelegate.setDefaultNightMode(
+                if (newIsLight) AppCompatDelegate.MODE_NIGHT_NO else AppCompatDelegate.MODE_NIGHT_YES
+            )
+            recreate()
+        }
+    }
+
+    private fun startClock() {
+        val runnable = object : Runnable {
+            override fun run() {
+                val sdf = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                binding.clockText.text = sdf.format(java.util.Date())
+                clockHandler.postDelayed(this, 30000)
+            }
+        }
+        clockRunnable = runnable
+        clockHandler.post(runnable)
+    }
+
+    private fun clearContentFragment() {
+        supportFragmentManager.findFragmentById(binding.fragmentContainer.id)?.let {
+            supportFragmentManager.beginTransaction().remove(it).commitNowAllowingStateLoss()
+        }
+        binding.fragmentContainer.visibility = View.GONE
+    }
+
+    private fun showCategories() {
+        clearContentFragment()
+        binding.sidebar.visibility = View.VISIBLE
+        binding.videoPlayer.visibility = View.VISIBLE
+        binding.channelInfo.visibility = View.VISIBLE
+        binding.playerControls.visibility = View.VISIBLE
+        binding.liveEpgPanel.visibility = View.VISIBLE
+        if (lastCategories.isEmpty()) {
+            liveViewModel.loadCategories()
+        }
+    }
+
+    private fun openCategory(category: XtreamCategory) {
+        if (category.categoryId.startsWith("GROUP:")) {
+            val code = category.categoryId.removePrefix("GROUP:")
+            openCountryGroup(code, category.categoryName)
+        } else {
+            openRealCategory(category)
+        }
+    }
+
+    private fun openCountryGroup(code: String, countryLabel: String) {
+        currentCategoryId = "GROUP:$code"
+        currentCategoryName = countryLabel
+        binding.channelsPanelTitle.text = countryLabel
+        binding.channelsPanel.visibility = View.VISIBLE
+
+        val subCategories = categoryGroupDetailsMap[code] ?: emptyList()
+        val cleanedSubCategories = subCategories.map {
+            it.copy(categoryName = CategoryGrouper.stripCountryPrefix(it.categoryName))
+        }
+
+        binding.channelList.adapter = CategoryAdapter(
+            cleanedSubCategories,
+            R.id.btn_play_pause,
+            R.id.category_list
+        ) { subCategory ->
+            openRealCategory(subCategory)
+        }
+
+        if (cleanedSubCategories.isNotEmpty()) {
+            requestFocusWhenReady(binding.channelList)
+        }
+    }
+
+    private fun openRealCategory(category: XtreamCategory) {
+        currentCategoryId = category.categoryId
+        currentCategoryName = category.categoryName
+        binding.channelsPanelTitle.text = category.categoryName
+        binding.channelsPanel.visibility = View.VISIBLE
+        liveViewModel.loadChannels(category.categoryId)
+    }
+
+    private fun hideChannelsPanel() {
+        binding.channelsPanel.visibility = View.GONE
+    }
+
+    private fun playChannelAt(index: Int) {
+        if (index < 0 || index >= currentChannelList.size) return
+        val server = liveViewModel.getServer()
+        if (server == null) {
+            Toast.makeText(this, getString(R.string.common_choose_account_first), Toast.LENGTH_SHORT).show()
+            return
+        }
+        currentChannelIndex = index
+        val channel = currentChannelList[index]
+        currentPlayingType = "live"
+        currentPlayingId = -1
+        val url = XtreamAPI.getStreamUrl(server, channel.streamId, channel.containerExtension, "live")
+        playStream(url, channel.name, "live")
+        updateNowPlayingPanel(channel)
+        savePlaybackState(channel)
+        controlsController.onChannelListChanged(currentChannelList, currentChannelIndex)
+    }
+
+    fun goToHome() {
         showMainUi()
-        restoreLastSessionOrShowCategories()
+        showCategories()
         binding.menuHome.requestFocus()
-    } else {
-        showLoginUi()
-        loadFragment(LoginFragment())
     }
 
-    // ✅ فحص تحديث صامت عند فتح التطبيق (ما بيطلع شي لو ما في تحديث جديد)
-    UpdateManager.checkForUpdate(this, silent = true)
-}
-
-/**
- * ✅ دوران مستمر للدائرة المتقطعة بالشعار الظاهر بالشريط العلوي — نفس شعار
- * التطبيق الحقيقي، بحركة سلسة ومستمرة بكل شاشات التطبيق (بما إن الشريط العلوي مشترك بينهم).
- */
-private fun startTopBarLogoAnimation() {
-    topBarLogoAnimator = ObjectAnimator.ofFloat(binding.ivTopBarLogoRing, "rotation", 0f, 360f).apply {
-        duration = 3000L
-        repeatCount = ObjectAnimator.INFINITE
-        interpolator = LinearInterpolator()
-        start()
+    private fun showMainUi() {
+        binding.topBar.visibility = View.VISIBLE
+        binding.sidebar.visibility = View.VISIBLE
+        binding.videoPlayer.visibility = View.VISIBLE
+        binding.channelInfo.visibility = View.VISIBLE
+        binding.playerControls.visibility = View.VISIBLE
     }
-}
 
-/**
- * ✅ يطلب الفوكس بشكل مضمون التوقيت: لو الشاشة خلصت ترتيبها فعليًا يطلب الفوكس فورًا،
- * وإلا ينتظر حدث اكتمال الترتيب بالضبط قبل ما يطلبه — يمنع فشل requestFocus() الصامت
- * لما تُستدعى قبل ما تصير للعنصر أبعاد فعلية على الشاشة (زي لما تظهر لوحة جديدة للتو).
- */
-private fun requestFocusWhenReady(view: View) {
-    if (view.isLaidOut && view.width > 0 && view.height > 0) {
-        view.requestFocus()
-    } else {
-        view.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                view.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                view.requestFocus()
+    private fun showLoginUi() {
+        binding.topBar.visibility = View.GONE
+        binding.sidebar.visibility = View.GONE
+        binding.channelsPanel.visibility = View.GONE
+        binding.liveEpgPanel.visibility = View.GONE
+        binding.videoPlayer.visibility = View.GONE
+        binding.channelInfo.visibility = View.GONE
+        binding.playerControls.visibility = View.GONE
+    }
+
+    private fun setupPlayerErrorHandling() {
+        playerManager.player.addListener(object : Player.Listener {
+
+            override fun onPlayerError(error: PlaybackException) {
+                binding.playerLoading.visibility = View.GONE
+                val isNetworkError = error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
+                    error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT ||
+                    error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS
+
+                if (isNetworkError) {
+                    binding.channelInfo.text = getString(R.string.live_connection_lost)
+                    playerManager.retryCurrent {
+                        binding.channelInfo.text = getString(R.string.live_connection_failed)
+                    }
+                    return
+                }
+
+                val message = when (error.errorCode) {
+                    PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND ->
+                        getString(R.string.live_url_unavailable)
+                    PlaybackException.ERROR_CODE_DECODING_FAILED,
+                    PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ->
+                        getString(R.string.live_format_unsupported)
+                    else ->
+                        getString(R.string.live_playback_failed, error.errorCodeName)
+                }
+                binding.channelInfo.text = "⚠️ $message"
+            }
+
+            override fun onPlaybackStateChanged(state: Int) {
+                when (state) {
+                    Player.STATE_BUFFERING -> {
+                        binding.channelInfo.text = getString(R.string.common_loading)
+                        binding.playerLoading.visibility = View.VISIBLE
+                    }
+                    Player.STATE_READY -> {
+                        playerManager.resetRetry()
+                        binding.playerLoading.visibility = View.GONE
+                        if (currentChannelName.isNotEmpty()) {
+                            binding.channelInfo.text = "📺 $currentChannelName"
+                        } else {
+                            binding.channelInfo.text = ""
+                        }
+                    }
+                    Player.STATE_ENDED -> {
+                        binding.playerLoading.visibility = View.GONE
+                    }
+                }
             }
         })
     }
-}
 
-private fun savePlaybackState(channel: XtreamChannel) {
-    val prefs = getSharedPreferences("dazou_prefs", MODE_PRIVATE)
-    prefs.edit()
-        .putString("last_category_id", currentCategoryId)
-        .putString("last_category_name", currentCategoryName)
-        .putInt("last_channel_id", channel.streamId)
-        .apply()
-}
-
-private fun restoreLastSessionOrShowCategories() {
-    clearContentFragment()
-    binding.sidebar.visibility = View.VISIBLE
-    binding.videoPlayer.visibility = View.VISIBLE
-    binding.channelInfo.visibility = View.VISIBLE
-    binding.playerControls.visibility = View.VISIBLE
-    binding.liveEpgPanel.visibility = View.VISIBLE
-    if (lastCategories.isEmpty()) {
-        liveViewModel.loadCategories()
-    }
-
-    val prefs = getSharedPreferences("dazou_prefs", MODE_PRIVATE)
-    val savedCategoryId = prefs.getString("last_category_id", null)
-    val savedCategoryName = prefs.getString("last_category_name", null)
-    val savedChannelId = prefs.getInt("last_channel_id", -1)
-
-    if (savedCategoryId != null && savedChannelId != -1) {
-        currentCategoryId = savedCategoryId
-        currentCategoryName = savedCategoryName ?: ""
-        pendingAutoPlayChannelId = savedChannelId
-        binding.channelsPanelTitle.text = currentCategoryName
-        binding.channelsPanel.visibility = View.VISIBLE
-
-        if (savedCategoryId.startsWith("GROUP:")) {
-            pendingGroupCode = savedCategoryId.removePrefix("GROUP:")
-        } else {
-            liveViewModel.loadChannels(savedCategoryId)
-        }
-    }
-}
-
-fun playExternalMedia(url: String, name: String, type: String, itemId: Int = -1) {
-    binding.videoPlayer.visibility = View.VISIBLE
-    binding.channelInfo.visibility = View.VISIBLE
-    binding.playerControls.visibility = View.VISIBLE
-    playStreamWithResume(url, name, type, itemId)
-}
-
-private fun playStreamWithResume(url: String, name: String, type: String, itemId: Int) {
-    currentPlayingType = type
-    currentPlayingId = itemId
-
-    if (itemId != -1 && type != "live") {
-        val saved = (application as App).container.historyManager.getSavedProgress(type, itemId)
-        val hasResumablePosition = saved != null &&
-            saved.durationMs > 0 &&
-            saved.positionMs > 5_000L &&
-            saved.positionMs < (saved.durationMs * 0.95).toLong()
-
-        if (hasResumablePosition && saved != null) {
-            android.app.AlertDialog.Builder(this)
-                .setTitle(name)
-                .setMessage(getString(R.string.resume_message, formatDurationShort(saved.positionMs)))
-                .setPositiveButton(getString(R.string.resume_continue)) { _, _ -> startPlayback(url, name, type, saved.positionMs) }
-                .setNegativeButton(getString(R.string.resume_from_start)) { _, _ -> startPlayback(url, name, type, 0L) }
-                .setCancelable(false)
-                .show()
+    private fun enterPipMode() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            Toast.makeText(this, getString(R.string.live_feature_unsupported), Toast.LENGTH_SHORT).show()
             return
         }
-    }
-
-    startPlayback(url, name, type, 0L)
-}
-
-private fun startPlayback(url: String, name: String, type: String, startPositionMs: Long) {
-    currentChannelName = name
-    playerManager.play(url, name, type, startPositionMs)
-    binding.channelInfo.text = "📺 $name"
-    controlsController.onMediaStarted(type)
-}
-
-private fun formatDurationShort(ms: Long): String {
-    val totalSec = ms / 1000
-    val h = totalSec / 3600
-    val m = (totalSec % 3600) / 60
-    val s = totalSec % 60
-    return if (h > 0) String.format("%d:%02d:%02d", h, m, s) else String.format("%02d:%02d", m, s)
-}
-
-private fun startProgressTracking() {
-    val runnable = object : Runnable {
-        override fun run() {
-            if (currentPlayingType.isNotEmpty() && currentPlayingType != "live" &&
-                currentPlayingId != -1 && playerManager.isPlaying
-            ) {
-                val pos = playerManager.player.currentPosition
-                val dur = playerManager.player.duration
-                if (dur > 0 && pos >= 0) {
-                    (application as App).container.historyManager.updateProgress(
-                        currentPlayingType, currentPlayingId, pos, dur
-                    )
-                }
-            }
-            progressHandler.postDelayed(this, 5000)
+        if (binding.videoPlayer.visibility != View.VISIBLE) return
+        val aspectRatio = Rational(16, 9)
+        val params = PictureInPictureParams.Builder()
+            .setAspectRatio(aspectRatio)
+            .build()
+        try {
+            enterPictureInPictureMode(params)
+        } catch (e: Exception) {
+            Toast.makeText(this, getString(R.string.live_pip_failed), Toast.LENGTH_SHORT).show()
         }
     }
-    progressRunnable = runnable
-    progressHandler.post(runnable)
-}
 
-fun playChannelFromExternal(channel: XtreamChannel, sourceList: List<XtreamChannel>) {
-    currentChannelList = sourceList
-    currentChannelIndex = sourceList.indexOf(channel)
-    currentPlayingType = "live"
-    currentPlayingId = -1
-    val server = liveViewModel.getServer() ?: return
-    val url = XtreamAPI.getStreamUrl(server, channel.streamId, channel.containerExtension, "live")
-    playStream(url, channel.name, "live")
-    updateNowPlayingPanel(channel)
-    controlsController.onChannelListChanged(currentChannelList, currentChannelIndex)
-}
-
-private fun updateNowPlayingPanel(channel: XtreamChannel) {
-    val server = liveViewModel.getServer() ?: return
-    binding.tvNowTitle.text = getString(R.string.live_loading_epg)
-    binding.tvNowTime.text = ""
-    binding.tvNextTitle.text = ""
-    binding.pbNowProgress.progress = 0
-    binding.tvControlsNow.text = getString(R.string.live_loading_epg)
-    binding.pbControlsProgress.visibility = View.GONE
-
-    XtreamAPI.getShortEpg(server, channel.streamId) { programs ->
-        if (programs.isEmpty()) {
-            binding.tvNowTitle.text = "📺 ${channel.name}"
-            binding.tvNowTime.text = getString(R.string.live_no_epg_data)
-            binding.tvNextTitle.text = ""
-            binding.pbNowProgress.progress = 0
-            binding.tvControlsNow.text = "📺 ${channel.name}"
-            binding.pbControlsProgress.visibility = View.GONE
-            return@getShortEpg
-        }
-
-        val now = programs.firstOrNull { it.nowPlaying } ?: programs.first()
-        val nowIndex = programs.indexOf(now)
-        val next = programs.getOrNull(nowIndex + 1)
-
-        binding.tvNowTitle.text = getString(R.string.live_now_playing, now.title)
-        binding.pbNowProgress.progress = now.progressPercent()
-        binding.tvNowTime.text = "${formatEpgTime(now.startTimestamp)} - ${formatEpgTime(now.stopTimestamp)}"
-        binding.tvNextTitle.text = if (next != null)
-            getString(R.string.live_next_program, next.title, formatEpgTime(next.startTimestamp))
-        else ""
-
-        binding.tvControlsNow.text = "${channel.name}  •  ${now.title}"
-        binding.pbControlsProgress.visibility = View.VISIBLE
-        binding.pbControlsProgress.progress = now.progressPercent()
-    }
-}
-
-private fun formatEpgTime(timestamp: Long): String {
-    val sdf = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
-    return sdf.format(java.util.Date(timestamp * 1000))
-}
-
-override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-    if (event.action == KeyEvent.ACTION_DOWN && binding.videoPlayer.visibility == View.VISIBLE) {
-        when (event.keyCode) {
-            KeyEvent.KEYCODE_CHANNEL_UP -> {
-                onNextChannel()
-                return true
-            }
-            KeyEvent.KEYCODE_CHANNEL_DOWN -> {
-                onPreviousChannel()
-                return true
-            }
-            else -> {
-                if (controlsController.handleControlKeyEvent(event)) return true
-            }
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            binding.videoPlayer.visibility == View.VISIBLE &&
+            playerManager.isPlaying
+        ) {
+            enterPipMode()
         }
     }
-    return super.dispatchKeyEvent(event)
-}
 
-private fun loadMergedChannels(categoryIds: List<String>, onComplete: (List<XtreamChannel>) -> Unit) {
-    val server = liveViewModel.getServer()
-    if (server == null || categoryIds.isEmpty()) {
-        onComplete(emptyList())
-        return
-    }
-    val combined = mutableListOf<XtreamChannel>()
-    var remaining = categoryIds.size
-    categoryIds.forEach { catId ->
-        XtreamAPI.getLiveStreams(server, catId) { channels ->
-            combined.addAll(channels)
-            remaining--
-            if (remaining <= 0) onComplete(combined)
-        }
-    }
-}
-
-private fun applyChannelResults(channels: List<XtreamChannel>) {
-    currentChannelList = channels
-    binding.channelList.adapter = ChannelAdapter(
-        channels,
-        (application as App).container.favoritesManager,
-        R.id.category_list,
-        R.id.btn_play_pause
-    ) { channel ->
-        val index = channels.indexOf(channel)
-        if (index == currentChannelIndex && playerManager.isPlaying) {
-            toggleFullscreen()
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        if (isInPictureInPictureMode) {
+            binding.topBar.visibility = View.GONE
+            binding.sidebar.visibility = View.GONE
+            binding.channelsPanel.visibility = View.GONE
+            binding.liveEpgPanel.visibility = View.GONE
+            binding.fragmentContainer.visibility = View.GONE
+            binding.playerControls.visibility = View.GONE
+            binding.channelInfo.visibility = View.GONE
         } else {
-            playChannelAt(index)
-        }
-    }
-
-    if (channels.isNotEmpty()) {
-        requestFocusWhenReady(binding.channelList)
-    }
-
-    val pendingId = pendingAutoPlayChannelId
-    if (pendingId != null) {
-        pendingAutoPlayChannelId = null
-        val index = channels.indexOfFirst { it.streamId == pendingId }
-        if (index >= 0) playChannelAt(index)
-    } else {
-        controlsController.onChannelListChanged(currentChannelList, currentChannelIndex)
-    }
-}
-
-private fun setupWifiStatus() {
-    networkMonitor = NetworkMonitor(this)
-    networkMonitor.start { connected ->
-        runOnUiThread {
-            binding.wifiIcon.setImageResource(if (connected) R.drawable.ic_wifi else R.drawable.ic_wifi_off)
-            binding.wifiIcon.alpha = if (connected) 1f else 0.5f
-        }
-    }
-}
-
-private fun setupThemeToggle() {
-    val prefs = getSharedPreferences("dazou_prefs", MODE_PRIVATE)
-    val isLight = prefs.getBoolean("is_light_theme", false)
-    binding.themeToggle.setImageResource(if (isLight) R.drawable.ic_theme_light else R.drawable.ic_theme_dark)
-
-    binding.themeToggle.setOnClickListener {
-        val newIsLight = !prefs.getBoolean("is_light_theme", false)
-        prefs.edit().putBoolean("is_light_theme", newIsLight).apply()
-        AppCompatDelegate.setDefaultNightMode(
-            if (newIsLight) AppCompatDelegate.MODE_NIGHT_NO else AppCompatDelegate.MODE_NIGHT_YES
-        )
-        recreate()
-    }
-}
-
-private fun startClock() {
-    val runnable = object : Runnable {
-        override fun run() {
-            val sdf = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
-            binding.clockText.text = sdf.format(java.util.Date())
-            clockHandler.postDelayed(this, 30000)
-        }
-    }
-    clockRunnable = runnable
-    clockHandler.post(runnable)
-}
-
-private fun clearContentFragment() {
-    supportFragmentManager.findFragmentById(binding.fragmentContainer.id)?.let {
-        supportFragmentManager.beginTransaction().remove(it).commitNowAllowingStateLoss()
-    }
-    binding.fragmentContainer.visibility = View.GONE
-}
-
-private fun showCategories() {
-    clearContentFragment()
-    binding.sidebar.visibility = View.VISIBLE
-    binding.videoPlayer.visibility = View.VISIBLE
-    binding.channelInfo.visibility = View.VISIBLE
-    binding.playerControls.visibility = View.VISIBLE
-    binding.liveEpgPanel.visibility = View.VISIBLE
-    if (lastCategories.isEmpty()) {
-        liveViewModel.loadCategories()
-    }
-}
-
-private fun openCategory(category: XtreamCategory) {
-    if (category.categoryId.startsWith("GROUP:")) {
-        val code = category.categoryId.removePrefix("GROUP:")
-        openCountryGroup(code, category.categoryName)
-    } else {
-        openRealCategory(category)
-    }
-}
-
-private fun openCountryGroup(code: String, countryLabel: String) {
-    currentCategoryId = "GROUP:$code"
-    currentCategoryName = countryLabel
-    binding.channelsPanelTitle.text = countryLabel
-    binding.channelsPanel.visibility = View.VISIBLE
-
-    val subCategories = categoryGroupDetailsMap[code] ?: emptyList()
-    val cleanedSubCategories = subCategories.map {
-        it.copy(categoryName = CategoryGrouper.stripCountryPrefix(it.categoryName))
-    }
-
-    binding.channelList.adapter = CategoryAdapter(
-        cleanedSubCategories,
-        R.id.btn_play_pause,
-        R.id.category_list
-    ) { subCategory ->
-        openRealCategory(subCategory)
-    }
-
-    if (cleanedSubCategories.isNotEmpty()) {
-        requestFocusWhenReady(binding.channelList)
-    }
-}
-
-private fun openRealCategory(category: XtreamCategory) {
-    currentCategoryId = category.categoryId
-    currentCategoryName = category.categoryName
-    binding.channelsPanelTitle.text = category.categoryName
-    binding.channelsPanel.visibility = View.VISIBLE
-    liveViewModel.loadChannels(category.categoryId)
-}
-
-private fun hideChannelsPanel() {
-    binding.channelsPanel.visibility = View.GONE
-}
-
-private fun playChannelAt(index: Int) {
-    if (index < 0 || index >= currentChannelList.size) return
-    val server = liveViewModel.getServer()
-    if (server == null) {
-        Toast.makeText(this, getString(R.string.common_choose_account_first), Toast.LENGTH_SHORT).show()
-        return
-    }
-    currentChannelIndex = index
-    val channel = currentChannelList[index]
-    currentPlayingType = "live"
-    currentPlayingId = -1
-    val url = XtreamAPI.getStreamUrl(server, channel.streamId, channel.containerExtension, "live")
-    playStream(url, channel.name, "live")
-    updateNowPlayingPanel(channel)
-    savePlaybackState(channel)
-    controlsController.onChannelListChanged(currentChannelList, currentChannelIndex)
-}
-
-fun goToHome() {
-    showMainUi()
-    showCategories()
-    binding.menuHome.requestFocus()
-}
-
-private fun showMainUi() {
-    binding.topBar.visibility = View.VISIBLE
-    binding.sidebar.visibility = View.VISIBLE
-    binding.videoPlayer.visibility = View.VISIBLE
-    binding.channelInfo.visibility = View.VISIBLE
-    binding.playerControls.visibility = View.VISIBLE
-}
-
-private fun showLoginUi() {
-    binding.topBar.visibility = View.GONE
-    binding.sidebar.visibility = View.GONE
-    binding.channelsPanel.visibility = View.GONE
-    binding.liveEpgPanel.visibility = View.GONE
-    binding.videoPlayer.visibility = View.GONE
-    binding.channelInfo.visibility = View.GONE
-    binding.playerControls.visibility = View.GONE
-}
-
-private fun setupPlayerErrorHandling() {
-    playerManager.player.addListener(object : Player.Listener {
-
-        override fun onPlayerError(error: PlaybackException) {
-            binding.playerLoading.visibility = View.GONE
-            val isNetworkError = error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
-                error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT ||
-                error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS
-
-            if (isNetworkError) {
-                binding.channelInfo.text = getString(R.string.live_connection_lost)
-                playerManager.retryCurrent {
-                    binding.channelInfo.text = getString(R.string.live_connection_failed)
-                }
-                return
-            }
-
-            val message = when (error.errorCode) {
-                PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND ->
-                    getString(R.string.live_url_unavailable)
-                PlaybackException.ERROR_CODE_DECODING_FAILED,
-                PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ->
-                    getString(R.string.live_format_unsupported)
-                else ->
-                    getString(R.string.live_playback_failed, error.errorCodeName)
-            }
-            binding.channelInfo.text = "⚠️ $message"
-        }
-
-        override fun onPlaybackStateChanged(state: Int) {
-            when (state) {
-                Player.STATE_BUFFERING -> {
-                    binding.channelInfo.text = getString(R.string.common_loading)
-                    binding.playerLoading.visibility = View.VISIBLE
-                }
-                Player.STATE_READY -> {
-                    playerManager.resetRetry()
-                    binding.playerLoading.visibility = View.GONE
-                    if (currentChannelName.isNotEmpty()) {
-                        binding.channelInfo.text = "📺 $currentChannelName"
-                    } else {
-                        binding.channelInfo.text = ""
-                    }
-                }
-                Player.STATE_ENDED -> {
-                    binding.playerLoading.visibility = View.GONE
-                }
+            binding.playerControls.visibility = View.VISIBLE
+            binding.channelInfo.visibility = View.VISIBLE
+            if (supportFragmentManager.findFragmentById(binding.fragmentContainer.id) != null) {
+                binding.fragmentContainer.visibility = View.VISIBLE
+            } else {
+                binding.topBar.visibility = View.VISIBLE
+                binding.sidebar.visibility = View.VISIBLE
+                binding.liveEpgPanel.visibility = View.VISIBLE
             }
         }
-    })
-}
-
-private fun enterPipMode() {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-        Toast.makeText(this, getString(R.string.live_feature_unsupported), Toast.LENGTH_SHORT).show()
-        return
     }
-    if (binding.videoPlayer.visibility != View.VISIBLE) return
-    val aspectRatio = Rational(16, 9)
-    val params = PictureInPictureParams.Builder()
-        .setAspectRatio(aspectRatio)
-        .build()
-    try {
-        enterPictureInPictureMode(params)
-    } catch (e: Exception) {
-        Toast.makeText(this, getString(R.string.live_pip_failed), Toast.LENGTH_SHORT).show()
-    }
-}
 
-override fun onUserLeaveHint() {
-    super.onUserLeaveHint()
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-        binding.videoPlayer.visibility == View.VISIBLE &&
-        playerManager.isPlaying
-    ) {
-        enterPipMode()
-    }
-}
+    private fun toggleFullscreen() {
+        fullscreen = !fullscreen
 
-override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
-    super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
-    if (isInPictureInPictureMode) {
-        binding.topBar.visibility = View.GONE
-        binding.sidebar.visibility = View.GONE
-        binding.channelsPanel.visibility = View.GONE
-        binding.liveEpgPanel.visibility = View.GONE
-        binding.fragmentContainer.visibility = View.GONE
-        binding.playerControls.visibility = View.GONE
-        binding.channelInfo.visibility = View.GONE
-    } else {
-        binding.playerControls.visibility = View.VISIBLE
-        binding.channelInfo.visibility = View.VISIBLE
-        if (supportFragmentManager.findFragmentById(binding.fragmentContainer.id) != null) {
-            binding.fragmentContainer.visibility = View.VISIBLE
+        if (fullscreen) {
+            wasChannelsPanelOpenBeforeFullscreen = binding.channelsPanel.visibility == View.VISIBLE
+
+            binding.topBar.visibility = View.GONE
+            binding.sidebar.visibility = View.GONE
+            binding.channelsPanel.visibility = View.GONE
+            binding.liveEpgPanel.visibility = View.GONE
+            binding.fragmentContainer.visibility = View.GONE
+
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = (
+                View.SYSTEM_UI_FLAG_FULLSCREEN or
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            )
         } else {
             binding.topBar.visibility = View.VISIBLE
             binding.sidebar.visibility = View.VISIBLE
-            binding.liveEpgPanel.visibility = View.VISIBLE
+            if (wasChannelsPanelOpenBeforeFullscreen) {
+                binding.channelsPanel.visibility = View.VISIBLE
+            }
+            if (supportFragmentManager.findFragmentById(binding.fragmentContainer.id) != null) {
+                binding.fragmentContainer.visibility = View.VISIBLE
+            } else {
+                binding.liveEpgPanel.visibility = View.VISIBLE
+            }
+
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
+        }
+
+        controlsController.updateFullscreenIcon(fullscreen)
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        when {
+            fullscreen -> toggleFullscreen()
+            binding.channelsPanel.visibility == View.VISIBLE -> hideChannelsPanel()
+            binding.fragmentContainer.visibility == View.VISIBLE -> goToHome()
+            else -> super.onBackPressed()
         }
     }
-}
 
-private fun toggleFullscreen() {
-    fullscreen = !fullscreen
+    private fun setupMenu(){
+        binding.menuHome.setOnClickListener { loadFragment(HomeFragment()) }
+        binding.menuLive.setOnClickListener { showCategories() }
+        binding.menuMovies.setOnClickListener { loadFragment(MoviesFragment()) }
+        binding.menuSeries.setOnClickListener { loadFragment(SeriesFragment()) }
+        binding.menuEpg.setOnClickListener { loadFragment(EpgFragment()) }
+        binding.settings.setOnClickListener { loadFragment(SettingsFragment()) }
+        binding.account.setOnClickListener { loadFragment(AccountsFragment()) }
+        binding.sidebarLiveButton.setOnClickListener { showCategories() }
+    }
 
-    if (fullscreen) {
-        wasChannelsPanelOpenBeforeFullscreen = binding.channelsPanel.visibility == View.VISIBLE
-
-        binding.topBar.visibility = View.GONE
+    private fun loadFragment(fragment: Fragment){
+        binding.videoPlayer.visibility = View.GONE
+        binding.channelInfo.visibility = View.GONE
+        binding.playerControls.visibility = View.GONE
         binding.sidebar.visibility = View.GONE
         binding.channelsPanel.visibility = View.GONE
         binding.liveEpgPanel.visibility = View.GONE
-        binding.fragmentContainer.visibility = View.GONE
+        binding.fragmentContainer.visibility = View.VISIBLE
+        supportFragmentManager.beginTransaction()
+            .replace(binding.fragmentContainer.id, fragment)
+            .commit()
+    }
 
-        @Suppress("DEPRECATION")
-        window.decorView.systemUiVisibility = (
-            View.SYSTEM_UI_FLAG_FULLSCREEN or
-            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
-            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-        )
-    } else {
-        binding.topBar.visibility = View.VISIBLE
-        binding.sidebar.visibility = View.VISIBLE
-        if (wasChannelsPanelOpenBeforeFullscreen) {
-            binding.channelsPanel.visibility = View.VISIBLE
+    override fun playStream(url:String, name:String, type:String){
+        currentChannelName = name
+        playerManager.play(url, name, type)
+        binding.channelInfo.text = "📺 $name"
+        controlsController.onMediaStarted(type)
+    }
+
+    override fun onNextChannel(){
+        if (currentChannelList.isEmpty()) return
+        val next = (currentChannelIndex + 1).coerceAtMost(currentChannelList.size - 1)
+        playChannelAt(next)
+    }
+
+    override fun onPreviousChannel(){
+        if (currentChannelList.isEmpty()) return
+        val prev = (currentChannelIndex - 1).coerceAtLeast(0)
+        playChannelAt(prev)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        wasPlayingBeforeBackground = playerManager.isPlaying
+        if (playerManager.isPlaying) {
+            playerManager.pause()
         }
-        if (supportFragmentManager.findFragmentById(binding.fragmentContainer.id) != null) {
-            binding.fragmentContainer.visibility = View.VISIBLE
-        } else {
-            binding.liveEpgPanel.visibility = View.VISIBLE
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (wasPlayingBeforeBackground) {
+            playerManager.resume()
+            wasPlayingBeforeBackground = false
         }
-
-        @Suppress("DEPRECATION")
-        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
     }
 
-    controlsController.updateFullscreenIcon(fullscreen)
-}
-
-@Deprecated("Deprecated in Java")
-override fun onBackPressed() {
-    when {
-        fullscreen -> toggleFullscreen()
-        binding.channelsPanel.visibility == View.VISIBLE -> hideChannelsPanel()
-        binding.fragmentContainer.visibility == View.VISIBLE -> goToHome()
-        else -> super.onBackPressed()
+    override fun onDestroy(){
+        clockRunnable?.let { clockHandler.removeCallbacks(it) }
+        progressRunnable?.let { progressHandler.removeCallbacks(it) }
+        topBarLogoAnimator?.cancel()
+        controlsController.release()
+        networkMonitor.stop()
+        playerManager.release()
+        super.onDestroy()
     }
-}
-
-private fun setupMenu(){
-    binding.menuHome.setOnClickListener { loadFragment(HomeFragment()) }
-    binding.menuLive.setOnClickListener { showCategories() }
-    binding.menuMovies.setOnClickListener { loadFragment(MoviesFragment()) }
-    binding.menuSeries.setOnClickListener { loadFragment(SeriesFragment()) }
-    binding.menuEpg.setOnClickListener { loadFragment(EpgFragment()) }
-    binding.settings.setOnClickListener { loadFragment(SettingsFragment()) }
-    binding.account.setOnClickListener { loadFragment(AccountsFragment()) }
-    binding.sidebarLiveButton.setOnClickListener { showCategories() }
-}
-
-private fun loadFragment(fragment: Fragment){
-    binding.videoPlayer.visibility = View.GONE
-    binding.channelInfo.visibility = View.GONE
-    binding.playerControls.visibility = View.GONE
-    binding.sidebar.visibility = View.GONE
-    binding.channelsPanel.visibility = View.GONE
-    binding.liveEpgPanel.visibility = View.GONE
-    binding.fragmentContainer.visibility = View.VISIBLE
-    supportFragmentManager.beginTransaction()
-        .replace(binding.fragmentContainer.id, fragment)
-        .commit()
-}
-
-override fun playStream(url:String, name:String, type:String){
-    currentChannelName = name
-    playerManager.play(url, name, type)
-    binding.channelInfo.text = "📺 $name"
-    controlsController.onMediaStarted(type)
-}
-
-override fun onNextChannel(){
-    if (currentChannelList.isEmpty()) return
-    val next = (currentChannelIndex + 1).coerceAtMost(currentChannelList.size - 1)
-    playChannelAt(next)
-}
-
-override fun onPreviousChannel(){
-    if (currentChannelList.isEmpty()) return
-    val prev = (currentChannelIndex - 1).coerceAtLeast(0)
-    playChannelAt(prev)
-}
-
-override fun onStop() {
-    super.onStop()
-    wasPlayingBeforeBackground = playerManager.isPlaying
-    if (playerManager.isPlaying) {
-        playerManager.pause()
-    }
-}
-
-override fun onStart() {
-    super.onStart()
-    if (wasPlayingBeforeBackground) {
-        playerManager.resume()
-        wasPlayingBeforeBackground = false
-    }
-}
-
-override fun onDestroy(){
-    clockRunnable?.let { clockHandler.removeCallbacks(it) }
-    progressRunnable?.let { progressHandler.removeCallbacks(it) }
-    topBarLogoAnimator?.cancel()
-    controlsController.release()
-    networkMonitor.stop()
-    playerManager.release()
-    super.onDestroy()
 }
