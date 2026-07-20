@@ -15,7 +15,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="📺 مجموعات المسلسلات"
+            android:text="@string/series_categories_label"
             android:textColor="@color/text_white"
             android:textSize="16sp"
             android:textStyle="bold"
@@ -43,7 +43,7 @@
             android:id="@+id/etSearchSeries"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="🔍 ابحث عن مسلسل..."
+            android:hint="@string/series_search_hint"
             android:textColorHint="@color/text_gray"
             android:textColor="@color/text_white"
             android:background="@drawable/bg_input_field_selector"
@@ -56,7 +56,7 @@
             android:id="@+id/tvSeriesStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="اختر مجموعة لعرض المسلسلات"
+            android:text="@string/series_select_category_prompt"
             android:textColor="@color/text_gray"
             android:textSize="13sp"
             android:padding="8dp"/>

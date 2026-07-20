@@ -23,6 +23,14 @@
     <string name="common_choose_account_first">Bitte zuerst ein IPTV-Konto auswählen</string>
     <string name="common_fill_all_fields">Bitte alle Felder ausfüllen</string>
 
+    <string name="menu_home_label">Start</string>
+    <string name="menu_live_label">Kanäle</string>
+    <string name="menu_movies_label">Filme</string>
+    <string name="menu_series_label">Serien</string>
+    <string name="menu_epg_label">Programmführer</string>
+    <string name="sidebar_live_channels">☰ Live-Kanäle</string>
+    <string name="live_select_channel_prompt">Kanal auswählen, um Programminfo zu sehen</string>
+
     <string name="live_no_categories">Keine Kategorien gefunden – Konto prüfen</string>
     <string name="live_feature_unsupported">Diese Funktion wird auf diesem Gerät nicht unterstützt</string>
     <string name="live_pip_failed">Bild-in-Bild konnte nicht aktiviert werden</string>
@@ -41,6 +49,8 @@
     <string name="resume_continue">Fortsetzen</string>
     <string name="resume_from_start">Von vorne</string>
 
+    <string name="movies_categories_label">🎬 Kategorien</string>
+    <string name="movies_select_category_prompt">Kategorie auswählen, um Filme anzuzeigen</string>
     <string name="movies_no_categories">Keine Filmkategorien gefunden – Konto prüfen</string>
     <string name="movies_no_results_in_category">Keine Filme in dieser Kategorie</string>
     <string name="movies_count">%d Filme</string>
@@ -49,6 +59,8 @@
     <string name="movies_play">▶ Abspielen</string>
     <string name="movies_search_hint">🔍 Film suchen...</string>
 
+    <string name="series_categories_label">📺 Serienkategorien</string>
+    <string name="series_select_category_prompt">Kategorie auswählen, um Serien anzuzeigen</string>
     <string name="series_no_categories">Keine Serienkategorien gefunden – Konto prüfen</string>
     <string name="series_no_results_in_category">Keine Serien in dieser Kategorie</string>
     <string name="series_count">%d Serien</string>
@@ -67,6 +79,9 @@
     <string name="favorite_added_channel">⭐ Zu Favoriten hinzugefügt</string>
     <string name="favorite_removed">Aus Favoriten entfernt</string>
 
+    <string name="accounts_title">👤 Konten verwalten</string>
+    <string name="accounts_add_button">➕ Neues Konto hinzufügen</string>
+    <string name="accounts_empty_state">Keine gespeicherten Konten\nTippe unten, um ein Konto hinzuzufügen</string>
     <string name="accounts_add_title">⚙️ Xtream-Konto hinzufügen</string>
     <string name="accounts_server_url_label">Server-URL:</string>
     <string name="accounts_username_label">Benutzername:</string>
@@ -81,6 +96,8 @@
 
     <string name="login_success">✅ Erfolgreich angemeldet</string>
 
+    <string name="epg_title">📅 Programmführer</string>
+    <string name="epg_loading_guide">Führer wird geladen...</string>
     <string name="epg_no_channels">Keine Kanäle vorhanden</string>
     <string name="epg_url_label">Link: %s</string>
     <string name="epg_error_label">Fehler: %s</string>

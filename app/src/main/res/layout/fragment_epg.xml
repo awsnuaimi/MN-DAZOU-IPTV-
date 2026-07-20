@@ -9,7 +9,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="📅 دليل البرامج"
+        android:text="@string/epg_title"
         android:textColor="@color/text_white"
         android:textSize="20sp"
         android:textStyle="bold"
@@ -19,7 +19,7 @@
         android:id="@+id/epgStatus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="جاري تحميل الدليل..."
+        android:text="@string/epg_loading_guide"
         android:textColor="@color/text_gray"
         android:textSize="13sp"
         android:paddingHorizontal="8dp"

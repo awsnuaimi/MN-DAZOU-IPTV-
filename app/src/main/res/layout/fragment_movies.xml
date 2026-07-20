@@ -15,7 +15,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="🎬 المجموعات"
+            android:text="@string/movies_categories_label"
             android:textColor="@color/text_white"
             android:textSize="16sp"
             android:textStyle="bold"
@@ -43,7 +43,7 @@
             android:id="@+id/etSearchMovies"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="🔍 ابحث عن فيلم..."
+            android:hint="@string/movies_search_hint"
             android:textColorHint="@color/text_gray"
             android:textColor="@color/text_white"
             android:background="@drawable/bg_input_field_selector"
@@ -56,7 +56,7 @@
             android:id="@+id/tvMoviesStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="اختر مجموعة لعرض الأفلام"
+            android:text="@string/movies_select_category_prompt"
             android:textColor="@color/text_gray"
             android:textSize="13sp"
             android:padding="8dp"/>

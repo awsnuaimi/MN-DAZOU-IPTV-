@@ -36,11 +36,11 @@
 
             <Space android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1"/>
 
-            <TextView android:id="@+id/menu_epg" style="@style/TvMenuItem" android:text="دليل البرامج" android:nextFocusRight="@id/search_icon" android:nextFocusLeft="@id/menu_series" android:nextFocusDown="@id/btn_play_pause"/>
-            <TextView android:id="@+id/menu_series" style="@style/TvMenuItem" android:text="مسلسلات" android:nextFocusRight="@id/menu_epg" android:nextFocusLeft="@id/menu_movies" android:nextFocusDown="@id/btn_play_pause"/>
-            <TextView android:id="@+id/menu_movies" style="@style/TvMenuItem" android:text="أفلام" android:nextFocusRight="@id/menu_series" android:nextFocusLeft="@id/menu_live" android:nextFocusDown="@id/btn_play_pause"/>
-            <TextView android:id="@+id/menu_live" style="@style/TvMenuItem" android:text="القنوات" android:nextFocusRight="@id/menu_movies" android:nextFocusLeft="@id/menu_home" android:nextFocusDown="@id/sidebar_live_button"/>
-            <TextView android:id="@+id/menu_home" style="@style/TvMenuItem" android:text="الرئيسية" android:nextFocusRight="@id/menu_live" android:nextFocusDown="@id/btn_play_pause"/>
+            <TextView android:id="@+id/menu_epg" style="@style/TvMenuItem" android:text="@string/menu_epg_label" android:nextFocusRight="@id/search_icon" android:nextFocusLeft="@id/menu_series" android:nextFocusDown="@id/btn_play_pause"/>
+            <TextView android:id="@+id/menu_series" style="@style/TvMenuItem" android:text="@string/menu_series_label" android:nextFocusRight="@id/menu_epg" android:nextFocusLeft="@id/menu_movies" android:nextFocusDown="@id/btn_play_pause"/>
+            <TextView android:id="@+id/menu_movies" style="@style/TvMenuItem" android:text="@string/menu_movies_label" android:nextFocusRight="@id/menu_series" android:nextFocusLeft="@id/menu_live" android:nextFocusDown="@id/btn_play_pause"/>
+            <TextView android:id="@+id/menu_live" style="@style/TvMenuItem" android:text="@string/menu_live_label" android:nextFocusRight="@id/menu_movies" android:nextFocusLeft="@id/menu_home" android:nextFocusDown="@id/sidebar_live_button"/>
+            <TextView android:id="@+id/menu_home" style="@style/TvMenuItem" android:text="@string/menu_home_label" android:nextFocusRight="@id/menu_live" android:nextFocusDown="@id/btn_play_pause"/>
 
             <Space android:layout_width="24dp" android:layout_height="1dp"/>
 
@@ -80,7 +80,7 @@
                 android:id="@+id/sidebar_live_button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="☰ القنوات المباشرة"
+                android:text="@string/sidebar_live_channels"
                 android:textColor="@color/text_white"
                 android:textSize="16sp"
                 android:textStyle="bold"
@@ -202,7 +202,7 @@
             android:id="@+id/channel_info"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="جاري التحميل..."
+            android:text="@string/common_loading"
             android:textColor="@color/text_white"
             android:textSize="14sp"
             android:background="#88000000"
@@ -288,7 +288,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="🔴 بث مباشر"
+                    android:text="@string/live_badge"
                     android:textColor="@color/text_white"
                     android:textSize="12sp"
                     android:textStyle="bold"/>
@@ -348,7 +348,7 @@
                 android:id="@+id/tvNowTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="اختر قناة لعرض معلومات البرنامج"
+                android:text="@string/live_select_channel_prompt"
                 android:textColor="@color/text_white"
                 android:textSize="15sp"
                 android:textStyle="bold"/>

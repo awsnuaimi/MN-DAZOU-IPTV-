@@ -23,6 +23,14 @@
     <string name="common_choose_account_first">Choose an IPTV account first</string>
     <string name="common_fill_all_fields">Please fill in all fields</string>
 
+    <string name="menu_home_label">Home</string>
+    <string name="menu_live_label">Channels</string>
+    <string name="menu_movies_label">Movies</string>
+    <string name="menu_series_label">Series</string>
+    <string name="menu_epg_label">TV Guide</string>
+    <string name="sidebar_live_channels">☰ Live Channels</string>
+    <string name="live_select_channel_prompt">Select a channel to view program info</string>
+
     <string name="live_no_categories">No categories found – check your account</string>
     <string name="live_feature_unsupported">This feature is not supported on this device</string>
     <string name="live_pip_failed">Could not enable Picture-in-Picture</string>
@@ -41,6 +49,8 @@
     <string name="resume_continue">Resume</string>
     <string name="resume_from_start">Start Over</string>
 
+    <string name="movies_categories_label">🎬 Categories</string>
+    <string name="movies_select_category_prompt">Select a category to view movies</string>
     <string name="movies_no_categories">No movie categories found – check your account</string>
     <string name="movies_no_results_in_category">No movies in this category</string>
     <string name="movies_count">%d movies</string>
@@ -49,6 +59,8 @@
     <string name="movies_play">▶ Play</string>
     <string name="movies_search_hint">🔍 Search for a movie...</string>
 
+    <string name="series_categories_label">📺 Series Categories</string>
+    <string name="series_select_category_prompt">Select a category to view series</string>
     <string name="series_no_categories">No series categories found – check your account</string>
     <string name="series_no_results_in_category">No series in this category</string>
     <string name="series_count">%d series</string>
@@ -67,6 +79,9 @@
     <string name="favorite_added_channel">⭐ Added to favorites</string>
     <string name="favorite_removed">Removed from favorites</string>
 
+    <string name="accounts_title">👤 Manage Accounts</string>
+    <string name="accounts_add_button">➕ Add New Account</string>
+    <string name="accounts_empty_state">No saved accounts\nTap the button below to add an account</string>
     <string name="accounts_add_title">⚙️ Add Xtream Account</string>
     <string name="accounts_server_url_label">Server URL:</string>
     <string name="accounts_username_label">Username:</string>
@@ -81,6 +96,8 @@
 
     <string name="login_success">✅ Logged in successfully</string>
 
+    <string name="epg_title">📅 TV Guide</string>
+    <string name="epg_loading_guide">Loading guide...</string>
     <string name="epg_no_channels">No channels to display</string>
     <string name="epg_url_label">URL: %s</string>
     <string name="epg_error_label">Error: %s</string>
