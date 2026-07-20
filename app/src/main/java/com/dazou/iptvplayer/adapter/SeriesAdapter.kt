@@ -14,6 +14,7 @@ import com.dazou.iptvplayer.data.FavoritesManager
 import com.dazou.iptvplayer.model.FavoriteItem
 import com.dazou.iptvplayer.model.XtreamSeries
 import com.dazou.iptvplayer.utils.FocusAnimator
+import com.dazou.iptvplayer.utils.ThemeManager
 
 class SeriesAdapter(
     private val seriesList: List<XtreamSeries>,
@@ -31,6 +32,10 @@ class SeriesAdapter(
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_series, parent, false)
         FocusAnimator.attach(view)
+
+        // ✅ يستخدم لون التيم المختار حاليًا بدل اللون الثابت
+        ThemeManager.applyCardFocusBackground(view)
+
         return ViewHolder(view)
     }
 

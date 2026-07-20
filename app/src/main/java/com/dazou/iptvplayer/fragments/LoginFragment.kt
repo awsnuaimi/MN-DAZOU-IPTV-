@@ -13,6 +13,7 @@ import com.dazou.iptvplayer.MainActivity
 import com.dazou.iptvplayer.R
 import com.dazou.iptvplayer.databinding.FragmentLoginBinding
 import com.dazou.iptvplayer.model.XtreamServer
+import com.dazou.iptvplayer.utils.ThemeManager
 
 class LoginFragment : Fragment() {
 
@@ -41,6 +42,9 @@ class LoginFragment : Fragment() {
             interpolator = LinearInterpolator()
             start()
         }
+
+        // ✅ يستخدم لون التيم المختار حاليًا بدل اللون الوردي الثابت
+        ThemeManager.applyButtonFocusBackground(binding.btnLogin)
 
         binding.etUrl.requestFocus()
 
