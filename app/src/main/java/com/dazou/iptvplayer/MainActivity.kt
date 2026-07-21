@@ -515,7 +515,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     private fun loadMergedChannels(categoryIds: List<String>, onComplete: (List<XtreamChannel>) -> Unit) {
         val server = liveViewModel.getServer()
         if (server == null || categoryIds.isEmpty()) {
-            onComplete(emptyList())return
+            onComplete(emptyList())
+            return
         }
         val combined = mutableListOf<XtreamChannel>()
         var remaining = categoryIds.size
@@ -1033,7 +1034,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         fun onPartLoaded() {
             searchLoadedParts++
             if (searchLoadedParts >= 3) {
-                searchDataLoading = falsesearchDataLoaded = true
+                searchDataLoading = false
+                searchDataLoaded = true
                 performSearch(binding.etGlobalSearch.text?.toString()?.trim().orEmpty())
             }
         }
