@@ -103,6 +103,15 @@
     <string name="movies_no_description">لا يوجد وصف متاح.</string>
     <string name="movies_play">▶ تشغيل</string>
     <string name="movies_search_hint">🔍 ابحث عن فيلم...</string>
+    <string name="search_hint">🔍 ابحث عن قناة، فيلم، أو مسلسل...</string>
+    <string name="search_prompt">اكتب لتبدأ البحث بكل القنوات والأفلام والمسلسلات</string>
+    <string name="search_loading">جاري تحميل البيانات للبحث لأول مرة...</string>
+    <string name="search_no_results">لا نتائج مطابقة للبحث</string>
+    <string name="search_results_count">%d نتيجة</string>
+    <string name="search_type_live">مباشر</string>
+    <string name="search_type_movie">فيلم</string>
+    <string name="search_type_series">مسلسل</string>
+    <string name="search_loading_episodes_short">جاري تحميل الحلقات...</string>
 
     <!-- المسلسلات -->
     <string name="series_categories_label">📺 مجموعات المسلسلات</string>
