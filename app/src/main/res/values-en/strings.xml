@@ -1,4 +1,4 @@
-resources>
+<resources>
 <string name="app_name">DAZOU IPTV</string>
 <string name="tab_home">Home</string>
 <string name="tab_live">Live TV</string>
