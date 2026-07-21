@@ -7,7 +7,10 @@ import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.TrackGroup
+import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.cache.CacheDataSource
@@ -125,6 +128,18 @@ class PlayerManager(context: Context) {
     private val maxRetries = 3
     private val retryHandler = Handler(Looper.getMainLooper())
 
+    // ✅ true لما كل محاولات إعادة الاتصال التلقائية تفشل — الواجهة بتستخدمه
+    // لتظهير زر "إعادة المحاولة الآن" اليدوي بدل ما يضل المستخدم عالق.
+    var retriesExhausted = false
+        private set
+
+    /** ✅ يمثّل خيار مسار صوت واحد ممكن نعرضه للمستخدم يختار منه */
+    data class AudioTrackOption(
+        val mediaTrackGroup: TrackGroup,
+        val trackIndex: Int,
+        val label: String
+    )
+
     fun play(
         url: String,
         name: String = "",
@@ -135,6 +150,7 @@ class PlayerManager(context: Context) {
         currentName = name
         currentType = type
         retryCount = 0
+        retriesExhausted = false
 
         val itemBuilder = MediaItem.Builder().setUri(Uri.parse(url))
 
@@ -161,9 +177,64 @@ class PlayerManager(context: Context) {
         player.play()
     }
 
+    /** ✅ تقديم 10 ثواني (أو أي مدة محددة) — بيتوقف عند نهاية المحتوى بدل ما يطلع بره الحدود */
+    fun seekForward(ms: Long = 10_000L) {
+        val duration = player.duration
+        val target = player.currentPosition + ms
+        player.seekTo(if (duration > 0) target.coerceAtMost(duration) else target)
+    }
+
+    /** ✅ إرجاع 10 ثواني (أو أي مدة محددة) — بيتوقف عند الصفر بدل ما ياخد رقم سالب */
+    fun seekBackward(ms: Long = 10_000L) {
+        val target = (player.currentPosition - ms).coerceAtLeast(0L)
+        player.seekTo(target)
+    }
+
+    /** ✅ يرجّع كل مسارات الصوت المتاحة بالمحتوى الحالي (لغات متعددة مثلاً) */
+    fun getAvailableAudioTracks(): List<AudioTrackOption> {
+        val options = mutableListOf<AudioTrackOption>()
+        val groups = player.currentTracks.groups
+        for (group in groups) {
+            if (group.type != C.TRACK_TYPE_AUDIO) continue
+            for (i in 0 until group.length) {
+                val format = group.getTrackFormat(i)
+                val label = when {
+                    !format.language.isNullOrBlank() -> format.language!!.uppercase()
+                    !format.label.isNullOrBlank() -> format.label!!
+                    else -> "Track ${options.size + 1}"
+                }
+                options.add(AudioTrackOption(group.mediaTrackGroup, i, label))
+            }
+        }
+        return options
+    }
+
+    /** ✅ يفعّل مسار صوت محدد يدويًا (بدل الاختيار التلقائي) */
+    fun selectAudioTrack(option: AudioTrackOption) {
+        val override = TrackSelectionOverride(option.mediaTrackGroup, option.trackIndex)
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .setOverrideForType(override)
+            .build()
+    }
+
+    /** ✅ يرجّع اختيار مسار الصوت للوضع التلقائي (الافتراضي) */
+    fun resetAudioTrackToAuto() {
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .clearOverridesOfType(C.TRACK_TYPE_AUDIO)
+            .build()
+    }
+
+    /** ✅ يرجّع تسمية الجودة الحالية (1080p/720p/...) بناءً على الفيديو الفعلي الشغال، أو null لو مش معروف بعد */
+    fun getCurrentQualityLabel(): String? {
+        val height = player.videoFormat?.height ?: return null
+        if (height <= 0) return null
+        return "${height}p"
+    }
+
     fun retryCurrent(onExhausted: () -> Unit) {
         val url = currentStreamUrl ?: return
         if (retryCount >= maxRetries) {
+            retriesExhausted = true
             onExhausted()
             return
         }
@@ -173,8 +244,17 @@ class PlayerManager(context: Context) {
         }, 2000L * retryCount)
     }
 
+    /** ✅ إعادة محاولة فورية بضغطة المستخدم (بدل الانتظار/الاستسلام بعد المحاولات التلقائية) */
+    fun manualRetry() {
+        val url = currentStreamUrl ?: return
+        retryCount = 0
+        retriesExhausted = false
+        play(url, currentName, currentType)
+    }
+
     fun resetRetry() {
         retryCount = 0
+        retriesExhausted = false
     }
 
     fun pause() {

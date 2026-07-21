@@ -7,7 +7,7 @@
 <string name="tab_favorites">Favoriten</string>
 <string name="tab_accounts">Konten</string>
 <string name="tab_settings">Einstellungen</string>
-<string name="settings_title">Diagnose und Einstellungen</string>
+<string name="settings_title">Diagnose & Einstellungen</string>
 <string name="settings_language">🌐 Sprache</string>
 <string name="settings_check_updates">🔄 Nach Updates suchen</string>
 <string name="settings_theme_color">🎨 App-Farbschema</string>
@@ -78,6 +78,20 @@
 <string name="live_now_playing">▶ Jetzt: %s</string>
 <string name="live_next_program">⏭ Nächste: %s (%s)</string>
 <string name="live_badge">🔴 Live</string>
+<!--  Neue Player-Steuerelemente  -->
+<string name="player_rewind_10">10 Sekunden zurück</string>
+<string name="player_forward_10">10 Sekunden vor</string>
+<string name="player_volume_down">Lautstärke verringern</string>
+<string name="player_volume_up">Lautstärke erhöhen</string>
+<string name="player_aspect_ratio">Seitenverhältnis</string>
+<string name="player_audio_track">Audiospur</string>
+<string name="player_retry_now">🔄 Jetzt erneut versuchen</string>
+<string name="player_audio_track_title">🎧 Audiospur wählen</string>
+<string name="player_no_audio_tracks">Keine zusätzlichen Audiospuren verfügbar</string>
+<string name="player_aspect_fit">An Bildschirm anpassen</string>
+<string name="player_aspect_zoom">Bildschirm ausfüllen (Zoom)</string>
+<string name="player_aspect_stretch">Auf Bildschirm strecken</string>
+<string name="player_reconnected">✅ Verbindung wiederhergestellt, Wiedergabe wird fortgesetzt...</string>
 <string name="resume_message">Zuletzt gestoppt bei %s. Möchtest du dort fortsetzen?</string>
 <string name="resume_continue">Fortsetzen</string>
 <string name="resume_from_start">Von vorne</string>

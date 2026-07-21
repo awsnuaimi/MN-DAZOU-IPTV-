@@ -78,6 +78,20 @@
 <string name="live_now_playing">▶ Teraz: %s</string>
 <string name="live_next_program">⏭ Następny: %s (%s)</string>
 <string name="live_badge">🔴 Na żywo</string>
+<!--  Nowe elementy sterowania odtwarzaczem  -->
+<string name="player_rewind_10">Cofnij 10 sekund</string>
+<string name="player_forward_10">Do przodu 10 sekund</string>
+<string name="player_volume_down">Zmniejsz głośność</string>
+<string name="player_volume_up">Zwiększ głośność</string>
+<string name="player_aspect_ratio">Proporcje obrazu</string>
+<string name="player_audio_track">Ścieżka dźwiękowa</string>
+<string name="player_retry_now">🔄 Spróbuj ponownie</string>
+<string name="player_audio_track_title">🎧 Wybierz ścieżkę dźwiękową</string>
+<string name="player_no_audio_tracks">Brak dodatkowych ścieżek dźwiękowych dla tej treści</string>
+<string name="player_aspect_fit">Dopasuj do ekranu</string>
+<string name="player_aspect_zoom">Wypełnij ekran (powiększenie)</string>
+<string name="player_aspect_stretch">Rozciągnij, aby wypełnić ekran</string>
+<string name="player_reconnected">✅ Połączenie przywrócone, wznawianie odtwarzania...</string>
 <string name="resume_message">Zatrzymano na %s. Chcesz kontynuować od tego miejsca?</string>
 <string name="resume_continue">Kontynuuj</string>
 <string name="resume_from_start">Od początku</string>

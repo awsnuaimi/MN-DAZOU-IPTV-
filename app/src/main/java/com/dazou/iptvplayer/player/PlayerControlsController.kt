@@ -1,5 +1,6 @@
 package com.dazou.iptvplayer.player
 
+import android.app.AlertDialog
 import android.os.Handler
 import android.os.Looper
 import android.text.TextUtils
@@ -10,8 +11,10 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.media3.ui.AspectRatioFrameLayout
 import com.bumptech.glide.Glide
 import com.dazou.iptvplayer.R
 import com.dazou.iptvplayer.databinding.ActivityMainBinding
@@ -32,6 +35,16 @@ class PlayerControlsController(
     private var currentType: String = "live"
     private var isMuted = false
     private var userSeeking = false
+    private var currentVolume = 1f
+    private var aspectModeIndex = 0
+    private val aspectModes = intArrayOf(
+        AspectRatioFrameLayout.RESIZE_MODE_FIT,
+        AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
+        AspectRatioFrameLayout.RESIZE_MODE_FILL
+    )
+
+    private val zapHandler = Handler(Looper.getMainLooper())
+    private var zapRunnable: Runnable? = null
 
     private val controlsHandler = Handler(Looper.getMainLooper())
     private var controlsRunnable: Runnable? = null
@@ -43,7 +56,8 @@ class PlayerControlsController(
         onPrev: () -> Unit,
         onNext: () -> Unit,
         onFullscreenToggle: () -> Unit,
-        onPip: () -> Unit
+        onPip: () -> Unit,
+        onManualRetry: () -> Unit
     ) {
         val focusShowListener = View.OnFocusChangeListener { _, hasFocus -> if (hasFocus) showControls() }
 
@@ -86,6 +100,52 @@ class PlayerControlsController(
         }
         binding.btnVolume.onFocusChangeListener = focusShowListener
 
+        // ✅ تقديم/إرجاع 10 ثواني — أسهل بكتير بالريموت من سحب شريط التقدم
+        binding.btnRewind10.setOnClickListener {
+            showControls()
+            playerManager.seekBackward()
+        }
+        binding.btnRewind10.onFocusChangeListener = focusShowListener
+
+        binding.btnForward10.setOnClickListener {
+            showControls()
+            playerManager.seekForward()
+        }
+        binding.btnForward10.onFocusChangeListener = focusShowListener
+
+        // ✅ صوت متدرّج (+/-) بدل الكتم/التشغيل بس
+        binding.btnVolumeDown.setOnClickListener {
+            showControls()
+            adjustVolume(-0.1f)
+        }
+        binding.btnVolumeDown.onFocusChangeListener = focusShowListener
+
+        binding.btnVolumeUp.setOnClickListener {
+            showControls()
+            adjustVolume(0.1f)
+        }
+        binding.btnVolumeUp.onFocusChangeListener = focusShowListener
+
+        // ✅ نسبة العرض: يبدّل بالتناوب بين احتواء/تكبير/تمديد
+        binding.btnAspectRatio.setOnClickListener {
+            showControls()
+            cycleAspectRatio()
+        }
+        binding.btnAspectRatio.onFocusChangeListener = focusShowListener
+
+        // ✅ اختيار مسار الصوت (لو المحتوى عنده أكتر من لغة)
+        binding.btnAudioTrack.setOnClickListener {
+            showControls()
+            showAudioTrackPicker()
+        }
+        binding.btnAudioTrack.onFocusChangeListener = focusShowListener
+
+        // ✅ زر إعادة المحاولة اليدوي — يظهر بس لما المحاولات التلقائية تفشل كلها
+        binding.btnManualRetry.setOnClickListener {
+            hideManualRetry()
+            onManualRetry()
+        }
+
         binding.videoPlayer.setOnClickListener { showControls() }
 
         binding.seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -116,7 +176,84 @@ class PlayerControlsController(
         currentType = type
         updateMediaTypeUi()
         binding.btnPlayPause.setImageResource(R.drawable.ic_pause)
+        hideManualRetry()
+        binding.tvQualityBadge.visibility = View.GONE
         showControls()
+    }
+
+    /** ✅ يحدّث شارة الجودة (1080p/720p/...) — يُستدعى لما الفيديو يجهز أو المسارات تتغيّر */
+    fun updateQualityBadge() {
+        val label = playerManager.getCurrentQualityLabel()
+        if (label != null) {
+            binding.tvQualityBadge.text = label
+            binding.tvQualityBadge.visibility = View.VISIBLE
+        } else {
+            binding.tvQualityBadge.visibility = View.GONE
+        }
+    }
+
+    /** ✅ يظهّر زر إعادة المحاولة اليدوي — يُستدعى لما كل المحاولات التلقائية تفشل */
+    fun showManualRetry() {
+        binding.btnManualRetry.visibility = View.VISIBLE
+        binding.btnManualRetry.requestFocus()
+    }
+
+    fun hideManualRetry() {
+        binding.btnManualRetry.visibility = View.GONE
+    }
+
+    /** ✅ يظهّر شعار القناة كبير بالنص لثانيتين ونص لما المستخدم يبدّل قناة بسرعة (Zapping) */
+    fun showZapOverlay(logoUrl: String, name: String) {
+        zapRunnable?.let { zapHandler.removeCallbacks(it) }
+
+        Glide.with(activity)
+            .load(logoUrl)
+            .placeholder(R.drawable.ic_live_tv)
+            .error(R.drawable.ic_live_tv)
+            .into(binding.ivZapLogo)
+        binding.tvZapName.text = name
+        binding.zapOverlay.visibility = View.VISIBLE
+
+        val runnable = Runnable { binding.zapOverlay.visibility = View.GONE }
+        zapRunnable = runnable
+        zapHandler.postDelayed(runnable, 1500L)
+    }
+
+    /** ✅ يبدّل نسبة عرض الفيديو بالتناوب: احتواء ← تكبير ← تمديد */
+    private fun cycleAspectRatio() {
+        aspectModeIndex = (aspectModeIndex + 1) % aspectModes.size
+        binding.videoPlayer.resizeMode = aspectModes[aspectModeIndex]
+        val labelRes = when (aspectModes[aspectModeIndex]) {
+            AspectRatioFrameLayout.RESIZE_MODE_ZOOM -> R.string.player_aspect_zoom
+            AspectRatioFrameLayout.RESIZE_MODE_FILL -> R.string.player_aspect_stretch
+            else -> R.string.player_aspect_fit
+        }
+        Toast.makeText(activity, activity.getString(labelRes), Toast.LENGTH_SHORT).show()
+    }
+
+    /** ✅ يعرض قائمة مسارات الصوت المتاحة بالمحتوى الحالي عشان المستخدم يختار لغة */
+    private fun showAudioTrackPicker() {
+        val options = playerManager.getAvailableAudioTracks()
+        if (options.isEmpty()) {
+            Toast.makeText(activity, activity.getString(R.string.player_no_audio_tracks), Toast.LENGTH_SHORT).show()
+            return
+        }
+        val labels = options.map { it.label }.toTypedArray()
+        AlertDialog.Builder(activity)
+            .setTitle(activity.getString(R.string.player_audio_track_title))
+            .setItems(labels) { _, which ->
+                playerManager.selectAudioTrack(options[which])
+            }
+            .setNegativeButton(activity.getString(R.string.common_close), null)
+            .show()
+    }
+
+    /** ✅ يرفع/يخفّض الصوت الداخلي للمشغل بخطوات صغيرة، ويحدّث أيقونة الكتم تلقائيًا */
+    private fun adjustVolume(delta: Float) {
+        currentVolume = (currentVolume + delta).coerceIn(0f, 1f)
+        isMuted = currentVolume <= 0f
+        playerManager.player.volume = currentVolume
+        binding.btnVolume.setImageResource(if (isMuted) R.drawable.ic_volume_off else R.drawable.ic_volume_on)
     }
 
     fun updateFullscreenIcon(isFullscreen: Boolean) {
@@ -167,7 +304,10 @@ class PlayerControlsController(
     private fun isFocusInPlayerButtons(): Boolean {
         val f = activity.currentFocus ?: return false
         return f === binding.btnPrev || f === binding.btnPlayPause || f === binding.btnNext ||
-            f === binding.btnVolume || f === binding.btnFullscreen || f === binding.videoPlayer
+            f === binding.btnVolume || f === binding.btnFullscreen || f === binding.videoPlayer ||
+            f === binding.btnRewind10 || f === binding.btnForward10 ||
+            f === binding.btnVolumeDown || f === binding.btnVolumeUp ||
+            f === binding.btnAspectRatio || f === binding.btnAudioTrack
     }
 
     private fun showChannelStrip() {
@@ -285,9 +425,15 @@ class PlayerControlsController(
         if (currentChannelIndex in cells.indices) {
             val currentCellId = cells[currentChannelIndex].id
             binding.btnPrev.nextFocusDownId = currentCellId
+            binding.btnRewind10.nextFocusDownId = currentCellId
             binding.btnPlayPause.nextFocusDownId = currentCellId
+            binding.btnForward10.nextFocusDownId = currentCellId
             binding.btnNext.nextFocusDownId = currentCellId
+            binding.btnVolumeDown.nextFocusDownId = currentCellId
             binding.btnVolume.nextFocusDownId = currentCellId
+            binding.btnVolumeUp.nextFocusDownId = currentCellId
+            binding.btnAspectRatio.nextFocusDownId = currentCellId
+            binding.btnAudioTrack.nextFocusDownId = currentCellId
             binding.btnFullscreen.nextFocusDownId = currentCellId
         }
 
@@ -298,9 +444,17 @@ class PlayerControlsController(
         }
     }
 
+    private var volumeBeforeMute = 1f
+
     private fun toggleMute() {
         isMuted = !isMuted
-        playerManager.player.volume = if (isMuted) 0f else 1f
+        if (isMuted) {
+            volumeBeforeMute = currentVolume.takeIf { it > 0f } ?: 1f
+            currentVolume = 0f
+        } else {
+            currentVolume = volumeBeforeMute
+        }
+        playerManager.player.volume = currentVolume
         binding.btnVolume.setImageResource(if (isMuted) R.drawable.ic_volume_off else R.drawable.ic_volume_on)
     }
 
@@ -316,5 +470,6 @@ class PlayerControlsController(
     fun release() {
         controlsRunnable?.let { controlsHandler.removeCallbacks(it) }
         seekRunnable?.let { seekHandler.removeCallbacks(it) }
+        zapRunnable?.let { zapHandler.removeCallbacks(it) }
     }
 }

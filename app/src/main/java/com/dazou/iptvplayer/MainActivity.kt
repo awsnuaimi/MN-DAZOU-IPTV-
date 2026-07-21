@@ -115,7 +115,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             onPrev = { onPreviousChannel() },
             onNext = { onNextChannel() },
             onFullscreenToggle = { toggleFullscreen() },
-            onPip = { enterPipMode() }
+            onPip = { enterPipMode() },
+            onManualRetry = { playerManager.manualRetry() }
         )
 
         binding.btnSleepTimer.setOnClickListener {
@@ -427,6 +428,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         val server = liveViewModel.getServer() ?: return
         val url = XtreamAPI.getStreamUrl(server, channel.streamId, channel.containerExtension, "live")
         playStream(url, channel.name, "live")
+        controlsController.showZapOverlay(channel.streamIcon, channel.name)
         updateNowPlayingPanel(channel)
         controlsController.onChannelListChanged(currentChannelList, currentChannelIndex)
     }
@@ -545,6 +547,14 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             runOnUiThread {
                 binding.wifiIcon.setImageResource(if (connected) R.drawable.ic_wifi else R.drawable.ic_wifi_off)
                 binding.wifiIcon.alpha = if (connected) 1f else 0.5f
+
+                // ✅ لو الشبكة رجعت وكانت كل محاولات إعادة الاتصال التلقائية فشلت (المستخدم
+                // عالق على "تعذر الاتصال")، نعيد التشغيل تلقائيًا بدل ما ننتظر تدخله يدويًا
+                if (connected && playerManager.retriesExhausted && binding.videoPlayer.visibility == View.VISIBLE) {
+                    Toast.makeText(this, getString(R.string.player_reconnected), Toast.LENGTH_SHORT).show()
+                    controlsController.hideManualRetry()
+                    playerManager.manualRetry()
+                }
             }
         }
     }
@@ -657,6 +667,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         currentPlayingId = -1
         val url = XtreamAPI.getStreamUrl(server, channel.streamId, channel.containerExtension, "live")
         playStream(url, channel.name, "live")
+        controlsController.showZapOverlay(channel.streamIcon, channel.name)
         updateNowPlayingPanel(channel)
         savePlaybackState(channel)
         controlsController.onChannelListChanged(currentChannelList, currentChannelIndex)
@@ -699,6 +710,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                     binding.channelInfo.text = getString(R.string.live_connection_lost)
                     playerManager.retryCurrent {
                         binding.channelInfo.text = getString(R.string.live_connection_failed)
+                        // ✅ لما كل المحاولات التلقائية تفشل، نظهّر زر يدوي بدل ما يضل المستخدم عالق
+                        controlsController.showManualRetry()
                     }
                     return
                 }
@@ -723,6 +736,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                     }
                     Player.STATE_READY -> {
                         playerManager.resetRetry()
+                        controlsController.hideManualRetry()
+                        controlsController.updateQualityBadge()
                         binding.playerLoading.visibility = View.GONE
                         if (currentChannelName.isNotEmpty()) {
                             binding.channelInfo.text = "📺 $currentChannelName"
@@ -737,6 +752,16 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                         }
                     }
                 }
+            }
+
+            // ✅ يلتقط أي تغيير بجودة الفيديو (لو ABR بدّل الدقة تلقائيًا وقت التشغيل)
+            // ويحدّث شارة الجودة فورًا بدل ما تضل واقفة على القيمة القديمة
+            override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+                controlsController.updateQualityBadge()
+            }
+
+            override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+                controlsController.updateQualityBadge()
             }
         })
     }
