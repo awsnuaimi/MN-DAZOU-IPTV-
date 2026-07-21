@@ -191,4 +191,5 @@
 <string name="update_no_update">✅ لديك أحدث إصدار</string>
 <string name="update_check_failed">تعذر التحقق من التحديثات، تأكد من الاتصال بالإنترنت</string>
 <string name="update_no_release_published">لا يوجد إصدار منشور على GitHub بعد</string>
+<string name="player_fullscreen_toggle">تكبير الشاشة</string>
 </resources>
