@@ -538,6 +538,37 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             (application as App).container.favoritesManager,
             R.id.btn_play_pause,
             onRequestFocusLeft = { restoreFocusToCategory() }
+            private fun restoreFocusToCategory() {
+        val layoutManager = binding.categoryList.layoutManager as? LinearLayoutManager ?: return
+        val itemCount = binding.categoryList.adapter?.itemCount ?: 0
+        if (itemCount == 0) return
+        val target = lastFocusedCategoryPosition.coerceIn(0, itemCount - 1)
+        val existingView = layoutManager.findViewByPosition(target)
+        if (existingView != null) {
+            existingView.requestFocus()
+        } else {
+            binding.categoryList.scrollToPosition(target)
+            binding.categoryList.post {
+                layoutManager.findViewByPosition(target)?.requestFocus()
+            }
+        }
+    }
+
+    private fun restoreFocusToChannel() {
+        val layoutManager = binding.channelList.layoutManager as? LinearLayoutManager ?: return
+        val itemCount = binding.channelList.adapter?.itemCount ?: 0
+        if (itemCount == 0 || currentChannelIndex !in 0 until itemCount) return
+        val target = currentChannelIndex
+        val existingView = layoutManager.findViewByPosition(target)
+        if (existingView != null) {
+            existingView.requestFocus()
+        } else {
+            binding.channelList.scrollToPosition(target)
+            binding.channelList.post {
+                layoutManager.findViewByPosition(target)?.requestFocus()
+            }
+        }
+    }
         ) { channel ->
             val index = channels.indexOf(channel)
             if (index == currentChannelIndex && playerManager.isPlaying) {
@@ -873,7 +904,10 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         fullscreen = !fullscreen
 
         if (fullscreen) {
-            wasChannelsPanelOpenBeforeFullscreen = binding.channelsPanel.visibility == View.VISIBLE
+            if (wasChannelsPanelOpenBeforeFullscreen) {
+                binding.channelsPanel.visibility = View.VISIBLE
+                restoreFocusToChannel()
+            }
 
             binding.topBar.visibility = View.GONE
             binding.sidebar.visibility = View.GONE

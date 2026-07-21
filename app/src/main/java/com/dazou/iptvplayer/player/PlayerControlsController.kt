@@ -59,6 +59,8 @@ class PlayerControlsController(
             }
         }
 
+    private var onFullscreenToggleCallback: (() -> Unit)? = null
+
     private val controlsHandler = Handler(Looper.getMainLooper())
     private var controlsRunnable: Runnable? = null
 
@@ -72,6 +74,7 @@ class PlayerControlsController(
         onPip: () -> Unit,
         onManualRetry: () -> Unit
     ) {
+        onFullscreenToggleCallback = onFullscreenToggle
         val focusShowListener = View.OnFocusChangeListener { _, hasFocus -> if (hasFocus) showControls() }
 
         binding.btnPlayPause.setOnClickListener {
@@ -324,6 +327,18 @@ class PlayerControlsController(
                     false
                 }
             }
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                if (isFullscreen &&
+                    binding.playerControls.visibility != View.VISIBLE &&
+                    binding.channelStripScroll.visibility != View.VISIBLE
+                ) {
+                    onFullscreenToggleCallback?.invoke()
+                    true
+                } else {
+                    showControls()
+                    false
+                }
+            }
             KeyEvent.KEYCODE_BACK -> {
                 if (binding.channelStripScroll.visibility == View.VISIBLE) {
                     hideChannelStrip()
@@ -508,4 +523,3 @@ class PlayerControlsController(
         seekRunnable?.let { seekHandler.removeCallbacks(it) }
         zapRunnable?.let { zapHandler.removeCallbacks(it) }
     }
-}
