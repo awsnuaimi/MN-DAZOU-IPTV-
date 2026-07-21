@@ -63,6 +63,9 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     private var currentChannelIndex: Int = -1
     private var wasChannelsPanelOpenBeforeFullscreen = false
     private var currentCategoryId: String? = null
+    // ✅ آخر موضع كان عليه الفوكس بقائمة الفئات الرئيسية — نستخدمه لنرجّع الفوكس
+    // بدقة لنفس المكان لما المستخدم يرجع من قائمة القنوات أو المجلدات الفرعية
+    private var lastFocusedCategoryPosition = 0
     private var currentCategoryName: String = ""
     private var pendingAutoPlayChannelId: Int? = null
     private var pendingGroupCode: String? = null
@@ -138,7 +141,11 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             val displayCategories = CategoryGrouper.buildDisplayCategories(
                 this@MainActivity, categories, categoryGroupMap, categoryGroupDetailsMap
             )
-            binding.categoryList.adapter = CategoryAdapter(displayCategories, R.id.channel_list) { category ->
+            binding.categoryList.adapter = CategoryAdapter(
+                displayCategories,
+                R.id.channel_list,
+                onItemFocused = { pos -> lastFocusedCategoryPosition = pos }
+            ) { category ->
                 openCategory(category)
             }
 
@@ -186,7 +193,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     /** ✅ يفتح قائمة اختيار مدة مؤقت النوم، أو إيقافه لو مفعّل حاليًا */
     private fun showSleepTimerPicker() {
-        val options = listOf(
+    val options = listOf(
             getString(R.string.sleep_timer_off) to 0,
             getString(R.string.sleep_timer_15) to 15,
             getString(R.string.sleep_timer_30) to 30,
@@ -441,8 +448,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.pbNowProgress.progress = 0
         binding.tvControlsNow.text = getString(R.string.live_loading_epg)
         binding.pbControlsProgress.visibility = View.GONE
-
-        XtreamAPI.getShortEpg(server, channel.streamId) { programs ->
+XtreamAPI.getShortEpg(server, channel.streamId) { programs ->
             if (programs.isEmpty()) {
                 binding.tvNowTitle.text = "📺 ${channel.name}"
                 binding.tvNowTime.text = getString(R.string.live_no_epg_data)
@@ -516,8 +522,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.channelList.adapter = ChannelAdapter(
             channels,
             (application as App).container.favoritesManager,
-            R.id.category_list,
-            R.id.btn_play_pause
+            R.id.btn_play_pause,
+            onRequestFocusLeft = { restoreFocusToCategory() }
         ) { channel ->
             val index = channels.indexOf(channel)
             if (index == currentChannelIndex && playerManager.isPlaying) {
@@ -628,7 +634,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.channelList.adapter = CategoryAdapter(
             cleanedSubCategories,
             R.id.btn_play_pause,
-            R.id.category_list
+            onRequestFocusLeft = { restoreFocusToCategory() }
         ) { subCategory ->
             openRealCategory(subCategory)
         }
@@ -648,6 +654,24 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     private fun hideChannelsPanel() {
         binding.channelsPanel.visibility = View.GONE
+    }
+
+    /** ✅ يرجّع الفوكس بدقة لنفس مكان الفئة اللي كان المستخدم واقف عليها قبل ما
+     * يدخل عالقنوات أو المجلدات الفرعية — بدل ما نسيب أندرويد يخمّن ويغلط أحيانًا */
+    private fun restoreFocusToCategory() {
+        val layoutManager = binding.categoryList.layoutManager as? LinearLayoutManager ?: return
+        val itemCount = binding.categoryList.adapter?.itemCount ?: 0
+        if (itemCount == 0) return
+        val target = lastFocusedCategoryPosition.coerceIn(0, itemCount - 1)
+        val existingView = layoutManager.findViewByPosition(target)
+        if (existingView != null) {
+            existingView.requestFocus()
+        } else {
+            binding.categoryList.scrollToPosition(target)
+            binding.categoryList.post {
+                layoutManager.findViewByPosition(target)?.requestFocus()
+            }
+        }
     }
 
     private fun playChannelAt(index: Int) {

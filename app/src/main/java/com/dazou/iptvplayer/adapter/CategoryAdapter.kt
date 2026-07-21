@@ -15,7 +15,13 @@ import com.dazou.iptvplayer.utils.ThemeManager
 class CategoryAdapter(
     private val categories: List<XtreamCategory>,
     private val nextFocusRightId: Int? = null,
-    private val nextFocusLeftId: Int? = null,
+    // ✅ بدل ما نشاور على حاوية القائمة كلها (وأندرويد يخمّن مين ياخد الفوكس)،
+    // بنستدعي هالدالة لما يوصل المستخدم لأول عنصر ويضغط يمين — والطرف التاني
+    // (MainActivity) هو يلي بيقرر بالضبط مين ياخد الفوكس (نفس المكان يلي جاي منه)
+    private val onRequestFocusLeft: (() -> Unit)? = null,
+    // ✅ بيبلّغ MainActivity أي عنصر بالظبط عليه الفوكس هلق — عشان نقدر نرجعله
+    // بدقة لما المستخدم يرجع من قائمة تانية بعدين
+    private val onItemFocused: ((Int) -> Unit)? = null,
     private val onCategoryClick: (XtreamCategory) -> Unit
 ) : RecyclerView.Adapter<CategoryAdapter.ViewHolder>() {
 
@@ -32,15 +38,30 @@ class CategoryAdapter(
         view.isFocusable = true
         view.isFocusableInTouchMode = true
         view.isClickable = true
-        FocusAnimator.attach(view)
 
-        // ✅ يستخدم لون التيم المختار حاليًا بدل لون ثابت
+        // ✅ لون التيم المختار حاليًا بدل لون ثابت
         ThemeManager.applyCardFocusBackground(view)
 
         nextFocusRightId?.let { view.nextFocusRightId = it }
-        nextFocusLeftId?.let { view.nextFocusLeftId = it }
 
-        return ViewHolder(view)
+        val holder = ViewHolder(view)
+
+        FocusAnimator.attach(view) { hasFocus ->
+            if (hasFocus) onItemFocused?.invoke(holder.bindingAdapterPosition)
+        }
+
+        if (onRequestFocusLeft != null) {
+            view.setOnKeyListener { _, keyCode, event ->
+                if (event.action == android.view.KeyEvent.ACTION_DOWN &&
+                    keyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT
+                ) {
+                    onRequestFocusLeft.invoke()
+                    true
+                } else false
+            }
+        }
+
+        return holder
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {

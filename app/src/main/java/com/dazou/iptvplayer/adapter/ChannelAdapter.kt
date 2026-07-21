@@ -18,8 +18,11 @@ import com.dazou.iptvplayer.utils.FocusAnimator
 class ChannelAdapter(
     private val channels: List<XtreamChannel>,
     private val favoritesManager: FavoritesManager,
-    private val leftFocusTargetId: Int? = null,
     private val rightFocusTargetId: Int? = null,
+    // ✅ بدل ما نشاور على حاوية "category_list" ككل (وأندرويد يخمّن مين ياخد
+    // الفوكس ويغلط أحيانًا)، بنستدعي هالدالة مباشرة وMainActivity هو يلي
+    // بيحدد بالضبط مين ياخد الفوكس (نفس المجلد يلي جاي منه بالظبط)
+    private val onRequestFocusLeft: (() -> Unit)? = null,
     private val onChannelClick: (XtreamChannel) -> Unit
 ) : RecyclerView.Adapter<ChannelAdapter.ViewHolder>() {
 
@@ -34,8 +37,18 @@ class ChannelAdapter(
             .inflate(R.layout.item_channel, parent, false)
         FocusAnimator.attach(view)
 
-        leftFocusTargetId?.let { view.nextFocusLeftId = it }
         rightFocusTargetId?.let { view.nextFocusRightId = it }
+
+        if (onRequestFocusLeft != null) {
+            view.setOnKeyListener { _, keyCode, event ->
+                if (event.action == android.view.KeyEvent.ACTION_DOWN &&
+                    keyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT
+                ) {
+                    onRequestFocusLeft.invoke()
+                    true
+                } else false
+            }
+        }
 
         return ViewHolder(view)
     }
