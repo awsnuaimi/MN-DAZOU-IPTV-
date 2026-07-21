@@ -224,9 +224,14 @@ object XtreamAPI {
                 val title = try {
                     String(android.util.Base64.decode(titleB64, android.util.Base64.DEFAULT))
                 } catch (_: Exception) { titleB64 }
+                val descriptionB64 = o.optString("description", "")
+                val description = try {
+                    String(android.util.Base64.decode(descriptionB64, android.util.Base64.DEFAULT))
+                } catch (_: Exception) { descriptionB64 }
                 list.add(
                     XtreamEpgProgram(
                         title = title,
+                        description = description,
                         startTimestamp = start,
                         stopTimestamp = stop,
                         nowPlaying = o.optString("now_playing") == "1"

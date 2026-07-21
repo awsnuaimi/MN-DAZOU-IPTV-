@@ -2,6 +2,7 @@ package com.dazou.iptvplayer.model
 
 data class XtreamEpgProgram(
     val title: String,
+    val description: String,
     val startTimestamp: Long,
     val stopTimestamp: Long,
     val nowPlaying: Boolean

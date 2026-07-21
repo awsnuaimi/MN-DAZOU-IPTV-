@@ -126,6 +126,10 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             showSleepTimerPicker()
         }
 
+        binding.btnFullscreenSmall.setOnClickListener {
+            toggleFullscreen()
+        }
+
         val app = application as App
         liveViewModel = ViewModelProvider(this, ViewModelFactory(app.container.currentRepository))
             .get(LiveViewModel::class.java)
@@ -193,7 +197,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     /** ✅ يفتح قائمة اختيار مدة مؤقت النوم، أو إيقافه لو مفعّل حاليًا */
     private fun showSleepTimerPicker() {
-    val options = listOf(
+        val options = listOf(
             getString(R.string.sleep_timer_off) to 0,
             getString(R.string.sleep_timer_15) to 15,
             getString(R.string.sleep_timer_30) to 30,
@@ -234,7 +238,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     }
 
     private fun cancelSleepTimer() {
-        sleepTimer?.cancel()
+    sleepTimer?.cancel()
         sleepTimer = null
         sleepMinutesActive = 0
         updateSleepTimerIcon()
@@ -323,8 +327,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         clearContentFragment()
         binding.sidebar.visibility = View.VISIBLE
         binding.videoPlayer.visibility = View.VISIBLE
-        binding.channelInfo.visibility = View.VISIBLE
-        binding.playerControls.visibility = View.VISIBLE
+        applyPlayerOverlayVisibility()
         binding.liveEpgPanel.visibility = View.VISIBLE
         if (lastCategories.isEmpty()) {
             liveViewModel.loadCategories()
@@ -352,8 +355,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     fun playExternalMedia(url: String, name: String, type: String, itemId: Int = -1) {
         binding.videoPlayer.visibility = View.VISIBLE
-        binding.channelInfo.visibility = View.VISIBLE
-        binding.playerControls.visibility = View.VISIBLE
+        applyPlayerOverlayVisibility()
         playStreamWithResume(url, name, type, itemId)
     }
 
@@ -444,14 +446,17 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         val server = liveViewModel.getServer() ?: return
         binding.tvNowTitle.text = getString(R.string.live_loading_epg)
         binding.tvNowTime.text = ""
+        binding.tvNowDescription.visibility = View.GONE
         binding.tvNextTitle.text = ""
         binding.pbNowProgress.progress = 0
         binding.tvControlsNow.text = getString(R.string.live_loading_epg)
         binding.pbControlsProgress.visibility = View.GONE
-XtreamAPI.getShortEpg(server, channel.streamId) { programs ->
+
+        XtreamAPI.getShortEpg(server, channel.streamId) { programs ->
             if (programs.isEmpty()) {
                 binding.tvNowTitle.text = "📺 ${channel.name}"
                 binding.tvNowTime.text = getString(R.string.live_no_epg_data)
+                binding.tvNowDescription.visibility = View.GONE
                 binding.tvNextTitle.text = ""
                 binding.pbNowProgress.progress = 0
                 binding.tvControlsNow.text = "📺 ${channel.name}"
@@ -466,6 +471,15 @@ XtreamAPI.getShortEpg(server, channel.streamId) { programs ->
             binding.tvNowTitle.text = getString(R.string.live_now_playing, now.title)
             binding.pbNowProgress.progress = now.progressPercent()
             binding.tvNowTime.text = "${formatEpgTime(now.startTimestamp)} - ${formatEpgTime(now.stopTimestamp)}"
+
+            // ✅ نبذة عن البرنامج الحالي — لو موجودة فعليًا بالبيانات القادمة من السيرفر
+            if (now.description.isNotBlank()) {
+                binding.tvNowDescription.text = now.description
+                binding.tvNowDescription.visibility = View.VISIBLE
+            } else {
+            binding.tvNowDescription.visibility = View.GONE
+            }
+
             binding.tvNextTitle.text = if (next != null)
                 getString(R.string.live_next_program, next.title, formatEpgTime(next.startTimestamp))
             else ""
@@ -603,8 +617,7 @@ XtreamAPI.getShortEpg(server, channel.streamId) { programs ->
         clearContentFragment()
         binding.sidebar.visibility = View.VISIBLE
         binding.videoPlayer.visibility = View.VISIBLE
-        binding.channelInfo.visibility = View.VISIBLE
-        binding.playerControls.visibility = View.VISIBLE
+        applyPlayerOverlayVisibility()
         binding.liveEpgPanel.visibility = View.VISIBLE
         if (lastCategories.isEmpty()) {
             liveViewModel.loadCategories()
@@ -707,8 +720,23 @@ XtreamAPI.getShortEpg(server, channel.streamId) { programs ->
         binding.topBar.visibility = View.VISIBLE
         binding.sidebar.visibility = View.VISIBLE
         binding.videoPlayer.visibility = View.VISIBLE
-        binding.channelInfo.visibility = View.VISIBLE
-        binding.playerControls.visibility = View.VISIBLE
+        applyPlayerOverlayVisibility()
+    }
+
+    /** ✅ الشاشة المصغّرة (غير ملء الشاشة) لازم تكون فاضية إلا من زر التكبير —
+     * كل معلومات القناة (الاسم/الوقت/البرنامج القادم) أصلاً معروضة باللوحة تحت
+     * (live_epg_panel)، فما في داعي نكررها فوق الفيديو نفسه. بملء الشاشة، بيرجع
+     * يظهر شريط التحكم الكامل عادي ويختفي زر التكبير المصغّر. */
+    private fun applyPlayerOverlayVisibility() {
+        if (fullscreen) {
+            binding.channelInfo.visibility = View.VISIBLE
+            binding.playerControls.visibility = View.VISIBLE
+            binding.btnFullscreenSmall.visibility = View.GONE
+        } else {
+            binding.channelInfo.visibility = View.GONE
+            binding.playerControls.visibility = View.GONE
+            binding.btnFullscreenSmall.visibility = View.VISIBLE
+        }
     }
 
     private fun showLoginUi() {
@@ -719,6 +747,7 @@ XtreamAPI.getShortEpg(server, channel.streamId) { programs ->
         binding.videoPlayer.visibility = View.GONE
         binding.channelInfo.visibility = View.GONE
         binding.playerControls.visibility = View.GONE
+        binding.btnFullscreenSmall.visibility = View.GONE
     }
 
     private fun setupPlayerErrorHandling() {
@@ -791,7 +820,7 @@ XtreamAPI.getShortEpg(server, channel.streamId) { programs ->
     }
 
     private fun enterPipMode() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             Toast.makeText(this, getString(R.string.live_feature_unsupported), Toast.LENGTH_SHORT).show()
             return
         }
@@ -827,9 +856,9 @@ XtreamAPI.getShortEpg(server, channel.streamId) { programs ->
             binding.fragmentContainer.visibility = View.GONE
             binding.playerControls.visibility = View.GONE
             binding.channelInfo.visibility = View.GONE
+            binding.btnFullscreenSmall.visibility = View.GONE
         } else {
-            binding.playerControls.visibility = View.VISIBLE
-            binding.channelInfo.visibility = View.VISIBLE
+            applyPlayerOverlayVisibility()
             if (supportFragmentManager.findFragmentById(binding.fragmentContainer.id) != null) {
                 binding.fragmentContainer.visibility = View.VISIBLE
             } else {
@@ -886,6 +915,12 @@ XtreamAPI.getShortEpg(server, channel.streamId) { programs ->
 
         controlsController.isFullscreen = fullscreen
         controlsController.updateFullscreenIcon(fullscreen)
+        applyPlayerOverlayVisibility()
+        if (fullscreen) {
+            // ✅ يبلّش عداد الإخفاء التلقائي (5 ثواني) فورًا، بدل ما يضل شريط
+            // التحكم ظاهر لحد ما المستخدم يتفاعل مع شي
+            controlsController.showControls()
+        }
     }
 
     /** ✅ يبدّل ربط حواف منطقة المشغل بين "بجانب العناصر الجانبية" (الوضع العادي)
@@ -1126,6 +1161,7 @@ XtreamAPI.getShortEpg(server, channel.streamId) { programs ->
         binding.videoPlayer.visibility = View.GONE
         binding.channelInfo.visibility = View.GONE
         binding.playerControls.visibility = View.GONE
+        binding.btnFullscreenSmall.visibility = View.GONE
         binding.sidebar.visibility = View.GONE
         binding.channelsPanel.visibility = View.GONE
         binding.liveEpgPanel.visibility = View.GONE
