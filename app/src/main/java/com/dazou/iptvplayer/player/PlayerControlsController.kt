@@ -50,6 +50,13 @@ class PlayerControlsController(
     private var lastDpadDownPressTime = 0L
     private val doublePressWindowMs = 700L
 
+    // ✅ حالة التصفح داخل شريط القنوات: أين تبدأ النافذة المعروضة (6 قنوات كحد أقصى)،
+    // ومكان القناة المميّزة محليًا جوا الشريط (يُستخدم لتحديد الفوكس الصحيح عند الفتح)
+    private var browseWindowStart = 0
+    private var displayCurrentIndexInStrip = -1
+
+    private enum class StripFocusRequest { NONE, FIRST, LAST }
+
     var isFullscreen: Boolean = false
         set(value) {
             field = value
@@ -113,7 +120,6 @@ class PlayerControlsController(
         }
         binding.btnVolume.onFocusChangeListener = focusShowListener
 
-        // ✅ تقديم/إرجاع 10 ثواني — أسهل بكتير بالريموت من سحب شريط التقدم
         binding.btnRewind10.setOnClickListener {
             showControls()
             playerManager.seekBackward()
@@ -126,7 +132,6 @@ class PlayerControlsController(
         }
         binding.btnForward10.onFocusChangeListener = focusShowListener
 
-        // ✅ صوت متدرّج (+/-) بدل الكتم/التشغيل بس
         binding.btnVolumeDown.setOnClickListener {
             showControls()
             adjustVolume(-0.1f)
@@ -139,21 +144,18 @@ class PlayerControlsController(
         }
         binding.btnVolumeUp.onFocusChangeListener = focusShowListener
 
-        // ✅ نسبة العرض: يبدّل بالتناوب بين احتواء/تكبير/تمديد
         binding.btnAspectRatio.setOnClickListener {
             showControls()
             cycleAspectRatio()
         }
         binding.btnAspectRatio.onFocusChangeListener = focusShowListener
 
-        // ✅ اختيار مسار الصوت (لو المحتوى عنده أكتر من لغة)
         binding.btnAudioTrack.setOnClickListener {
             showControls()
             showAudioTrackPicker()
         }
         binding.btnAudioTrack.onFocusChangeListener = focusShowListener
 
-        // ✅ زر إعادة المحاولة اليدوي — يظهر بس لما المحاولات التلقائية تفشل كلها
         binding.btnManualRetry.setOnClickListener {
             hideManualRetry()
             onManualRetry()
@@ -182,7 +184,14 @@ class PlayerControlsController(
     fun onChannelListChanged(list: List<XtreamChannel>, index: Int) {
         currentChannelList = list
         currentChannelIndex = index
+        browseWindowStart = computeCenteredWindowStart(index, list.size)
         buildChannelStrip()
+    }
+
+    private fun computeCenteredWindowStart(index: Int, total: Int): Int {
+        val maxVisible = 6
+        if (total <= maxVisible) return 0
+        return (index - maxVisible / 2).coerceAtLeast(0).coerceAtMost(total - maxVisible)
     }
 
     fun onMediaStarted(type: String) {
@@ -194,7 +203,6 @@ class PlayerControlsController(
         showControls()
     }
 
-    /** ✅ يحدّث شارة الجودة (1080p/720p/...) — يُستدعى لما الفيديو يجهز أو المسارات تتغيّر */
     fun updateQualityBadge() {
         val label = playerManager.getCurrentQualityLabel()
         if (label != null) {
@@ -205,7 +213,6 @@ class PlayerControlsController(
         }
     }
 
-    /** ✅ يظهّر زر إعادة المحاولة اليدوي — يُستدعى لما كل المحاولات التلقائية تفشل */
     fun showManualRetry() {
         binding.btnManualRetry.visibility = View.VISIBLE
         binding.btnManualRetry.requestFocus()
@@ -215,7 +222,6 @@ class PlayerControlsController(
         binding.btnManualRetry.visibility = View.GONE
     }
 
-    /** ✅ يظهّر شعار القناة كبير بالنص لثانيتين ونص لما المستخدم يبدّل قناة بسرعة (Zapping) */
     fun showZapOverlay(logoUrl: String, name: String) {
         zapRunnable?.let { zapHandler.removeCallbacks(it) }
 
@@ -232,7 +238,6 @@ class PlayerControlsController(
         zapHandler.postDelayed(runnable, 1500L)
     }
 
-    /** ✅ يبدّل نسبة عرض الفيديو بالتناوب: احتواء ← تكبير ← تمديد */
     private fun cycleAspectRatio() {
         aspectModeIndex = (aspectModeIndex + 1) % aspectModes.size
         binding.videoPlayer.resizeMode = aspectModes[aspectModeIndex]
@@ -244,7 +249,6 @@ class PlayerControlsController(
         Toast.makeText(activity, activity.getString(labelRes), Toast.LENGTH_SHORT).show()
     }
 
-    /** ✅ يعرض قائمة مسارات الصوت المتاحة بالمحتوى الحالي عشان المستخدم يختار لغة */
     private fun showAudioTrackPicker() {
         val options = playerManager.getAvailableAudioTracks()
         if (options.isEmpty()) {
@@ -261,7 +265,6 @@ class PlayerControlsController(
             .show()
     }
 
-    /** ✅ يرفع/يخفّض الصوت الداخلي للمشغل بخطوات صغيرة، ويحدّث أيقونة الكتم تلقائيًا */
     private fun adjustVolume(delta: Float) {
         currentVolume = (currentVolume + delta).coerceIn(0f, 1f)
         isMuted = currentVolume <= 0f
@@ -297,8 +300,6 @@ class PlayerControlsController(
                     showControls()
                     false
                 } else {
-                    // ✅ ما بيظهر شريط القنوات إلا بضغطتين متتاليتين على السهم السفلي
-                    // خلال أقل من 700 ميلي ثانية — ضغطة وحدة بس بتفتح/تحدّث لوحة التحكم عادي
                     val now = System.currentTimeMillis()
                     val isDoublePress = (now - lastDpadDownPressTime) in 1..doublePressWindowMs
                     lastDpadDownPressTime = now
@@ -348,12 +349,14 @@ class PlayerControlsController(
 
     private fun showChannelStrip() {
         binding.channelStripScroll.visibility = View.VISIBLE
-        val cell = binding.channelStripTrack.findViewById<View>(
-            binding.channelStripTrack.getChildAt(
-                currentChannelIndex.coerceIn(0, (binding.channelStripTrack.childCount - 1).coerceAtLeast(0))
-            )?.id ?: View.NO_ID
-        )
-        cell?.requestFocus()
+        // ✅ كل ما نفتح الشريط، نعيد توسيطه حول القناة الشغالة حاليًا
+        browseWindowStart = computeCenteredWindowStart(currentChannelIndex, currentChannelList.size)
+        buildChannelStrip()
+        val childCount = binding.channelStripTrack.childCount
+        if (childCount > 0) {
+            val targetIndex = displayCurrentIndexInStrip.coerceIn(0, childCount - 1)
+            binding.channelStripTrack.getChildAt(targetIndex)?.requestFocus()
+        }
         showControls()
     }
 
@@ -391,24 +394,17 @@ class PlayerControlsController(
         }
     }
 
-    private fun buildChannelStrip() {
+    private fun buildChannelStrip(focusRequest: StripFocusRequest = StripFocusRequest.NONE) {
         binding.channelStripTrack.removeAllViews()
         if (currentChannelList.isEmpty()) return
 
         val density = activity.resources.displayMetrics.density
         fun dp(v: Int) = (v * density).toInt()
 
-        // ✅ نعرض بس 6 قنوات كحد أقصى (نافذة حول القناة الحالية)، مش القائمة كاملة —
-        // أسهل بكتير للتصفح بالريموت وما بتصير الشاشة مزدحمة بمربعات كتير
+        // ✅ نعرض بس 6 قنوات كحد أقصى، بس النافذة بتزحف لما توصل للحافة بدل ما توقف
         val maxVisible = 6
         val total = currentChannelList.size
-        val windowStart = if (total <= maxVisible) {
-            0
-        } else {
-            (currentChannelIndex - maxVisible / 2)
-                .coerceAtLeast(0)
-                .coerceAtMost(total - maxVisible)
-        }
+        val windowStart = browseWindowStart.coerceIn(0, (total - maxVisible).coerceAtLeast(0))
         val windowEnd = (windowStart + maxVisible).coerceAtMost(total)
         val displayList = currentChannelList.subList(windowStart, windowEnd)
         val displayCurrentIndex = currentChannelIndex - windowStart
@@ -419,8 +415,6 @@ class PlayerControlsController(
             val globalIndex = windowStart + localIndex
             val cell = LinearLayout(activity)
             cell.id = View.generateViewId()
-            // ✅ شكل مستطيل أفقي (الشعار جنب الاسم) بدل مربع رأسي — وعرض متساوي (weight)
-            // يخلي الست قنوات ياخدوا عرض الشاشة بالكامل بدل عمود ضيق بالنص
             cell.orientation = LinearLayout.HORIZONTAL
             cell.gravity = Gravity.CENTER_VERTICAL
             val lp = LinearLayout.LayoutParams(0, dp(52), 1f)
@@ -470,19 +464,51 @@ class PlayerControlsController(
             if (i < cells.size - 1) cells[i].nextFocusLeftId = cells[i + 1].id
             cells[i].nextFocusUpId = R.id.btn_play_pause
         }
-        if (displayCurrentIndex in cells.indices) {
-            val currentCellId = cells[displayCurrentIndex].id
-            binding.btnPrev.nextFocusDownId = currentCellId
-            binding.btnRewind10.nextFocusDownId = currentCellId
-            binding.btnPlayPause.nextFocusDownId = currentCellId
-            binding.btnForward10.nextFocusDownId = currentCellId
-            binding.btnNext.nextFocusDownId = currentCellId
-            binding.btnVolumeDown.nextFocusDownId = currentCellId
-            binding.btnVolume.nextFocusDownId = currentCellId
-            binding.btnVolumeUp.nextFocusDownId = currentCellId
-            binding.btnAspectRatio.nextFocusDownId = currentCellId
-            binding.btnAudioTrack.nextFocusDownId = currentCellId
-            binding.btnFullscreen.nextFocusDownId = currentCellId
+
+        // ✅ أول وآخر خانة بالشريط: لو في قنوات أكتر لسا ما ظهرت، الضغط أبعد منهم
+        // بيزحف النافذة خانة وحدة بدل ما يوقف عند حدود الـ6
+        if (cells.isNotEmpty()) {
+            cells.first().setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN &&
+                    keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && windowStart > 0
+                ) {
+                    browseWindowStart = windowStart - 1
+                    buildChannelStrip(StripFocusRequest.FIRST)
+                    true
+                } else false
+            }
+            cells.last().setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN &&
+                    keyCode == KeyEvent.KEYCODE_DPAD_LEFT && windowStart + maxVisible < total
+                ) {
+                    browseWindowStart = windowStart + 1
+                    buildChannelStrip(StripFocusRequest.LAST)
+                    true
+                } else false
+            }
+        }
+
+        val focusTargetForDown = if (displayCurrentIndex in cells.indices) cells[displayCurrentIndex].id else cells.firstOrNull()?.id
+        if (focusTargetForDown != null) {
+            binding.btnPrev.nextFocusDownId = focusTargetForDown
+            binding.btnRewind10.nextFocusDownId = focusTargetForDown
+            binding.btnPlayPause.nextFocusDownId = focusTargetForDown
+            binding.btnForward10.nextFocusDownId = focusTargetForDown
+            binding.btnNext.nextFocusDownId = focusTargetForDown
+            binding.btnVolumeDown.nextFocusDownId = focusTargetForDown
+            binding.btnVolume.nextFocusDownId = focusTargetForDown
+            binding.btnVolumeUp.nextFocusDownId = focusTargetForDown
+            binding.btnAspectRatio.nextFocusDownId = focusTargetForDown
+            binding.btnAudioTrack.nextFocusDownId = focusTargetForDown
+            binding.btnFullscreen.nextFocusDownId = focusTargetForDown
+        }
+
+        displayCurrentIndexInStrip = displayCurrentIndex.coerceIn(0, (cells.size - 1).coerceAtLeast(0))
+
+        when (focusRequest) {
+            StripFocusRequest.FIRST -> cells.firstOrNull()?.requestFocus()
+            StripFocusRequest.LAST -> cells.lastOrNull()?.requestFocus()
+            StripFocusRequest.NONE -> {}
         }
     }
 
