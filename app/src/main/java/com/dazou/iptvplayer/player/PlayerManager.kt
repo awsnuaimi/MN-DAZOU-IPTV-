@@ -1,7 +1,10 @@
 package com.dazou.iptvplayer.player
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import androidx.media3.common.MediaItem
@@ -13,7 +16,9 @@ import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.trackselection.AdaptiveTrackSelection
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import java.io.File
 
 class PlayerManager(context: Context) {
@@ -53,10 +58,50 @@ class PlayerManager(context: Context) {
         )
         .build()
 
-    private val trackSelector = DefaultTrackSelector(context).apply {
+    // ✅ يقدّر سرعة الاتصال الأولية بذكاء حسب نوع الشبكة الفعلي (واي فاي/بيانات خلوية/إيثرنت)
+    // بدل ما يبلّش ExoPlayer بتخمين عام موحّد لكل الأجهزة — بيساعد ياخد قرار جودة أقرب للصح
+    // من أول ثانية تشغيل، بدل ما يبلّش بجودة واطية أو عالية غلط ويصحح بعدين.
+    private fun buildBandwidthMeter(context: Context): DefaultBandwidthMeter {
+        val builder = DefaultBandwidthMeter.Builder(context)
+        try {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            val caps = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                cm?.activeNetwork?.let { cm.getNetworkCapabilities(it) }
+            } else null
+
+            val initialEstimateBps = when {
+                caps?.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) == true -> 20_000_000L
+                caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true -> 8_000_000L
+                caps?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true -> 2_500_000L
+                else -> 4_000_000L // قيمة وسطية آمنة لو ما قدرنا نحدد نوع الشبكة
+            }
+            builder.setInitialBitrateEstimate(initialEstimateBps)
+        } catch (_: Exception) {
+            // لو صار أي خطأ بقراءة حالة الشبكة، منسيب ExoPlayer يستخدم تقديره الافتراضي
+        }
+        return builder.build()
+    }
+
+    private val bandwidthMeter = buildBandwidthMeter(context)
+
+    // ✅ سلوك تبديل الجودة: bandwidthFraction أوطى (0.75 بدل 1.0 الافتراضي) يعني الپلاير
+    // بياخد قرار الجودة بناءً على 75% بس من السرعة المقاسة (احتياط)، فبيقلل احتمال التقطيع
+    // لو الشبكة تذبذبت فجأة. minDurationForQualityIncreaseMs أعلى شوي يمنع "قفز" الجودة
+    // لفوق بسرعة زايدة قبل ما نتأكد إنه الاتصال مستقر فعلاً.
+    private val trackSelectionFactory = AdaptiveTrackSelection.Factory(
+        /* minDurationForQualityIncreaseMs= */ 12_000,
+        /* maxDurationForQualityDecreaseMs= */ 20_000,
+        /* minDurationToRetainAfterDiscardMs= */ 30_000,
+        /* bandwidthFraction= */ 0.75f
+    )
+
+    private val trackSelector = DefaultTrackSelector(context, trackSelectionFactory).apply {
         setParameters(
             buildUponParameters()
                 .setSelectUndeterminedTextLanguage(true)
+                .setExceedRendererCapabilitiesIfNecessary(true)
+                .setAllowVideoMixedMimeTypeAdaptiveness(true)
+                .setAllowVideoNonSeamlessAdaptiveness(true)
         )
     }
 
@@ -64,6 +109,7 @@ class PlayerManager(context: Context) {
         .setMediaSourceFactory(mediaSourceFactory)
         .setLoadControl(loadControl)
         .setTrackSelector(trackSelector)
+        .setBandwidthMeter(bandwidthMeter)
         .build()
 
     var currentStreamUrl: String? = null
@@ -90,7 +136,23 @@ class PlayerManager(context: Context) {
         currentType = type
         retryCount = 0
 
-        val mediaItem = MediaItem.fromUri(Uri.parse(url))
+        val itemBuilder = MediaItem.Builder().setUri(Uri.parse(url))
+
+        // ✅ إعدادات خاصة بالبث المباشر فقط: تسمح للپلاير يسرّع/يبطّئ التشغيل بشكل
+        // غير محسوس (بين 0.97x و 1.03x) عشان يحافظ على مسافة ثابتة عن "الحافة المباشرة"
+        // (targetOffsetMs) — هاد بيقلل احتمال التقطيع لما الشبكة تتردد شوي، بدون ما
+        // يأثر هالشي على الأفلام والمسلسلات (اللي مش بحاجة هالسلوك أصلاً).
+        if (type == "live") {
+            itemBuilder.setLiveConfiguration(
+                MediaItem.LiveConfiguration.Builder()
+                    .setTargetOffsetMs(12_000)
+                    .setMinPlaybackSpeed(0.97f)
+                    .setMaxPlaybackSpeed(1.03f)
+                    .build()
+            )
+        }
+
+        val mediaItem = itemBuilder.build()
         player.setMediaItem(mediaItem)
         player.prepare()
         if (startPositionMs > 0L) {
