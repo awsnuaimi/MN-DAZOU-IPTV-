@@ -419,12 +419,15 @@ class PlayerControlsController(
             val globalIndex = windowStart + localIndex
             val cell = LinearLayout(activity)
             cell.id = View.generateViewId()
-            cell.orientation = LinearLayout.VERTICAL
-            cell.gravity = Gravity.CENTER
-            val lp = LinearLayout.LayoutParams(dp(70), dp(76))
-            lp.marginEnd = dp(6)
+            // ✅ شكل مستطيل أفقي (الشعار جنب الاسم) بدل مربع رأسي — وعرض متساوي (weight)
+            // يخلي الست قنوات ياخدوا عرض الشاشة بالكامل بدل عمود ضيق بالنص
+            cell.orientation = LinearLayout.HORIZONTAL
+            cell.gravity = Gravity.CENTER_VERTICAL
+            val lp = LinearLayout.LayoutParams(0, dp(52), 1f)
+            lp.marginStart = dp(3)
+            lp.marginEnd = dp(3)
             cell.layoutParams = lp
-            cell.setPadding(dp(4), dp(4), dp(4), dp(4))
+            cell.setPadding(dp(8), dp(4), dp(8), dp(4))
             cell.setBackgroundResource(R.drawable.tv_button_selector)
             cell.isFocusable = true
             cell.isFocusableInTouchMode = true
@@ -432,7 +435,7 @@ class PlayerControlsController(
             cell.setOnClickListener { onChannelPicked(globalIndex) }
 
             val logo = ImageView(activity)
-            logo.layoutParams = LinearLayout.LayoutParams(dp(30), dp(30))
+            logo.layoutParams = LinearLayout.LayoutParams(dp(32), dp(32)).apply { marginEnd = dp(8) }
             logo.scaleType = ImageView.ScaleType.CENTER_INSIDE
             Glide.with(activity)
                 .load(channel.streamIcon)
@@ -440,22 +443,15 @@ class PlayerControlsController(
                 .error(R.drawable.ic_live_tv)
                 .into(logo)
 
-            val idText = TextView(activity)
-            idText.text = "${globalIndex + 1}"
-            idText.textSize = 9f
-            idText.setTextColor(ContextCompat.getColor(activity, R.color.text_gray))
-            idText.gravity = Gravity.CENTER
-
             val nameText = TextView(activity)
-            nameText.text = channel.name
-            nameText.textSize = 9.5f
+            nameText.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            nameText.text = "${globalIndex + 1}. ${channel.name}"
+            nameText.textSize = 11f
             nameText.maxLines = 1
             nameText.ellipsize = TextUtils.TruncateAt.END
-            nameText.gravity = Gravity.CENTER
             nameText.setTextColor(ContextCompat.getColor(activity, R.color.text_white))
 
             cell.addView(logo)
-            cell.addView(idText)
             cell.addView(nameText)
 
             if (localIndex == displayCurrentIndex) {
@@ -487,12 +483,6 @@ class PlayerControlsController(
             binding.btnAspectRatio.nextFocusDownId = currentCellId
             binding.btnAudioTrack.nextFocusDownId = currentCellId
             binding.btnFullscreen.nextFocusDownId = currentCellId
-        }
-
-        binding.channelStripScroll.post {
-            val cellWidth = dp(76)
-            val scrollX = (displayCurrentIndex * cellWidth) - (binding.channelStripScroll.width / 2) + (cellWidth / 2)
-            binding.channelStripScroll.smoothScrollTo(scrollX.coerceAtLeast(0), 0)
         }
     }
 
