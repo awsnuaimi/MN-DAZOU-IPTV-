@@ -284,11 +284,22 @@ class PlayerControlsController(
         // كان يرجّع يظهّر الشريط كامل من جديد ويكرر معلومات EPG اللي أصلاً
         // معروضة باللوحة تحت.
         if (!isFullscreen) return
+
+        // ✅ لو كان الشريط مخفي وهلق رح يظهر، نحط الفوكس صراحة على زر التشغيل —
+        // بدون هالسطر، الفوكس كان يضل معلّق على زر قديم بلا أي إشارة بصرية واضحة
+        val wasHidden = binding.playerControls.visibility != View.VISIBLE
         binding.playerControls.visibility = View.VISIBLE
+        if (wasHidden) {
+            binding.btnPlayPause.requestFocus()
+        }
+
         controlsRunnable?.let { controlsHandler.removeCallbacks(it) }
         val runnable = Runnable {
             binding.playerControls.visibility = View.INVISIBLE
             binding.channelStripScroll.visibility = View.GONE
+            // ✅ نلغي الفوكس صراحة لما الشريط يختفي — وإلا بيضل "شبح" فوكس عالق
+            // على زر مخفي، وهاد بالضبط سبب إحساس "الفوكس بيختفي وما بعرف وين راح"
+            binding.playerControls.clearFocus()
         }
         controlsRunnable = runnable
         controlsHandler.postDelayed(runnable, 5000)

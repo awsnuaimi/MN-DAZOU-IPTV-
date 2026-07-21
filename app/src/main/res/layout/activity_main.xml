@@ -104,8 +104,6 @@
                 android:clipToPadding="false"
                 android:padding="8dp"
                 android:descendantFocusability="afterDescendants"
-                android:focusable="true"
-                android:focusableInTouchMode="true"
                 android:nextFocusUp="@id/sidebar_live_button"
                 android:nextFocusRight="@id/channel_list"/>
         </LinearLayout>
@@ -164,8 +162,6 @@
                 android:clipToPadding="false"
                 android:padding="8dp"
                 android:descendantFocusability="afterDescendants"
-                android:focusable="true"
-                android:focusableInTouchMode="true"
                 android:nextFocusUp="@id/channels_panel_back"
                 android:nextFocusLeft="@id/category_list"
                 android:nextFocusRight="@id/btn_play_pause"/>

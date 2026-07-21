@@ -916,6 +916,10 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                 // ✅ يرجّع الفوكس لنفس القناة اللي كانت شغالة/محددة قبل الدخول
                 // بملء الشاشة، بدل ما يضل الفوكس ضايع
                 restoreFocusToChannel()
+            } else {
+                // ✅ لو لوحة القنوات ما كانت مفتوحة أصلاً (كان بس متصفح الفئات)،
+                // نرجّع الفوكس لنفس الفئة بدل ما نسيبه بلا وجهة
+                restoreFocusToCategory()
             }
             if (supportFragmentManager.findFragmentById(binding.fragmentContainer.id) != null) {
                 binding.fragmentContainer.visibility = View.VISIBLE
@@ -938,6 +942,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             // ✅ يبلّش عداد الإخفاء التلقائي (5 ثواني) فورًا، بدل ما يضل شريط
             // التحكم ظاهر لحد ما المستخدم يتفاعل مع شي
             controlsController.showControls()
+            // ✅ الأهم: نحط الفوكس صراحة على زر التشغيل فور الدخول لملء الشاشة
+            requestFocusWhenReady(binding.btnPlayPause)
         }
     }
 
