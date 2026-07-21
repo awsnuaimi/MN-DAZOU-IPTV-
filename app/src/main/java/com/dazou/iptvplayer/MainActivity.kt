@@ -238,7 +238,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     }
 
     private fun cancelSleepTimer() {
-    sleepTimer?.cancel()
+        sleepTimer?.cancel()
         sleepTimer = null
         sleepMinutesActive = 0
         updateSleepTimerIcon()
@@ -257,9 +257,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     fun setNextEpisodeProvider(provider: (() -> Unit)?) {
         nextEpisodeProvider = provider
-    }
-
-    private fun triggerAutoNextEpisode() {
+    }private fun triggerAutoNextEpisode() {
         val provider = nextEpisodeProvider ?: return
         autoNextTimer?.cancel()
         autoNextDialog?.dismiss()
@@ -477,7 +475,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                 binding.tvNowDescription.text = now.description
                 binding.tvNowDescription.visibility = View.VISIBLE
             } else {
-            binding.tvNowDescription.visibility = View.GONE
+                binding.tvNowDescription.visibility = View.GONE
             }
 
             binding.tvNextTitle.text = if (next != null)
@@ -517,8 +515,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     private fun loadMergedChannels(categoryIds: List<String>, onComplete: (List<XtreamChannel>) -> Unit) {
         val server = liveViewModel.getServer()
         if (server == null || categoryIds.isEmpty()) {
-            onComplete(emptyList())
-            return
+            onComplete(emptyList())return
         }
         val combined = mutableListOf<XtreamChannel>()
         var remaining = categoryIds.size
@@ -538,37 +535,6 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             (application as App).container.favoritesManager,
             R.id.btn_play_pause,
             onRequestFocusLeft = { restoreFocusToCategory() }
-            private fun restoreFocusToCategory() {
-        val layoutManager = binding.categoryList.layoutManager as? LinearLayoutManager ?: return
-        val itemCount = binding.categoryList.adapter?.itemCount ?: 0
-        if (itemCount == 0) return
-        val target = lastFocusedCategoryPosition.coerceIn(0, itemCount - 1)
-        val existingView = layoutManager.findViewByPosition(target)
-        if (existingView != null) {
-            existingView.requestFocus()
-        } else {
-            binding.categoryList.scrollToPosition(target)
-            binding.categoryList.post {
-                layoutManager.findViewByPosition(target)?.requestFocus()
-            }
-        }
-    }
-
-    private fun restoreFocusToChannel() {
-        val layoutManager = binding.channelList.layoutManager as? LinearLayoutManager ?: return
-        val itemCount = binding.channelList.adapter?.itemCount ?: 0
-        if (itemCount == 0 || currentChannelIndex !in 0 until itemCount) return
-        val target = currentChannelIndex
-        val existingView = layoutManager.findViewByPosition(target)
-        if (existingView != null) {
-            existingView.requestFocus()
-        } else {
-            binding.channelList.scrollToPosition(target)
-            binding.channelList.post {
-                layoutManager.findViewByPosition(target)?.requestFocus()
-            }
-        }
-    }
         ) { channel ->
             val index = channels.indexOf(channel)
             if (index == currentChannelIndex && playerManager.isPlaying) {
@@ -718,6 +684,24 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
     }
 
+    /** ✅ يرجّع الفوكس بدقة لنفس القناة الشغالة حاليًا بقائمة القنوات — يُستخدم
+     * لما نطلع من وضع ملء الشاشة، بدل ما يضل الفوكس ضايع أو بمكان عشوائي */
+    private fun restoreFocusToChannel() {
+        val layoutManager = binding.channelList.layoutManager as? LinearLayoutManager ?: return
+        val itemCount = binding.channelList.adapter?.itemCount ?: 0
+        if (itemCount == 0 || currentChannelIndex !in 0 until itemCount) return
+        val target = currentChannelIndex
+        val existingView = layoutManager.findViewByPosition(target)
+        if (existingView != null) {
+            existingView.requestFocus()
+        } else {
+            binding.channelList.scrollToPosition(target)
+            binding.channelList.post {
+                layoutManager.findViewByPosition(target)?.requestFocus()
+            }
+        }
+    }
+
     private fun playChannelAt(index: Int) {
         if (index < 0 || index >= currentChannelList.size) return
         val server = liveViewModel.getServer()
@@ -790,8 +774,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                     error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT ||
                     error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS
 
-                if (isNetworkError) {
-                    binding.channelInfo.text = getString(R.string.live_connection_lost)
+                if (isNetworkError) {binding.channelInfo.text = getString(R.string.live_connection_lost)
                     playerManager.retryCurrent {
                         binding.channelInfo.text = getString(R.string.live_connection_failed)
                         // ✅ لما كل المحاولات التلقائية تفشل، نظهّر زر يدوي بدل ما يضل المستخدم عالق
@@ -851,7 +834,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     }
 
     private fun enterPipMode() {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             Toast.makeText(this, getString(R.string.live_feature_unsupported), Toast.LENGTH_SHORT).show()
             return
         }
@@ -904,10 +887,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         fullscreen = !fullscreen
 
         if (fullscreen) {
-            if (wasChannelsPanelOpenBeforeFullscreen) {
-                binding.channelsPanel.visibility = View.VISIBLE
-                restoreFocusToChannel()
-            }
+            wasChannelsPanelOpenBeforeFullscreen = binding.channelsPanel.visibility == View.VISIBLE
 
             binding.topBar.visibility = View.GONE
             binding.sidebar.visibility = View.GONE
@@ -932,6 +912,9 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             binding.sidebar.visibility = View.VISIBLE
             if (wasChannelsPanelOpenBeforeFullscreen) {
                 binding.channelsPanel.visibility = View.VISIBLE
+                // ✅ يرجّع الفوكس لنفس القناة اللي كانت شغالة/محددة قبل الدخول
+                // بملء الشاشة، بدل ما يضل الفوكس ضايع
+                restoreFocusToChannel()
             }
             if (supportFragmentManager.findFragmentById(binding.fragmentContainer.id) != null) {
                 binding.fragmentContainer.visibility = View.VISIBLE
@@ -1050,8 +1033,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         fun onPartLoaded() {
             searchLoadedParts++
             if (searchLoadedParts >= 3) {
-                searchDataLoading = false
-                searchDataLoaded = true
+                searchDataLoading = falsesearchDataLoaded = true
                 performSearch(binding.etGlobalSearch.text?.toString()?.trim().orEmpty())
             }
         }

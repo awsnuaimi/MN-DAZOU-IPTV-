@@ -292,7 +292,9 @@ class PlayerControlsController(
         }
         controlsRunnable = runnable
         controlsHandler.postDelayed(runnable, 5000)
-    }fun handleControlKeyEvent(event: KeyEvent): Boolean {
+    }
+
+    fun handleControlKeyEvent(event: KeyEvent): Boolean {
         if (event.action != KeyEvent.ACTION_DOWN) return false
         return when (event.keyCode) {
             KeyEvent.KEYCODE_DPAD_DOWN -> {
@@ -317,8 +319,7 @@ class PlayerControlsController(
                         false
                     }
                 }
-            }
-            KeyEvent.KEYCODE_DPAD_UP -> {
+            }KeyEvent.KEYCODE_DPAD_UP -> {
                 if (binding.channelStripScroll.visibility == View.VISIBLE) {
                     hideChannelStrip()
                     true
@@ -328,6 +329,9 @@ class PlayerControlsController(
                 }
             }
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                // ✅ بملء الشاشة، لو لوحة التحكم وشريط القنوات مختفيين (يعني مافي
+                // فوكس ظاهر على أي زر)، ضغطة OK بتطلع من ملء الشاشة مباشرة
+                // بدل ما تعمل شي تاني — بدون ما تأثر على الأزرار العادية لما تكون ظاهرة.
                 if (isFullscreen &&
                     binding.playerControls.visibility != View.VISIBLE &&
                     binding.channelStripScroll.visibility != View.VISIBLE
@@ -523,3 +527,4 @@ class PlayerControlsController(
         seekRunnable?.let { seekHandler.removeCallbacks(it) }
         zapRunnable?.let { zapHandler.removeCallbacks(it) }
     }
+}
