@@ -828,6 +828,12 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             binding.liveEpgPanel.visibility = View.GONE
             binding.fragmentContainer.visibility = View.GONE
 
+            // ✅ يشيل الحشو الداخلي (12dp) اللي كان يترك إطار رفيع حول الفيديو
+            binding.contentArea.setPadding(0, 0, 0, 0)
+            // ✅ يعيد ربط حدود منطقة المشغل مباشرة بحواف الشاشة الحقيقية (بدل ما تضل
+            // معتمدة على مكان العناصر المخفية جنبها)، فيضمن يملأ الشاشة كاملة بدون أي إطار
+            setContentAreaFullScreenConstraints(true)
+
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = (
                 View.SYSTEM_UI_FLAG_FULLSCREEN or
@@ -846,11 +852,36 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                 binding.liveEpgPanel.visibility = View.VISIBLE
             }
 
+            val padDp = (12 * resources.displayMetrics.density).toInt()
+            binding.contentArea.setPadding(padDp, padDp, padDp, padDp)
+            setContentAreaFullScreenConstraints(false)
+
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
         }
 
+        controlsController.isFullscreen = fullscreen
         controlsController.updateFullscreenIcon(fullscreen)
+    }
+
+    /** ✅ يبدّل ربط حواف منطقة المشغل بين "بجانب العناصر الجانبية" (الوضع العادي)
+     * و"حواف الشاشة مباشرة" (وضع ملء الشاشة) — يضمن تغطية كاملة بدون أي إطار متبقي */
+    private fun setContentAreaFullScreenConstraints(full: Boolean) {
+        val parent = binding.contentArea.parent as? androidx.constraintlayout.widget.ConstraintLayout ?: return
+        val set = androidx.constraintlayout.widget.ConstraintSet()
+        set.clone(parent)
+        if (full) {
+            set.connect(binding.contentArea.id, androidx.constraintlayout.widget.ConstraintSet.TOP,
+                androidx.constraintlayout.widget.ConstraintSet.PARENT_ID, androidx.constraintlayout.widget.ConstraintSet.TOP, 0)
+            set.connect(binding.contentArea.id, androidx.constraintlayout.widget.ConstraintSet.END,
+                androidx.constraintlayout.widget.ConstraintSet.PARENT_ID, androidx.constraintlayout.widget.ConstraintSet.END, 0)
+        } else {
+            set.connect(binding.contentArea.id, androidx.constraintlayout.widget.ConstraintSet.TOP,
+                R.id.top_bar, androidx.constraintlayout.widget.ConstraintSet.BOTTOM, 0)
+            set.connect(binding.contentArea.id, androidx.constraintlayout.widget.ConstraintSet.END,
+                R.id.channels_panel, androidx.constraintlayout.widget.ConstraintSet.START, 0)
+        }
+        set.applyTo(parent)
     }
 
     @Deprecated("Deprecated in Java")

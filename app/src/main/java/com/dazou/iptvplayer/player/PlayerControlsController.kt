@@ -46,6 +46,19 @@ class PlayerControlsController(
     private val zapHandler = Handler(Looper.getMainLooper())
     private var zapRunnable: Runnable? = null
 
+    // ✅ شريط القنوات المصغّر لازم يشتغل بس بوضع ملء الشاشة، وبس بضغطتين متتاليتين على السهم السفلي
+    private var lastDpadDownPressTime = 0L
+    private val doublePressWindowMs = 700L
+
+    var isFullscreen: Boolean = false
+        set(value) {
+            field = value
+            if (!value) {
+                hideChannelStrip()
+                lastDpadDownPressTime = 0L
+            }
+        }
+
     private val controlsHandler = Handler(Looper.getMainLooper())
     private var controlsRunnable: Runnable? = null
 
@@ -277,8 +290,31 @@ class PlayerControlsController(
         if (event.action != KeyEvent.ACTION_DOWN) return false
         return when (event.keyCode) {
             KeyEvent.KEYCODE_DPAD_DOWN -> {
-                if (isFocusInPlayerButtons() && binding.channelStripScroll.visibility != View.VISIBLE) {
-                    showChannelStrip()
+                if (!isFullscreen || !isFocusInPlayerButtons()) {
+                    showControls()
+                    false
+                } else if (binding.channelStripScroll.visibility == View.VISIBLE) {
+                    showControls()
+                    false
+                } else {
+                    // ✅ ما بيظهر شريط القنوات إلا بضغطتين متتاليتين على السهم السفلي
+                    // خلال أقل من 700 ميلي ثانية — ضغطة وحدة بس بتفتح/تحدّث لوحة التحكم عادي
+                    val now = System.currentTimeMillis()
+                    val isDoublePress = (now - lastDpadDownPressTime) in 1..doublePressWindowMs
+                    lastDpadDownPressTime = now
+                    if (isDoublePress) {
+                        showChannelStrip()
+                        lastDpadDownPressTime = 0L
+                        true
+                    } else {
+                        showControls()
+                        false
+                    }
+                }
+            }
+            KeyEvent.KEYCODE_DPAD_UP -> {
+                if (binding.channelStripScroll.visibility == View.VISIBLE) {
+                    hideChannelStrip()
                     true
                 } else {
                     showControls()
@@ -362,9 +398,25 @@ class PlayerControlsController(
         val density = activity.resources.displayMetrics.density
         fun dp(v: Int) = (v * density).toInt()
 
+        // ✅ نعرض بس 6 قنوات كحد أقصى (نافذة حول القناة الحالية)، مش القائمة كاملة —
+        // أسهل بكتير للتصفح بالريموت وما بتصير الشاشة مزدحمة بمربعات كتير
+        val maxVisible = 6
+        val total = currentChannelList.size
+        val windowStart = if (total <= maxVisible) {
+            0
+        } else {
+            (currentChannelIndex - maxVisible / 2)
+                .coerceAtLeast(0)
+                .coerceAtMost(total - maxVisible)
+        }
+        val windowEnd = (windowStart + maxVisible).coerceAtMost(total)
+        val displayList = currentChannelList.subList(windowStart, windowEnd)
+        val displayCurrentIndex = currentChannelIndex - windowStart
+
         val cells = mutableListOf<LinearLayout>()
 
-        currentChannelList.forEachIndexed { index, channel ->
+        displayList.forEachIndexed { localIndex, channel ->
+            val globalIndex = windowStart + localIndex
             val cell = LinearLayout(activity)
             cell.id = View.generateViewId()
             cell.orientation = LinearLayout.VERTICAL
@@ -377,7 +429,7 @@ class PlayerControlsController(
             cell.isFocusable = true
             cell.isFocusableInTouchMode = true
             cell.isClickable = true
-            cell.setOnClickListener { onChannelPicked(index) }
+            cell.setOnClickListener { onChannelPicked(globalIndex) }
 
             val logo = ImageView(activity)
             logo.layoutParams = LinearLayout.LayoutParams(dp(30), dp(30))
@@ -389,7 +441,7 @@ class PlayerControlsController(
                 .into(logo)
 
             val idText = TextView(activity)
-            idText.text = "${index + 1}"
+            idText.text = "${globalIndex + 1}"
             idText.textSize = 9f
             idText.setTextColor(ContextCompat.getColor(activity, R.color.text_gray))
             idText.gravity = Gravity.CENTER
@@ -406,7 +458,7 @@ class PlayerControlsController(
             cell.addView(idText)
             cell.addView(nameText)
 
-            if (index == currentChannelIndex) {
+            if (localIndex == displayCurrentIndex) {
                 cell.background = android.graphics.drawable.GradientDrawable().apply {
                     cornerRadius = dp(6).toFloat()
                     setColor(ContextCompat.getColor(activity, R.color.accent))
@@ -422,8 +474,8 @@ class PlayerControlsController(
             if (i < cells.size - 1) cells[i].nextFocusLeftId = cells[i + 1].id
             cells[i].nextFocusUpId = R.id.btn_play_pause
         }
-        if (currentChannelIndex in cells.indices) {
-            val currentCellId = cells[currentChannelIndex].id
+        if (displayCurrentIndex in cells.indices) {
+            val currentCellId = cells[displayCurrentIndex].id
             binding.btnPrev.nextFocusDownId = currentCellId
             binding.btnRewind10.nextFocusDownId = currentCellId
             binding.btnPlayPause.nextFocusDownId = currentCellId
@@ -439,7 +491,7 @@ class PlayerControlsController(
 
         binding.channelStripScroll.post {
             val cellWidth = dp(76)
-            val scrollX = (currentChannelIndex * cellWidth) - (binding.channelStripScroll.width / 2) + (cellWidth / 2)
+            val scrollX = (displayCurrentIndex * cellWidth) - (binding.channelStripScroll.width / 2) + (cellWidth / 2)
             binding.channelStripScroll.smoothScrollTo(scrollX.coerceAtLeast(0), 0)
         }
     }
