@@ -276,6 +276,11 @@ class PlayerControlsController(
     }
 
     fun showControls() {
+        // ✅ بالشاشة المصغّرة، شريط التحكم لازم يضل مخفي دايمًا (فاضي إلا من زر
+        // التكبير) — بدون هالشرط، أي تفاعل بسيط (تصفح قنوات، تنقل بالريموت...)
+        // كان يرجّع يظهّر الشريط كامل من جديد ويكرر معلومات EPG اللي أصلاً
+        // معروضة باللوحة تحت.
+        if (!isFullscreen) return
         binding.playerControls.visibility = View.VISIBLE
         controlsRunnable?.let { controlsHandler.removeCallbacks(it) }
         val runnable = Runnable {
@@ -284,9 +289,7 @@ class PlayerControlsController(
         }
         controlsRunnable = runnable
         controlsHandler.postDelayed(runnable, 5000)
-    }
-
-    fun handleControlKeyEvent(event: KeyEvent): Boolean {
+    }fun handleControlKeyEvent(event: KeyEvent): Boolean {
         if (event.action != KeyEvent.ACTION_DOWN) return false
         return when (event.keyCode) {
             KeyEvent.KEYCODE_DPAD_DOWN -> {
