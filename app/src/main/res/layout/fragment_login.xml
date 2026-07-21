@@ -44,7 +44,10 @@
         android:background="@drawable/bg_input_field_selector"
         android:padding="14dp"
         android:layout_marginBottom="12dp"
-        android:singleLine="true" />
+        android:singleLine="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:nextFocusDown="@id/etUser" />
 
     <EditText
         android:id="@+id/etUser"
@@ -56,7 +59,11 @@
         android:background="@drawable/bg_input_field_selector"
         android:padding="14dp"
         android:layout_marginBottom="12dp"
-        android:singleLine="true" />
+        android:singleLine="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:nextFocusUp="@id/etUrl"
+        android:nextFocusDown="@id/etPass" />
 
     <EditText
         android:id="@+id/etPass"
@@ -69,7 +76,11 @@
         android:padding="14dp"
         android:layout_marginBottom="24dp"
         android:singleLine="true"
-        android:inputType="textPassword" />
+        android:inputType="textPassword"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:nextFocusUp="@id/etUser"
+        android:nextFocusDown="@id/btnLogin" />
 
     <Button
         android:id="@+id/btnLogin"
@@ -81,6 +92,7 @@
         android:padding="14dp"
         android:focusable="true"
         android:focusableInTouchMode="true"
+        android:nextFocusUp="@id/etPass"
         android:stateListAnimator="@null" />
 
 </LinearLayout>
