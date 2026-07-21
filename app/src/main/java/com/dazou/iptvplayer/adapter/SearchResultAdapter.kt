@@ -32,7 +32,8 @@ class SearchResultAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        when (val item = items[position]) {
+        val item = items[position]
+        when (item) {
             is SearchResultItem.Channel -> {
                 holder.name.text = item.channel.name
                 holder.meta.text = ""
