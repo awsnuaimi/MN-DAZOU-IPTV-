@@ -10,6 +10,8 @@ import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
 import android.util.Rational
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewTreeObserver
@@ -24,11 +26,17 @@ import androidx.media3.common.Player
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.dazou.iptvplayer.adapter.CategoryAdapter
 import com.dazou.iptvplayer.adapter.ChannelAdapter
+import com.dazou.iptvplayer.adapter.SearchResultAdapter
 import com.dazou.iptvplayer.api.XtreamAPI
 import com.dazou.iptvplayer.databinding.ActivityMainBinding
 import com.dazou.iptvplayer.fragments.*
+import com.dazou.iptvplayer.model.HistoryItem
+import com.dazou.iptvplayer.model.SearchResultItem
 import com.dazou.iptvplayer.model.XtreamCategory
 import com.dazou.iptvplayer.model.XtreamChannel
+import com.dazou.iptvplayer.model.XtreamEpisode
+import com.dazou.iptvplayer.model.XtreamMovie
+import com.dazou.iptvplayer.model.XtreamSeries
 import com.dazou.iptvplayer.player.PlayerCallback
 import com.dazou.iptvplayer.player.PlayerControlsController
 import com.dazou.iptvplayer.player.PlayerManager
@@ -79,6 +87,16 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     private var progressRunnable: Runnable? = null
 
     private var topBarLogoAnimator: ObjectAnimator? = null
+
+    // ========== ✅ البحث الشامل (قنوات + أفلام + مسلسلات) ==========
+    private var searchDataLoaded = false
+    private var searchDataLoading = false
+    private var cachedSearchChannels: List<XtreamChannel> = emptyList()
+    private var cachedSearchMovies: List<XtreamMovie> = emptyList()
+    private var cachedSearchSeries: List<XtreamSeries> = emptyList()
+    private var searchLoadedParts = 0
+    private var selectedSearchSeries: XtreamSeries? = null
+    private var searchEpisodeList: List<XtreamEpisode> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -145,6 +163,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         setupThemeToggle()
         setupPlayerErrorHandling()
         setupMenu()
+        setupSearch()
 
         val hasAccount = app.container.accountManager.getActiveAccount() != null
 
@@ -812,6 +831,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         when {
+            binding.searchOverlay.visibility == View.VISIBLE -> closeSearchOverlay()
             fullscreen -> toggleFullscreen()
             binding.channelsPanel.visibility == View.VISIBLE -> hideChannelsPanel()
             binding.fragmentContainer.visibility == View.VISIBLE -> goToHome()
@@ -828,6 +848,198 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.settings.setOnClickListener { loadFragment(SettingsFragment()) }
         binding.account.setOnClickListener { loadFragment(AccountsFragment()) }
         binding.sidebarLiveButton.setOnClickListener { showCategories() }
+    }
+
+    // ========== ✅ منطق البحث الشامل (قنوات + أفلام + مسلسلات) ==========
+
+    private fun setupSearch() {
+        binding.rvSearchResults.layoutManager = LinearLayoutManager(this)
+        binding.searchIcon.setOnClickListener { openSearchOverlay() }
+        binding.btnCloseSearch.setOnClickListener { closeSearchOverlay() }
+
+        binding.etGlobalSearch.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                performSearch(s?.toString()?.trim().orEmpty())
+            }
+        })
+    }
+
+    private fun openSearchOverlay() {
+        binding.searchOverlay.visibility = View.VISIBLE
+        setBackgroundFocusBlocked(true)
+        requestFocusWhenReady(binding.etGlobalSearch)
+        loadSearchDataIfNeeded()
+    }
+
+    private fun closeSearchOverlay() {
+        binding.searchOverlay.visibility = View.GONE
+        binding.etGlobalSearch.text?.clear()
+        setBackgroundFocusBlocked(false)
+    }
+
+    /** ✅ يمنع أي عنصر وراء نافذة البحث من ياخد الفوكس بالغلط وقت النافذة مفتوحة */
+    private fun setBackgroundFocusBlocked(blocked: Boolean) {
+        val mode = if (blocked) android.view.ViewGroup.FOCUS_BLOCK_DESCENDANTS
+                   else android.view.ViewGroup.FOCUS_BEFORE_DESCENDANTS
+        binding.topBar.descendantFocusability = mode
+        binding.sidebar.descendantFocusability = mode
+        binding.channelsPanel.descendantFocusability = mode
+        binding.contentArea.descendantFocusability = mode
+        binding.fragmentContainer.descendantFocusability = mode
+    }
+
+    private fun loadSearchDataIfNeeded() {
+        if (searchDataLoaded || searchDataLoading) return
+        val server = liveViewModel.getServer() ?: return
+
+        searchDataLoading = true
+        searchLoadedParts = 0
+        binding.tvSearchStatus.text = getString(R.string.search_loading)
+
+        fun onPartLoaded() {
+            searchLoadedParts++
+            if (searchLoadedParts >= 3) {
+                searchDataLoading = false
+                searchDataLoaded = true
+                performSearch(binding.etGlobalSearch.text?.toString()?.trim().orEmpty())
+            }
+        }
+
+        XtreamAPI.getLiveStreams(server, null) { channels ->
+            cachedSearchChannels = channels
+            onPartLoaded()
+        }
+        XtreamAPI.getVodStreams(server, null) { movies ->
+            cachedSearchMovies = movies
+            onPartLoaded()
+        }
+        XtreamAPI.getSeries(server, null) { series ->
+            cachedSearchSeries = series
+            onPartLoaded()
+        }
+    }
+
+    private fun performSearch(query: String) {
+        if (query.isEmpty()) {
+            binding.rvSearchResults.adapter = null
+            binding.tvSearchStatus.text = if (searchDataLoading)
+                getString(R.string.search_loading) else getString(R.string.search_prompt)
+            return
+        }
+
+        if (searchDataLoading) {
+            binding.tvSearchStatus.text = getString(R.string.search_loading)
+            return
+        }
+
+        val results = mutableListOf<SearchResultItem>()
+        cachedSearchChannels.filter { it.name.contains(query, ignoreCase = true) }
+            .forEach { results.add(SearchResultItem.Channel(it)) }
+        cachedSearchMovies.filter { it.name.contains(query, ignoreCase = true) }
+            .forEach { results.add(SearchResultItem.Movie(it)) }
+        cachedSearchSeries.filter { it.name.contains(query, ignoreCase = true) }
+            .forEach { results.add(SearchResultItem.Series(it)) }
+
+        // ✅ نحد أقصى للنتائج المعروضة حتى ما نبطّئ الواجهة لو النتائج كتير
+        val limited = results.take(150)
+
+        binding.tvSearchStatus.text = if (limited.isEmpty())
+            getString(R.string.search_no_results)
+        else
+            getString(R.string.search_results_count, results.size)
+
+        binding.rvSearchResults.adapter = SearchResultAdapter(
+            limited,
+            getString(R.string.search_type_live),
+            getString(R.string.search_type_movie),
+            getString(R.string.search_type_series)
+        ) { item -> onSearchResultClicked(item) }
+    }
+
+    private fun onSearchResultClicked(item: SearchResultItem) {
+        when (item) {
+            is SearchResultItem.Channel -> {
+                closeSearchOverlay()
+                playChannelFromExternal(item.channel, listOf(item.channel))
+            }
+            is SearchResultItem.Movie -> playSearchMovie(item.movie)
+            is SearchResultItem.Series -> playSearchSeries(item.series)
+        }
+    }
+
+    private fun playSearchMovie(movie: XtreamMovie) {
+        val server = liveViewModel.getServer() ?: return
+        val url = XtreamAPI.getMovieUrl(server, movie.streamId, movie.containerExtension)
+
+        (application as App).container.historyManager.addOrUpdateHistory(
+            HistoryItem(
+                type = "movie",
+                id = movie.streamId,
+                name = movie.name,
+                timestamp = System.currentTimeMillis(),
+                icon = movie.streamIcon,
+                containerExtension = movie.containerExtension
+            )
+        )
+
+        closeSearchOverlay()
+        playExternalMedia(url, movie.name, "movie", movie.streamId)
+    }
+
+    private fun playSearchSeries(series: XtreamSeries) {
+        selectedSearchSeries = series
+        Toast.makeText(this, getString(R.string.search_loading_episodes_short), Toast.LENGTH_SHORT).show()
+        val server = liveViewModel.getServer() ?: return
+        XtreamAPI.getSeriesInfo(server, series.seriesId) { episodes ->
+            showSearchEpisodesDialog(series, episodes)
+        }
+    }
+
+    private fun showSearchEpisodesDialog(series: XtreamSeries, episodes: List<XtreamEpisode>) {
+        if (episodes.isEmpty()) {
+            Toast.makeText(this, getString(R.string.series_no_episodes), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val sorted = episodes.sortedWith(compareBy({ it.seasonNum }, { it.episodeNum }))
+        searchEpisodeList = sorted
+        val labels = sorted.map {
+            getString(R.string.series_episode_label, it.seasonNum, it.episodeNum, it.title)
+        }.toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle(series.name)
+            .setItems(labels) { _, which -> playSearchEpisode(sorted[which]) }
+            .setNegativeButton(getString(R.string.common_close), null)
+            .show()
+    }
+
+    private fun playSearchEpisode(episode: XtreamEpisode) {
+        val server = liveViewModel.getServer() ?: return
+        val url = XtreamAPI.getSeriesEpisodeUrl(server, episode.id, episode.containerExtension)
+
+        val series = selectedSearchSeries
+        if (series != null) {
+            (application as App).container.historyManager.addOrUpdateHistory(
+                HistoryItem(
+                    type = "series",
+                    id = series.seriesId,
+                    name = series.name,
+                    timestamp = System.currentTimeMillis(),
+                    icon = series.cover,
+                    containerExtension = episode.containerExtension
+                )
+            )
+        }
+
+        closeSearchOverlay()
+        playExternalMedia(url, episode.title, "series", series?.seriesId ?: -1)
+
+        val currentIndex = searchEpisodeList.indexOf(episode)
+        val nextEpisode = if (currentIndex >= 0) searchEpisodeList.getOrNull(currentIndex + 1) else null
+        setNextEpisodeProvider(if (nextEpisode != null) { { playSearchEpisode(nextEpisode) } } else null)
     }
 
     private fun loadFragment(fragment: Fragment){
