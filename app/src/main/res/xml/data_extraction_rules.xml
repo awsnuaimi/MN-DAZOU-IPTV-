@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ✅ يمنع نسخ ملف بيانات الحسابات (المشفّر وغير المشفّر القديم) ضمن:
+       - النسخ الاحتياطي السحابي التلقائي (Cloud Backup)
+       - نقل البيانات المباشر بين جهازين (Device-to-Device Transfer)
+    السبب: مفتاح فك التشفير محفوظ بـ Android Keystore الخاص بنفس الجهاز فقط،
+    فأي نسخة منقولة لجهاز تاني ما رح تنفك تشفيرها أصلاً، وبتضل بيانات عديمة الفائدة
+    وممكن تسبب مشاكل عند القراءة. أسلم حل إنه نستثنيها نهائيًا من النقل والنسخ.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="iptv_accounts_secure.xml" />
+        <exclude domain="sharedpref" path="iptv_accounts.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="iptv_accounts_secure.xml" />
+        <exclude domain="sharedpref" path="iptv_accounts.xml" />
+    </device-transfer>
+</data-extraction-rules>

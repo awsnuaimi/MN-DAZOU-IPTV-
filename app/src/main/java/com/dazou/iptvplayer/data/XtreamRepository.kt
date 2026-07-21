@@ -24,7 +24,7 @@ class XtreamRepository(
 
     // ========== Live TV Functions ==========
     fun loadLiveCategories() {
-        Log.d("XtreamRepository", "Loading live categories from ${server.url}")
+        Log.d("XtreamRepository", "Loading live categories")
         XtreamAPI.getLiveCategories(server) {
             Log.d("XtreamRepository", "Live categories count = ${it.size}")
             liveCategories.postValue(it)

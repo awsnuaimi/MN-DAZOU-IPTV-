@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ✅ نفس منطق data_extraction_rules.xml بس بالصيغة القديمة،
+    مخصصة للأجهزة اللي تشغل أندرويد أقدم من النسخة 12 (API أقل من 31)
+    واللي مبيقروا صيغة data-extraction-rules الجديدة.
+-->
+<full-backup-content>
+    <exclude domain="sharedpref" path="iptv_accounts_secure.xml" />
+    <exclude domain="sharedpref" path="iptv_accounts.xml" />
+</full-backup-content>

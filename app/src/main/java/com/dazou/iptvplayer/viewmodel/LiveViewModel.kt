@@ -40,7 +40,7 @@ class LiveViewModel(private val repository: XtreamRepository?) : ViewModel() {
             _categories.value = emptyList()
             return
         }
-        Log.d("LiveViewModel", "Loading categories from ${repo.server.url}")
+        Log.d("LiveViewModel", "Loading categories")
         repo.loadLiveCategories()
     }
 
