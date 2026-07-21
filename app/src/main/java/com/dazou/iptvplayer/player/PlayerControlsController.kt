@@ -293,7 +293,7 @@ class PlayerControlsController(
         if (event.action != KeyEvent.ACTION_DOWN) return false
         return when (event.keyCode) {
             KeyEvent.KEYCODE_DPAD_DOWN -> {
-                if (!isFullscreen || !isFocusInPlayerButtons()) {
+                if (!isFullscreen || binding.searchOverlay.visibility == View.VISIBLE) {
                     showControls()
                     false
                 } else if (binding.channelStripScroll.visibility == View.VISIBLE) {
