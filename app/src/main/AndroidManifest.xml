@@ -12,7 +12,8 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:label="DAZOU IPTV"
+        android:banner="@drawable/banner"
+        android:label="MN-DAZOU IPTVPLAYER"
         android:supportsRtl="true"
         android:theme="@style/Theme.MN_DAZOU" 
         android:usesCleartextTraffic="true">
@@ -38,7 +39,7 @@
                 android:value="true" />
         </service>
 
-        <!-- ✅ جديد: لمشاركة ملف APK المحمّل بأمان مع مثبّت أندرويد -->
+        <!-- ✅ لمشاركة ملف APK المحمّل بأمان مع مثبّت أندرويد -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
