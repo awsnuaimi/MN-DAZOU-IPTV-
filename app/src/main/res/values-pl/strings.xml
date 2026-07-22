@@ -80,6 +80,7 @@
 <string name="live_now_playing">▶ Teraz: %s</string>
 <string name="live_next_program">⏭ Następny: %s (%s)</string>
 <string name="live_badge">🔴 Na żywo</string>
+<!--  Nowe elementy sterowania odtwarzaczem  -->
 <string name="player_rewind_10">Cofnij 10 sekund</string>
 <string name="player_forward_10">Do przodu 10 sekund</string>
 <string name="player_volume_down">Zmniejsz głośność</string>
@@ -180,4 +181,5 @@
 <string name="update_check_failed">Nie można sprawdzić aktualizacji, sprawdź połączenie z internetem</string>
 <string name="update_no_release_published">Na GitHub nie opublikowano jeszcze żadnej wersji</string>
 <string name="player_fullscreen_toggle">Pełny ekran</string>
+<string name="player_toggle_clock">Pokaż/ukryj zegar</string>
 </resources>
