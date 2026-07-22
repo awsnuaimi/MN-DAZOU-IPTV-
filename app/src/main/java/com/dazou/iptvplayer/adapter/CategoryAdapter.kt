@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.dazou.iptvplayer.R
 import com.dazou.iptvplayer.model.XtreamCategory
 import com.dazou.iptvplayer.utils.CategoryIconMapper
+import com.dazou.iptvplayer.utils.FlagZoomCalculator
 import com.dazou.iptvplayer.utils.FocusAnimator
 import com.dazou.iptvplayer.utils.ThemeManager
 
@@ -73,7 +74,7 @@ class CategoryAdapter(
             holder.imageIconView.setImageResource(customIcon)
             // ✅ نكبّر الصورة بمقدار محسوب خصيصًا لها عشان تاكل الهامش الشفاف
             // حواليها وتملأ الدائرة فعليًا، بدل ما يبين فراغ حول العلم/الشعار
-            val zoom = CategoryIconMapper.zoomFor(customIcon)
+            val zoom = FlagZoomCalculator.zoomFor(holder.imageIconView.context, customIcon)
             holder.imageIconView.scaleX = zoom
             holder.imageIconView.scaleY = zoom
             holder.imageIconView.visibility = View.VISIBLE

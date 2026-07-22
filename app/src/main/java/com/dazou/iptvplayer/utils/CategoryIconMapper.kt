@@ -53,19 +53,4 @@ object CategoryIconMapper {
 
         return null
     }
-
-    // ✅ كل صورة (علم/شعار) عندها هامش شفاف مختلف حوالين المحتوى الفعلي —
-    // هالخريطة بتحدد مقدار "الزوم" المطلوب لكل صورة عشان تملأ الدائرة كاملة
-    // بدل ما يبين هامش فاضي حواليها. القيم محسوبة فعليًا من أبعاد كل صورة.
-    private val iconZoomMap = mapOf(
-        R.drawable.flag_ar to 1.55f,
-        R.drawable.flag_lt to 1.7f,
-        R.drawable.flag_jp to 1.55f,
-        R.drawable.logo_bein_sports to 1.75f,
-        R.drawable.logo_world_cup to 1.2f
-    )
-
-    /** ✅ يرجع مقدار الزوم المخصص لصورة معيّنة، أو 1.4 كقيمة افتراضية معقولة
-     * لأي صورة جديدة تنضاف بالمستقبل وما اتحسب زومها بعد */
-    fun zoomFor(resId: Int): Float = iconZoomMap[resId] ?: 1.4f
 }
