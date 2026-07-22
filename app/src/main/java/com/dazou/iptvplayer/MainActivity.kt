@@ -686,7 +686,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     /** ✅ يرجّع الفوكس بدقة لنفس مكان الفئة اللي كان المستخدم واقف عليها قبل ما
      * يدخل عالقنوات أو المجلدات الفرعية — بدل ما نسيب أندرويد يخمّن ويغلط أحيانًا */
-    private fun restoreFocusToCategory() {
+    private fun restoreFocusToCategory(attemptsLeft: Int = 6) {
         val layoutManager = binding.categoryList.layoutManager as? LinearLayoutManager ?: return
         val itemCount = binding.categoryList.adapter?.itemCount ?: 0
         if (itemCount == 0) return
@@ -694,17 +694,22 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         val existingView = layoutManager.findViewByPosition(target)
         if (existingView != null) {
             existingView.requestFocus()
-        } else {
+        } else if (attemptsLeft > 0) {
             binding.categoryList.scrollToPosition(target)
             binding.categoryList.post {
-                layoutManager.findViewByPosition(target)?.requestFocus()
+                restoreFocusToCategory(attemptsLeft - 1)
             }
         }
     }
 
     /** ✅ يرجّع الفوكس بدقة لنفس القناة الشغالة حاليًا بقائمة القنوات — يُستخدم
      * لما نطلع من وضع ملء الشاشة، بدل ما يضل الفوكس ضايع أو بمكان عشوائي */
-    private fun restoreFocusToChannel() {
+    /** ✅ يرجّع الفوكس بدقة لنفس القناة الشغالة حاليًا بقائمة القنوات — يُستخدم
+     * لما نطلع من وضع ملء الشاشة. القائمة كانت مخفية بالكامل (GONE) وقت ملء
+     * الشاشة، فعناصرها بتحتاج أكتر من إطار واحد لترجع تترسم — لهيك بنجرب كذا
+     * مرة (post متكرر) بدل محاولة وحدة بس، وإلا فوكس أندرويد الافتراضي بياخد
+     * المكان (زي زر الحساب بالقائمة العلوية) قبل ما نلحق نحط الفوكس الصح. */
+    private fun restoreFocusToChannel(attemptsLeft: Int = 6) {
         val layoutManager = binding.channelList.layoutManager as? LinearLayoutManager ?: return
         val itemCount = binding.channelList.adapter?.itemCount ?: 0
         if (itemCount == 0 || currentChannelIndex !in 0 until itemCount) return
@@ -712,10 +717,10 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         val existingView = layoutManager.findViewByPosition(target)
         if (existingView != null) {
             existingView.requestFocus()
-        } else {
+        } else if (attemptsLeft > 0) {
             binding.channelList.scrollToPosition(target)
             binding.channelList.post {
-                layoutManager.findViewByPosition(target)?.requestFocus()
+                restoreFocusToChannel(attemptsLeft - 1)
             }
         }
     }
