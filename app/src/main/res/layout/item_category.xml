@@ -15,6 +15,7 @@
     android:clickable="true">
 
     <FrameLayout
+        android:id="@+id/flCategoryIconContainer"
         android:layout_width="32dp"
         android:layout_height="22dp"
         android:layout_marginEnd="14dp"

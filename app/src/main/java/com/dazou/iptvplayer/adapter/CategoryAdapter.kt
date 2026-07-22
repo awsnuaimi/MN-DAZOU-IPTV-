@@ -32,6 +32,7 @@ class CategoryAdapter(
         val iconView: TextView = view.findViewById(R.id.tvCategoryIcon)
         val imageIconView: ImageView = view.findViewById(R.id.ivCategoryIcon)
         val nameView: TextView = view.findViewById(R.id.tvCategoryName)
+        val iconContainer: android.widget.FrameLayout = view.findViewById(R.id.flCategoryIconContainer)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -70,6 +71,14 @@ class CategoryAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val category = categories[position]
         val (icon, name) = splitIconAndName(category.categoryName)
+
+        // ✅ نلوّن إطار الأيقونة بلون التيم المختار حاليًا بالتطبيق (بدل لون
+        // ثابت) — لازم .mutate() عشان كل عنصر ياخد نسخة مستقلة من الشكل ومنغيّرش
+        // على باقي العناصر يلي بتشارك نفس ملف الـdrawable الأصلي
+        val theme = ThemeManager.getSavedTheme(holder.itemView.context)
+        val strokeWidthPx = (1.5f * holder.itemView.resources.displayMetrics.density).toInt()
+        (holder.iconContainer.background?.mutate() as? android.graphics.drawable.GradientDrawable)
+            ?.setStroke(strokeWidthPx, theme.accent)
 
         val customIcon = CategoryIconMapper.iconFor(category)
         when (customIcon) {
