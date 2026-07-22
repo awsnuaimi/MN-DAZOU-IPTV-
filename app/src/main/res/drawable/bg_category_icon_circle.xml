@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ✅ خلفية دائرية موحدة القياس لكل أيقونات الفئات (أعلام الدول، شعارات
+كأس العالم، شعارات الدوريات...) — عشان كلها تبين بنفس الحجم بغض النظر عن
+نسبة أبعاد الصورة الأصلية -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="@color/panel_darker"/>
+</shape>
