@@ -6,8 +6,10 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.dazou.iptvplayer.R
 import com.dazou.iptvplayer.model.XtreamCategory
+import com.dazou.iptvplayer.utils.CategoryIcon
 import com.dazou.iptvplayer.utils.CategoryIconMapper
 import com.dazou.iptvplayer.utils.FlagZoomCalculator
 import com.dazou.iptvplayer.utils.FocusAnimator
@@ -70,19 +72,34 @@ class CategoryAdapter(
         val (icon, name) = splitIconAndName(category.categoryName)
 
         val customIcon = CategoryIconMapper.iconFor(category)
-        if (customIcon != null) {
-            holder.imageIconView.setImageResource(customIcon)
-            // ✅ نكبّر الصورة بمقدار محسوب خصيصًا لها عشان تاكل الهامش الشفاف
-            // حواليها وتملأ الدائرة فعليًا، بدل ما يبين فراغ حول العلم/الشعار
-            val zoom = FlagZoomCalculator.zoomFor(holder.imageIconView.context, customIcon)
-            holder.imageIconView.scaleX = zoom
-            holder.imageIconView.scaleY = zoom
-            holder.imageIconView.visibility = View.VISIBLE
-            holder.iconView.visibility = View.GONE
-        } else {
-            holder.iconView.text = icon
-            holder.iconView.visibility = View.VISIBLE
-            holder.imageIconView.visibility = View.GONE
+        when (customIcon) {
+            is CategoryIcon.Remote -> {
+                // ✅ علم رسمي مسطّح مستطيل من Flagpedia — نظيف بدون هوامش
+                // شفافة أو انحناءات، فما في داعي لأي زوم يدوي هون
+                holder.imageIconView.scaleX = 1f
+                holder.imageIconView.scaleY = 1f
+                Glide.with(holder.imageIconView.context)
+                    .load(customIcon.url)
+                    .centerCrop()
+                    .into(holder.imageIconView)
+                holder.imageIconView.visibility = View.VISIBLE
+                holder.iconView.visibility = View.GONE
+            }
+            is CategoryIcon.Local -> {
+                holder.imageIconView.setImageResource(customIcon.resId)
+                // ✅ نكبّر الصورة بمقدار محسوب تلقائيًا عشان تاكل الهامش
+                // الشفاف حواليها وتملأ الشكل فعليًا (شعارات محلية بس، مش أعلام)
+                val zoom = FlagZoomCalculator.zoomFor(holder.imageIconView.context, customIcon.resId)
+                holder.imageIconView.scaleX = zoom
+                holder.imageIconView.scaleY = zoom
+                holder.imageIconView.visibility = View.VISIBLE
+                holder.iconView.visibility = View.GONE
+            }
+            null -> {
+                holder.iconView.text = icon
+                holder.iconView.visibility = View.VISIBLE
+                holder.imageIconView.visibility = View.GONE
+            }
         }
 
         holder.nameView.text = name
