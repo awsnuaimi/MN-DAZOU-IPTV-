@@ -312,6 +312,23 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
     }
 
+    /** ✅ خاص بقوائم RecyclerView تحديدًا — لما نغيّر الـ adapter، الحاوية نفسها
+     * ممكن يكون عندها حجم فورًا (كانت موجودة من قبل)، بس عناصرها الجديدة (القنوات)
+     * لسا ما اتكوّنت بصريًا. طلب الفوكس فورًا بهاي اللحظة بيفشل بصمت والفوكس بيضيع
+     * أو يضل معلّق بمكانه القديم. هالدالة بتستنى فعليًا لحد ما يصير في عنصر أول
+     * ظاهر بالقائمة قبل ما تحاول تحط الفوكس عليه. */
+    private fun focusFirstItemWhenReady(recyclerView: androidx.recyclerview.widget.RecyclerView, attemptsLeft: Int = 5) {
+        recyclerView.post {
+            val firstChild = recyclerView.getChildAt(0)
+            if (firstChild != null) {
+                firstChild.requestFocus()
+            } else if (attemptsLeft > 0) {
+                // ✅ لسا ما تكوّنت العناصر — نجرب تاني بعد الإطار الجاي، لحد 5 محاولات
+                focusFirstItemWhenReady(recyclerView, attemptsLeft - 1)
+            }
+        }
+    }
+
     private fun savePlaybackState(channel: XtreamChannel) {
         val prefs = getSharedPreferences("dazou_prefs", MODE_PRIVATE)
         prefs.edit()
@@ -546,7 +563,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
 
         if (channels.isNotEmpty()) {
-            requestFocusWhenReady(binding.channelList)
+            focusFirstItemWhenReady(binding.channelList)
         }
 
         val pendingId = pendingAutoPlayChannelId
@@ -651,7 +668,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         }
 
         if (cleanedSubCategories.isNotEmpty()) {
-            requestFocusWhenReady(binding.channelList)
+            focusFirstItemWhenReady(binding.channelList)
         }
     }
 
@@ -752,6 +769,10 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             binding.channelInfo.visibility = View.GONE
             binding.playerControls.visibility = View.GONE
             binding.btnFullscreenSmall.visibility = View.VISIBLE
+            // ✅ لو أي زر جوا شريط التحكم كان حامل الفوكس قبل ما ينخفى، لازم نلغيه
+            // صراحة — وإلا بيضل "فوكس شبح" معلّق بعنصر مخفي (GONE)، وهاد بيسبب
+            // سلوك غير متوقع بالتنقل بعدها (فوكس بيضيع أو ما بيتحرك بشكل طبيعي)
+            binding.playerControls.clearFocus()
         }
     }
 
