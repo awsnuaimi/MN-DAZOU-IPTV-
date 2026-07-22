@@ -349,7 +349,18 @@ class PlayerControlsController(
                         false
                     }
                 }
-            }KeyEvent.KEYCODE_DPAD_UP -> {
+            }KeyEvent.KEYCODE_DPAD_LEFT -> {
+                // ✅ ضغطة يسار وحدة بملء الشاشة (بغض النظر وين الفوكس) بترجع
+                // للشاشة المصغّرة وتحط الفوكس عالقناة الحالية بالعمود
+                if (isFullscreen) {
+                    onFullscreenToggleCallback?.invoke()
+                    true
+                } else {
+                    showControls()
+                    false
+                }
+            }
+            KeyEvent.KEYCODE_DPAD_UP -> {
                 if (binding.channelStripScroll.visibility == View.VISIBLE) {
                     hideChannelStrip()
                     true

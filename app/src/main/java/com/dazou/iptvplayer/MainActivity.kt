@@ -621,7 +621,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             channels,
             (application as App).container.favoritesManager,
             R.id.btnFullscreenSmall,
-            onRequestFocusLeft = { restoreFocusToCategory() }
+            onRequestFocusLeft = { restoreFocusToCategory() },
+            onRequestFullscreen = { if (!fullscreen) toggleFullscreen() }
         ) { channel ->
             val index = channels.indexOf(channel)
             if (index == currentChannelIndex && playerManager.isPlaying) {

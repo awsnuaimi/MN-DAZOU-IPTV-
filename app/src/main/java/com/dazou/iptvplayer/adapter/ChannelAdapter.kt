@@ -19,10 +19,8 @@ class ChannelAdapter(
     private val channels: List<XtreamChannel>,
     private val favoritesManager: FavoritesManager,
     private val rightFocusTargetId: Int? = null,
-    // ✅ بدل ما نشاور على حاوية "category_list" ككل (وأندرويد يخمّن مين ياخد
-    // الفوكس ويغلط أحيانًا)، بنستدعي هالدالة مباشرة وMainActivity هو يلي
-    // بيحدد بالضبط مين ياخد الفوكس (نفس المجلد يلي جاي منه بالظبط)
     private val onRequestFocusLeft: (() -> Unit)? = null,
+    private val onRequestFullscreen: (() -> Unit)? = null,
     private val onChannelClick: (XtreamChannel) -> Unit
 ) : RecyclerView.Adapter<ChannelAdapter.ViewHolder>() {
 
@@ -39,14 +37,23 @@ class ChannelAdapter(
 
         rightFocusTargetId?.let { view.nextFocusRightId = it }
 
-        if (onRequestFocusLeft != null) {
-            view.setOnKeyListener { _, keyCode, event ->
-                if (event.action == android.view.KeyEvent.ACTION_DOWN &&
-                    keyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT
-                ) {
-                    onRequestFocusLeft.invoke()
-                    true
-                } else false
+        view.setOnKeyListener { _, keyCode, event ->
+            if (event.action != android.view.KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+            when (keyCode) {
+                android.view.KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    if (onRequestFocusLeft != null) {
+                        onRequestFocusLeft.invoke()
+                        true
+                    } else false
+                }
+                // ✅ ضغطة يمين وحدة: الفوكس يروح لزر ملء الشاشة ويفتحها بنفس اللحظة
+                android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    if (onRequestFullscreen != null) {
+                        onRequestFullscreen.invoke()
+                        true
+                    } else false
+                }
+                else -> false
             }
         }
 
