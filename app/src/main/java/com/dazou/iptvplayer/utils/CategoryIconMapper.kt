@@ -26,6 +26,8 @@ object CategoryIconMapper {
         "JP" to "jp",
         "PL" to "pl",
         "SA" to "sa",
+        "KSA" to "sa",
+        "SAUDI" to "sa",
         "AE" to "ae",
         "UAE" to "ae",
         "QA" to "qa",
