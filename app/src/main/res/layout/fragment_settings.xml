@@ -68,6 +68,21 @@
             android:focusable="true"
             android:focusableInTouchMode="true"
             android:stateListAnimator="@null"
+            android:padding="16dp"
+            android:layout_marginBottom="12dp" />
+
+        <!-- ✅ سجل تشخيص الفوكس — أداة مطوّرين، مخفية افتراضيًا، تُفعّل بس
+        وقت الحاجة لتشخيص مشاكل التنقل بالريموت -->
+        <Button
+            android:id="@+id/btn_toggle_focus_debug"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_focus_debug_enable"
+            android:background="@drawable/tv_button_selector"
+            android:textColor="@color/text_white"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:stateListAnimator="@null"
             android:padding="16dp" />
 
         <TextView
