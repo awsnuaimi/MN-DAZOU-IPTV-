@@ -722,19 +722,22 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     /** ✅ يرجّع الفوكس بدقة لنفس مكان الفئة اللي كان المستخدم واقف عليها قبل ما
      * يدخل عالقنوات أو المجلدات الفرعية — بدل ما نسيب أندرويد يخمّن ويغلط أحيانًا */
-    private fun restoreFocusToCategory(attemptsLeft: Int = 6) {
-        val layoutManager = binding.categoryList.layoutManager as? LinearLayoutManager ?: return
+    private fun restoreFocusToCategory(attemptsLeft: Int = 6, onDone: () -> Unit = {}) {
+        val layoutManager = binding.categoryList.layoutManager as? LinearLayoutManager ?: run { onDone(); return }
         val itemCount = binding.categoryList.adapter?.itemCount ?: 0
-        if (itemCount == 0) return
+        if (itemCount == 0) { onDone(); return }
         val target = lastFocusedCategoryPosition.coerceIn(0, itemCount - 1)
         val existingView = layoutManager.findViewByPosition(target)
         if (existingView != null) {
             existingView.requestFocus()
+            onDone()
         } else if (attemptsLeft > 0) {
             binding.categoryList.scrollToPosition(target)
             binding.categoryList.post {
-                restoreFocusToCategory(attemptsLeft - 1)
+                restoreFocusToCategory(attemptsLeft - 1, onDone)
             }
+        } else {
+            onDone()
         }
     }
 
@@ -745,19 +748,22 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
      * الشاشة، فعناصرها بتحتاج أكتر من إطار واحد لترجع تترسم — لهيك بنجرب كذا
      * مرة (post متكرر) بدل محاولة وحدة بس، وإلا فوكس أندرويد الافتراضي بياخد
      * المكان (زي زر الحساب بالقائمة العلوية) قبل ما نلحق نحط الفوكس الصح. */
-    private fun restoreFocusToChannel(attemptsLeft: Int = 6) {
-        val layoutManager = binding.channelList.layoutManager as? LinearLayoutManager ?: return
+    private fun restoreFocusToChannel(attemptsLeft: Int = 6, onDone: () -> Unit = {}) {
+        val layoutManager = binding.channelList.layoutManager as? LinearLayoutManager ?: run { onDone(); return }
         val itemCount = binding.channelList.adapter?.itemCount ?: 0
-        if (itemCount == 0 || currentChannelIndex !in 0 until itemCount) return
+        if (itemCount == 0 || currentChannelIndex !in 0 until itemCount) { onDone(); return }
         val target = currentChannelIndex
         val existingView = layoutManager.findViewByPosition(target)
         if (existingView != null) {
             existingView.requestFocus()
+            onDone()
         } else if (attemptsLeft > 0) {
             binding.channelList.scrollToPosition(target)
             binding.channelList.post {
-                restoreFocusToChannel(attemptsLeft - 1)
+                restoreFocusToChannel(attemptsLeft - 1, onDone)
             }
+        } else {
+            onDone()
         }
     }
 
@@ -971,17 +977,25 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                 View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
             )
         } else {
+            // ✅ الحل الحاسم: نمنع القائمة العلوية من قبول أي فوكس مؤقتًا وقت
+            // ما ترجع تظهر — وإلا أندرويد بيعطيها فوكس افتراضي (زر الحساب)
+            // فورًا قبل ما نلحق نرجّع الفوكس للقناة الصح. بمجرد ما نضمن رجوع
+            // الفوكس بالمكان الصحيح، منرجع نسمحلها بالفوكس عادي.
+            binding.topBar.descendantFocusability = android.view.ViewGroup.FOCUS_BLOCK_DESCENDANTS
             binding.topBar.visibility = View.VISIBLE
             binding.sidebar.visibility = View.VISIBLE
+            val reallowTopBarFocus = {
+                binding.topBar.descendantFocusability = android.view.ViewGroup.FOCUS_BEFORE_DESCENDANTS
+            }
             if (wasChannelsPanelOpenBeforeFullscreen) {
                 binding.channelsPanel.visibility = View.VISIBLE
                 // ✅ يرجّع الفوكس لنفس القناة اللي كانت شغالة/محددة قبل الدخول
                 // بملء الشاشة، بدل ما يضل الفوكس ضايع
-                restoreFocusToChannel()
+                restoreFocusToChannel(onDone = reallowTopBarFocus)
             } else {
                 // ✅ لو لوحة القنوات ما كانت مفتوحة أصلاً (كان بس متصفح الفئات)،
                 // نرجّع الفوكس لنفس الفئة بدل ما نسيبه بلا وجهة
-                restoreFocusToCategory()
+                restoreFocusToCategory(onDone = reallowTopBarFocus)
             }
             if (supportFragmentManager.findFragmentById(binding.fragmentContainer.id) != null) {
                 binding.fragmentContainer.visibility = View.VISIBLE
