@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ✅ لوحة القنوات — بتظهر لما تفتح مجلد فئة/دولة وفيها قائمة القنوات نفسها -->
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/channels_panel"
+        android:layout_width="300dp"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        android:alpha="0.94"
+        app:cardBackgroundColor="@color/panel_dark"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="8dp"
+        app:layout_constraintTop_toBottomOf="@id/top_bar"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/sidebar">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="12dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="4dp">
+                <TextView
+                    android:id="@+id/channels_panel_back"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="→"
+                    android:textColor="@color/accent"
+                    android:textSize="20sp"
+                    android:padding="8dp"
+                    android:background="@drawable/icon_focus_selector"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:clickable="true"
+                    android:nextFocusLeft="@id/category_list"
+                    android:nextFocusRight="@id/btnFullscreenSmall"
+                    android:nextFocusDown="@id/channel_list"/>
+                <TextView
+                    android:id="@+id/channels_panel_title"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text=""
+                    android:textColor="@color/text_white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:gravity="center"/>
+            </LinearLayout>
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/channel_list"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:padding="8dp"
+                android:descendantFocusability="afterDescendants"
+                android:nextFocusUp="@id/channels_panel_back"
+                android:nextFocusLeft="@id/category_list"
+                android:nextFocusRight="@id/btnFullscreenSmall"/>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+</merge>

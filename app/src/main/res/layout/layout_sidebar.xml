@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ✅ الشريط الجانبي — زر البث المباشر وقائمة الفئات/مجلدات الدول -->
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/sidebar"
+        android:layout_width="260dp"
+        android:layout_height="0dp"
+        android:alpha="0.94"
+        app:cardBackgroundColor="@color/nav_background"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="8dp"
+        app:layout_constraintTop_toBottomOf="@id/top_bar"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="12dp">
+            <TextView
+                android:id="@+id/sidebar_live_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/sidebar_live_channels"
+                android:textColor="@color/text_white"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:padding="12dp"
+                android:background="@drawable/tv_button_selector"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:clickable="true"
+                android:nextFocusUp="@id/menu_live"
+                android:nextFocusDown="@id/category_list"/>
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/category_list"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:padding="8dp"
+                android:descendantFocusability="afterDescendants"
+                android:nextFocusUp="@id/sidebar_live_button"
+                android:nextFocusRight="@id/channel_list"/>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+</merge>
