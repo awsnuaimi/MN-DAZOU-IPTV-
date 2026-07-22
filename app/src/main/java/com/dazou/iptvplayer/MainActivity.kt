@@ -199,6 +199,16 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             toggleFullscreen()
         }
 
+        // ✅ ساعة المشغل: نطبّق الحالة المحفوظة (ظاهرة/مخفية) فور فتح
+        // التطبيق، ونربط الزر يبدّلها ويحفظ الاختيار الجديد
+        applyPlayerClockVisibility()
+        binding.btnClockToggle.setOnClickListener {
+            val prefs = getSharedPreferences("dazou_prefs", MODE_PRIVATE)
+            val currentlyVisible = prefs.getBoolean("player_clock_visible", true)
+            prefs.edit().putBoolean("player_clock_visible", !currentlyVisible).apply()
+            applyPlayerClockVisibility()
+        }
+
         val app = application as App
         liveViewModel = ViewModelProvider(this, ViewModelFactory(app.container.currentRepository))
             .get(LiveViewModel::class.java)
@@ -321,6 +331,20 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             binding.btnSleepTimer.setColorFilter(theme.accent)
         } else {
             binding.btnSleepTimer.clearColorFilter()
+        }
+    }
+
+    /** ✅ يظهّر أو يخفي ساعة المشغل حسب آخر اختيار محفوظ للمستخدم، وبيلوّن
+     * أيقونة الزر عشان توضّح الحالة الحالية بلمحة (زي مؤقت النوم بالظبط) */
+    private fun applyPlayerClockVisibility() {
+        val prefs = getSharedPreferences("dazou_prefs", MODE_PRIVATE)
+        val visible = prefs.getBoolean("player_clock_visible", true)
+        binding.tvPlayerClock.visibility = if (visible) View.VISIBLE else View.GONE
+        if (visible) {
+            binding.btnClockToggle.setTextColor(getColor(R.color.text_white))
+        } else {
+            val theme = ThemeManager.getSavedTheme(this)
+            binding.btnClockToggle.setTextColor(theme.accent)
         }
     }
 
@@ -476,7 +500,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     private fun startPlayback(url: String, name: String, type: String, startPositionMs: Long) {
         currentChannelName = name
         playerManager.play(url, name, type, startPositionMs)
-        binding.channelInfo.text = name
+        binding.channelInfo.text = ""
         controlsController.onMediaStarted(type)
     }
 
@@ -682,7 +706,9 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         val runnable = object : Runnable {
             override fun run() {
                 val sdf = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
-                binding.clockText.text = sdf.format(java.util.Date())
+                val now = sdf.format(java.util.Date())
+                binding.clockText.text = now
+                binding.tvPlayerClock.text = now
                 clockHandler.postDelayed(this, 30000)
             }
         }
@@ -948,11 +974,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                         controlsController.hideManualRetry()
                         controlsController.updateQualityBadge()
                         binding.playerLoading.visibility = View.GONE
-                        if (currentChannelName.isNotEmpty()) {
-                            binding.channelInfo.text = currentChannelName
-                        } else {
-                            binding.channelInfo.text = ""
-                        }
+                        binding.channelInfo.text = ""
                     }
                     Player.STATE_ENDED -> {
                         binding.playerLoading.visibility = View.GONE
@@ -1354,7 +1376,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     override fun playStream(url:String, name:String, type:String){
         currentChannelName = name
         playerManager.play(url, name, type)
-        binding.channelInfo.text = name
+        binding.channelInfo.text = ""
         controlsController.onMediaStarted(type)
     }
 
