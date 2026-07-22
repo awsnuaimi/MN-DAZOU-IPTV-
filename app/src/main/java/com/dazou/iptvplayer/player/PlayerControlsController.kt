@@ -32,6 +32,12 @@ class PlayerControlsController(
 ) {
     private var currentChannelList: List<XtreamChannel> = emptyList()
     private var currentChannelIndex: Int = -1
+    // ✅ حالة التصفح داخل شريط القنوات: أين تبدأ النافذة المعروضة (6 قنوات كحد
+    // أقصى)، ومكان القناة المميّزة محليًا جوا الشريط (لتحديد الفوكس الصحيح)
+    private var browseWindowStart = 0
+    private var displayCurrentIndexInStrip = -1
+
+    private enum class StripFocusRequest { NONE, FIRST, LAST }
     private var currentType: String = "live"
     private var isMuted = false
     private var userSeeking = false
@@ -191,7 +197,14 @@ class PlayerControlsController(
     fun onChannelListChanged(list: List<XtreamChannel>, index: Int) {
         currentChannelList = list
         currentChannelIndex = index
+        browseWindowStart = computeCenteredWindowStart(index, list.size)
         buildChannelStrip()
+    }
+
+    private fun computeCenteredWindowStart(index: Int, total: Int): Int {
+        val maxVisible = 6
+        if (total <= maxVisible) return 0
+        return (index - maxVisible / 2).coerceAtLeast(0).coerceAtMost(total - maxVisible)
     }
 
     fun onMediaStarted(type: String) {
@@ -378,12 +391,14 @@ class PlayerControlsController(
 
     private fun showChannelStrip() {
         binding.channelStripScroll.visibility = View.VISIBLE
-        val cell = binding.channelStripTrack.findViewById<View>(
-            binding.channelStripTrack.getChildAt(
-                currentChannelIndex.coerceIn(0, (binding.channelStripTrack.childCount - 1).coerceAtLeast(0))
-            )?.id ?: View.NO_ID
-        )
-        cell?.requestFocus()
+        // ✅ كل ما نفتح الشريط، نعيد توسيطه حول القناة الشغالة حاليًا
+        browseWindowStart = computeCenteredWindowStart(currentChannelIndex, currentChannelList.size)
+        buildChannelStrip()
+        val childCount = binding.channelStripTrack.childCount
+        if (childCount > 0) {
+            val targetIndex = displayCurrentIndexInStrip.coerceIn(0, childCount - 1)
+            binding.channelStripTrack.getChildAt(targetIndex)?.requestFocus()
+        }
         showControls()
     }
 
@@ -421,24 +436,17 @@ class PlayerControlsController(
         }
     }
 
-    private fun buildChannelStrip() {
+    private fun buildChannelStrip(focusRequest: StripFocusRequest = StripFocusRequest.NONE) {
         binding.channelStripTrack.removeAllViews()
         if (currentChannelList.isEmpty()) return
 
         val density = activity.resources.displayMetrics.density
         fun dp(v: Int) = (v * density).toInt()
 
-        // ✅ نعرض بس 6 قنوات كحد أقصى (نافذة حول القناة الحالية)، مش القائمة كاملة —
-        // أسهل بكتير للتصفح بالريموت وما بتصير الشاشة مزدحمة بمربعات كتير
+        // ✅ نعرض بس 6 قنوات كحد أقصى، بس النافذة بتزحف لما توصل للحافة بدل ما توقف
         val maxVisible = 6
         val total = currentChannelList.size
-        val windowStart = if (total <= maxVisible) {
-            0
-        } else {
-            (currentChannelIndex - maxVisible / 2)
-                .coerceAtLeast(0)
-                .coerceAtMost(total - maxVisible)
-        }
+        val windowStart = browseWindowStart.coerceIn(0, (total - maxVisible).coerceAtLeast(0))
         val windowEnd = (windowStart + maxVisible).coerceAtMost(total)
         val displayList = currentChannelList.subList(windowStart, windowEnd)
         val displayCurrentIndex = currentChannelIndex - windowStart
@@ -500,19 +508,51 @@ class PlayerControlsController(
             if (i < cells.size - 1) cells[i].nextFocusLeftId = cells[i + 1].id
             cells[i].nextFocusUpId = R.id.btn_play_pause
         }
-        if (displayCurrentIndex in cells.indices) {
-            val currentCellId = cells[displayCurrentIndex].id
-            binding.btnPrev.nextFocusDownId = currentCellId
-            binding.btnRewind10.nextFocusDownId = currentCellId
-            binding.btnPlayPause.nextFocusDownId = currentCellId
-            binding.btnForward10.nextFocusDownId = currentCellId
-            binding.btnNext.nextFocusDownId = currentCellId
-            binding.btnVolumeDown.nextFocusDownId = currentCellId
-            binding.btnVolume.nextFocusDownId = currentCellId
-            binding.btnVolumeUp.nextFocusDownId = currentCellId
-            binding.btnAspectRatio.nextFocusDownId = currentCellId
-            binding.btnAudioTrack.nextFocusDownId = currentCellId
-            binding.btnFullscreen.nextFocusDownId = currentCellId
+
+        // ✅ أول وآخر خانة بالشريط: لو في قنوات أكتر لسا ما ظهرت، الضغط أبعد منهم
+        // بيزحف النافذة خانة وحدة بدل ما يوقف عند حدود الـ6
+        if (cells.isNotEmpty()) {
+            cells.first().setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN &&
+                    keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && windowStart > 0
+                ) {
+                    browseWindowStart = windowStart - 1
+                    buildChannelStrip(StripFocusRequest.FIRST)
+                    true
+                } else false
+            }
+            cells.last().setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN &&
+                    keyCode == KeyEvent.KEYCODE_DPAD_LEFT && windowStart + maxVisible < total
+                ) {
+                    browseWindowStart = windowStart + 1
+                    buildChannelStrip(StripFocusRequest.LAST)
+                    true
+                } else false
+            }
+        }
+
+        val focusTargetForDown = if (displayCurrentIndex in cells.indices) cells[displayCurrentIndex].id else cells.firstOrNull()?.id
+        if (focusTargetForDown != null) {
+            binding.btnPrev.nextFocusDownId = focusTargetForDown
+            binding.btnRewind10.nextFocusDownId = focusTargetForDown
+            binding.btnPlayPause.nextFocusDownId = focusTargetForDown
+            binding.btnForward10.nextFocusDownId = focusTargetForDown
+            binding.btnNext.nextFocusDownId = focusTargetForDown
+            binding.btnVolumeDown.nextFocusDownId = focusTargetForDown
+            binding.btnVolume.nextFocusDownId = focusTargetForDown
+            binding.btnVolumeUp.nextFocusDownId = focusTargetForDown
+            binding.btnAspectRatio.nextFocusDownId = focusTargetForDown
+            binding.btnAudioTrack.nextFocusDownId = focusTargetForDown
+            binding.btnFullscreen.nextFocusDownId = focusTargetForDown
+        }
+
+        displayCurrentIndexInStrip = displayCurrentIndex.coerceIn(0, (cells.size - 1).coerceAtLeast(0))
+
+        when (focusRequest) {
+            StripFocusRequest.FIRST -> cells.firstOrNull()?.requestFocus()
+            StripFocusRequest.LAST -> cells.lastOrNull()?.requestFocus()
+            StripFocusRequest.NONE -> {}
         }
     }
 
