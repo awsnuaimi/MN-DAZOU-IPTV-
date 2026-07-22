@@ -352,7 +352,7 @@ class PlayerControlsController(
             }KeyEvent.KEYCODE_DPAD_LEFT -> {
                 // ✅ ضغطة يسار وحدة بملء الشاشة (بغض النظر وين الفوكس) بترجع
                 // للشاشة المصغّرة وتحط الفوكس عالقناة الحالية بالعمود
-                if (isFullscreen) {
+                if (isFullscreen && binding.channelStripScroll.visibility != View.VISIBLE) {
                     onFullscreenToggleCallback?.invoke()
                     true
                 } else {
