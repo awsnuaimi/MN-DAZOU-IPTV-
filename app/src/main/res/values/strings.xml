@@ -21,6 +21,7 @@
 <string name="settings_focus_debug_disable">🔴 إيقاف سجل تشخيص الفوكس</string>
 <string name="no_crash_logs">لا توجد أخطاء مسجّلة ✅</string>
 <string name="crash_logs_found">تم العثور على %d خطأ مسجّل</string>
+<!--  عام  -->
 <string name="common_cancel">إلغاء</string>
 <string name="common_close">إغلاق</string>
 <string name="common_save">حفظ</string>
@@ -28,6 +29,7 @@
 <string name="common_loading">جاري التحميل...</string>
 <string name="common_choose_account_first">اختر حساب IPTV أولاً</string>
 <string name="common_fill_all_fields">الرجاء ملء جميع الحقول</string>
+<!--  القائمة العلوية  -->
 <string name="menu_home_label">الرئيسية</string>
 <string name="menu_live_label">القنوات</string>
 <string name="menu_movies_label">أفلام</string>
@@ -35,6 +37,7 @@
 <string name="menu_epg_label">دليل البرامج</string>
 <string name="sidebar_live_channels">☰ القنوات المباشرة</string>
 <string name="live_select_channel_prompt">اختر قناة لعرض معلومات البرنامج</string>
+<!--  أسماء الدول (مجلدات البث المباشر)  -->
 <string name="country_ar">AR</string>
 <string name="country_albania">ألبانيا</string>
 <string name="country_lithuania">ليتوانيا</string>
@@ -67,6 +70,7 @@
 <string name="country_pakistan">باكستان</string>
 <string name="country_greece">اليونان</string>
 <string name="country_portugal">البرتغال</string>
+<!--  البث المباشر  -->
 <string name="live_no_categories">لا توجد مجموعات – تأكد من الحساب</string>
 <string name="live_feature_unsupported">الميزة غير مدعومة على هذا الجهاز</string>
 <string name="live_pip_failed">تعذر تفعيل الصورة داخل الصورة</string>
@@ -80,6 +84,7 @@
 <string name="live_now_playing">▶ الآن: %s</string>
 <string name="live_next_program">⏭ التالي: %s (%s)</string>
 <string name="live_badge">🔴 بث مباشر</string>
+<!--  أدوات تحكم المشغل الجديدة  -->
 <string name="player_rewind_10">إرجاع 10 ثواني</string>
 <string name="player_forward_10">تقديم 10 ثواني</string>
 <string name="player_volume_down">خفض الصوت</string>
@@ -93,9 +98,11 @@
 <string name="player_aspect_zoom">ملء الشاشة (تكبير)</string>
 <string name="player_aspect_stretch">تمديد لملء الشاشة</string>
 <string name="player_reconnected">✅ عاد الاتصال، جاري استئناف التشغيل...</string>
+<!--  استكمال المشاهدة  -->
 <string name="resume_message">توقفت سابقًا عند %s. تحب تكمل من هناك؟</string>
 <string name="resume_continue">متابعة</string>
 <string name="resume_from_start">من البداية</string>
+<!--  الأفلام  -->
 <string name="movies_categories_label">🎬 المجموعات</string>
 <string name="movies_select_category_prompt">اختر مجموعة لعرض الأفلام</string>
 <string name="movies_no_categories">لا توجد مجموعات أفلام – تأكد من الحساب</string>
@@ -114,6 +121,7 @@
 <string name="search_type_movie">فيلم</string>
 <string name="search_type_series">مسلسل</string>
 <string name="search_loading_episodes_short">جاري تحميل الحلقات...</string>
+<!--  المسلسلات  -->
 <string name="series_categories_label">📺 مجموعات المسلسلات</string>
 <string name="series_select_category_prompt">اختر مجموعة لعرض المسلسلات</string>
 <string name="series_no_categories">لا توجد مجموعات مسلسلات – تأكد من الحساب</string>
@@ -126,6 +134,7 @@
 <string name="series_search_hint">🔍 ابحث عن مسلسل...</string>
 <string name="series_next_episode_title">▶ الحلقة التالية</string>
 <string name="series_next_episode_countdown">تشغيل الحلقة التالية خلال %d ثانية</string>
+<!--  مؤقت النوم  -->
 <string name="sleep_timer_title">⏰ مؤقت النوم</string>
 <string name="sleep_timer_off">إيقاف</string>
 <string name="sleep_timer_15">15 دقيقة</string>
@@ -135,6 +144,7 @@
 <string name="sleep_timer_set">⏰ تم ضبط مؤقت النوم على %d دقيقة</string>
 <string name="sleep_timer_cancelled">تم إيقاف مؤقت النوم</string>
 <string name="sleep_timer_finished">⏰ انتهى مؤقت النوم — تم إيقاف التشغيل</string>
+<!--  الرئيسية / المفضلة / السجل  -->
 <string name="home_welcome">🎉 مرحبًا بك في DAZOU IPTV</string>
 <string name="home_empty_state">⭐ لا توجد عناصر بالمفضلة بعد — اضغط مطولًا على أي فيلم أو مسلسل لإضافته</string>
 <string name="home_favorites_count">⭐ المفضلة (%d)</string>
@@ -143,6 +153,7 @@
 <string name="favorite_added">⭐ أُضيف للمفضلة</string>
 <string name="favorite_added_channel">⭐ أُضيفت للمفضلة</string>
 <string name="favorite_removed">تم الحذف من المفضلة</string>
+<!--  الحسابات  -->
 <string name="accounts_title">👤 إدارة الحسابات</string>
 <string name="accounts_add_button">➕ إضافة حساب جديد</string>
 <string name="accounts_empty_state">لا توجد حسابات محفوظة\nاضغط على الزر أدناه لإضافة حساب</string>
@@ -157,7 +168,9 @@
 <string name="accounts_delete_confirm_title">تأكيد الحذف</string>
 <string name="accounts_delete_confirm_message">هل أنت متأكد من حذف هذا الحساب؟</string>
 <string name="accounts_deleted">🗑️ تم حذف الحساب</string>
+<!--  تسجيل الدخول  -->
 <string name="login_success">✅ تم تسجيل الدخول</string>
+<!--  دليل البرامج (EPG)  -->
 <string name="epg_title">📅 دليل البرامج</string>
 <string name="epg_loading_guide">جاري تحميل الدليل...</string>
 <string name="epg_no_channels">لا توجد قنوات لعرضها</string>
@@ -169,6 +182,7 @@
 <string name="epg_last_error">آخر خطأ EPG: %s</string>
 <string name="epg_last_response">آخر رد EPG: %s</string>
 <string name="epg_no_program_data">لا توجد بيانات برنامج</string>
+<!--  التحديث التلقائي  -->
 <string name="update_available_title">📦 يوجد تحديث جديد</string>
 <string name="update_available_message">إصدار جديد متوفر: %s</string>
 <string name="update_now">تحديث الآن</string>
@@ -180,4 +194,5 @@
 <string name="update_check_failed">تعذر التحقق من التحديثات، تأكد من الاتصال بالإنترنت</string>
 <string name="update_no_release_published">لا يوجد إصدار منشور على GitHub بعد</string>
 <string name="player_fullscreen_toggle">تكبير الشاشة</string>
+<string name="player_toggle_clock">إظهار/إخفاء الساعة</string>
 </resources>
