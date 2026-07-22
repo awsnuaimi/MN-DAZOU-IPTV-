@@ -18,6 +18,8 @@
     <string name="theme_green">🟢 Dunkelgrün</string>
     <string name="theme_red">🔴 Dunkelrot</string>
     <string name="btn_check_errors">🔍 App-Fehler prüfen</string>
+    <string name="settings_focus_debug_enable">🟢 Fokus-Debug aktivieren</string>
+    <string name="settings_focus_debug_disable">🔴 Fokus-Debug deaktivieren</string>
     <string name="no_crash_logs">Keine Fehler protokolliert ✅</string>
     <string name="crash_logs_found">%d Fehler gefunden</string>
 
