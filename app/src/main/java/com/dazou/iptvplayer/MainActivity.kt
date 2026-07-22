@@ -1054,7 +1054,13 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             binding.topBar.visibility = View.VISIBLE
             binding.sidebar.visibility = View.VISIBLE
             val reallowTopBarFocus = {
-                binding.topBar.descendantFocusability = android.view.ViewGroup.FOCUS_BEFORE_DESCENDANTS
+                // ✅ نأخّر رفع الحجب بإطار إضافي (بدل ما نرفعه فورًا) — عشان
+                // نضمن إنه الفوكس استقر فعليًا عالقناة قبل ما نسمح لأي شي
+                // تاني ياخد فوكس. لو رفعناه فورًا، ممكن الفوكس يكون "نجح"
+                // بشكل ظاهري بس مش مستقر لسا، فيضيع لما تصير إعادة رسم تالية.
+                binding.topBar.postDelayed({
+                    binding.topBar.descendantFocusability = android.view.ViewGroup.FOCUS_BEFORE_DESCENDANTS
+                }, 150)
             }
             if (wasChannelsPanelOpenBeforeFullscreen) {
                 binding.channelsPanel.visibility = View.VISIBLE
