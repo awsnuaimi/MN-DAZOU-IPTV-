@@ -108,6 +108,42 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
         startTopBarLogoAnimation()
 
+        // ============================================================
+        // 🔧 أداة تشخيص مؤقتة — بتعرض بأعلى الشاشة اسم العنصر يلي عليه
+        // الفوكس حاليًا، بتحدّث نفسها لحظة بلحظة. هدفها بس نشوف بالضبط
+        // شو عم يصير بالفوكس بالوقت الحقيقي، وبنشيلها لما نلقى ونصلح
+        // السبب الحقيقي. ما إلها أي تأثير على منطق التطبيق أو الفوكس نفسه.
+        // ============================================================
+        val debugFocusText = android.widget.TextView(this).apply {
+            setBackgroundColor(0xDD000000.toInt())
+            setTextColor(0xFF00FF00.toInt())
+            textSize = 13f
+            setPadding(14, 8, 14, 8)
+            text = "Focus: -"
+            elevation = 9999f
+        }
+        val debugRootContent = findViewById<android.view.ViewGroup>(android.R.id.content)
+        val debugLp = android.widget.FrameLayout.LayoutParams(
+            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
+        ).apply {
+            gravity = android.view.Gravity.TOP or android.view.Gravity.START
+            topMargin = 24
+            leftMargin = 24
+        }
+        debugRootContent.addView(debugFocusText, debugLp)
+        window.decorView.viewTreeObserver.addOnGlobalFocusChangeListener { _, newFocus ->
+            val name = try {
+                when {
+                    newFocus == null -> "⚠️ NULL (ولا شي عليه فوكس)"
+                    newFocus.id != View.NO_ID -> resources.getResourceEntryName(newFocus.id)
+                    else -> "بدون id (${newFocus.javaClass.simpleName})"
+                }
+            } catch (e: Exception) { "؟" }
+            debugFocusText.text = "Focus: $name"
+        }
+        // ============================================================
+
         playerManager = PlayerManager(this)
         binding.videoPlayer.player = playerManager.player
 
