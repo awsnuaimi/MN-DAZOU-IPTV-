@@ -71,6 +71,11 @@ class CategoryAdapter(
         val customIcon = CategoryIconMapper.iconFor(category)
         if (customIcon != null) {
             holder.imageIconView.setImageResource(customIcon)
+            // ✅ نكبّر الصورة بمقدار محسوب خصيصًا لها عشان تاكل الهامش الشفاف
+            // حواليها وتملأ الدائرة فعليًا، بدل ما يبين فراغ حول العلم/الشعار
+            val zoom = CategoryIconMapper.zoomFor(customIcon)
+            holder.imageIconView.scaleX = zoom
+            holder.imageIconView.scaleY = zoom
             holder.imageIconView.visibility = View.VISIBLE
             holder.iconView.visibility = View.GONE
         } else {
