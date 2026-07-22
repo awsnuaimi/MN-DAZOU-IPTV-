@@ -476,7 +476,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     private fun startPlayback(url: String, name: String, type: String, startPositionMs: Long) {
         currentChannelName = name
         playerManager.play(url, name, type, startPositionMs)
-        binding.channelInfo.text = "📺 $name"
+        binding.channelInfo.text = name
         controlsController.onMediaStarted(type)
     }
 
@@ -621,8 +621,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
             channels,
             (application as App).container.favoritesManager,
             R.id.btnFullscreenSmall,
-            onRequestFocusLeft = { restoreFocusToCategory() },
-            onRequestFullscreen = { if (!fullscreen) toggleFullscreen() }
+            onRequestFocusLeft = { restoreFocusToCategory() }
         ) { channel ->
             val index = channels.indexOf(channel)
             if (index == currentChannelIndex && playerManager.isPlaying) {
@@ -950,7 +949,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                         controlsController.updateQualityBadge()
                         binding.playerLoading.visibility = View.GONE
                         if (currentChannelName.isNotEmpty()) {
-                            binding.channelInfo.text = "📺 $currentChannelName"
+                            binding.channelInfo.text = currentChannelName
                         } else {
                             binding.channelInfo.text = ""
                         }
@@ -1355,7 +1354,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     override fun playStream(url:String, name:String, type:String){
         currentChannelName = name
         playerManager.play(url, name, type)
-        binding.channelInfo.text = "📺 $name"
+        binding.channelInfo.text = name
         controlsController.onMediaStarted(type)
     }
 
