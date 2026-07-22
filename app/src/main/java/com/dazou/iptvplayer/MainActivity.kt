@@ -24,6 +24,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.dazou.iptvplayer.adapter.CategoryAdapter
 import com.dazou.iptvplayer.adapter.ChannelAdapter
 import com.dazou.iptvplayer.adapter.SearchResultAdapter
@@ -722,23 +723,44 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     /** ✅ يرجّع الفوكس بدقة لنفس مكان الفئة اللي كان المستخدم واقف عليها قبل ما
      * يدخل عالقنوات أو المجلدات الفرعية — بدل ما نسيب أندرويد يخمّن ويغلط أحيانًا */
-    private fun restoreFocusToCategory(attemptsLeft: Int = 6, onDone: () -> Unit = {}) {
+    private fun restoreFocusToCategory(onDone: () -> Unit = {}) {
         val layoutManager = binding.categoryList.layoutManager as? LinearLayoutManager ?: run { onDone(); return }
         val itemCount = binding.categoryList.adapter?.itemCount ?: 0
         if (itemCount == 0) { onDone(); return }
         val target = lastFocusedCategoryPosition.coerceIn(0, itemCount - 1)
+
         val existingView = layoutManager.findViewByPosition(target)
         if (existingView != null) {
             existingView.requestFocus()
             onDone()
-        } else if (attemptsLeft > 0) {
-            binding.categoryList.scrollToPosition(target)
-            binding.categoryList.post {
-                restoreFocusToCategory(attemptsLeft - 1, onDone)
-            }
-        } else {
-            onDone()
+            return
         }
+
+        binding.categoryList.scrollToPosition(target)
+        var finished = false
+        val listener = object : RecyclerView.OnChildAttachStateChangeListener {
+            override fun onChildViewAttachedToWindow(view: View) {
+                if (finished) return
+                if (binding.categoryList.getChildAdapterPosition(view) == target) {
+                    finished = true
+                    binding.categoryList.removeOnChildAttachStateChangeListener(this)
+                    view.requestFocus()
+                    onDone()
+                }
+            }
+            override fun onChildViewDetachedFromWindow(view: View) {}
+        }
+        binding.categoryList.addOnChildAttachStateChangeListener(listener)
+        // ✅ حد أمان زمني (ثانيتين) — لو لأي سبب غير متوقع العنصر ما تكوّن أبدًا،
+        // ما نضل عالقين للأبد وننفذ onDone على أي حال
+        binding.categoryList.postDelayed({
+            if (!finished) {
+                finished = true
+                binding.categoryList.removeOnChildAttachStateChangeListener(listener)
+                layoutManager.findViewByPosition(target)?.requestFocus()
+                onDone()
+            }
+        }, 2000)
     }
 
     /** ✅ يرجّع الفوكس بدقة لنفس القناة الشغالة حاليًا بقائمة القنوات — يُستخدم
@@ -748,23 +770,42 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
      * الشاشة، فعناصرها بتحتاج أكتر من إطار واحد لترجع تترسم — لهيك بنجرب كذا
      * مرة (post متكرر) بدل محاولة وحدة بس، وإلا فوكس أندرويد الافتراضي بياخد
      * المكان (زي زر الحساب بالقائمة العلوية) قبل ما نلحق نحط الفوكس الصح. */
-    private fun restoreFocusToChannel(attemptsLeft: Int = 6, onDone: () -> Unit = {}) {
+    private fun restoreFocusToChannel(onDone: () -> Unit = {}) {
         val layoutManager = binding.channelList.layoutManager as? LinearLayoutManager ?: run { onDone(); return }
         val itemCount = binding.channelList.adapter?.itemCount ?: 0
         if (itemCount == 0 || currentChannelIndex !in 0 until itemCount) { onDone(); return }
         val target = currentChannelIndex
+
         val existingView = layoutManager.findViewByPosition(target)
         if (existingView != null) {
             existingView.requestFocus()
             onDone()
-        } else if (attemptsLeft > 0) {
-            binding.channelList.scrollToPosition(target)
-            binding.channelList.post {
-                restoreFocusToChannel(attemptsLeft - 1, onDone)
-            }
-        } else {
-            onDone()
+            return
         }
+
+        binding.channelList.scrollToPosition(target)
+        var finished = false
+        val listener = object : RecyclerView.OnChildAttachStateChangeListener {
+            override fun onChildViewAttachedToWindow(view: View) {
+                if (finished) return
+                if (binding.channelList.getChildAdapterPosition(view) == target) {
+                    finished = true
+                    binding.channelList.removeOnChildAttachStateChangeListener(this)
+                    view.requestFocus()
+                    onDone()
+                }
+            }
+            override fun onChildViewDetachedFromWindow(view: View) {}
+        }
+        binding.channelList.addOnChildAttachStateChangeListener(listener)
+        binding.channelList.postDelayed({
+            if (!finished) {
+                finished = true
+                binding.channelList.removeOnChildAttachStateChangeListener(listener)
+                layoutManager.findViewByPosition(target)?.requestFocus()
+                onDone()
+            }
+        }, 2000)
     }
 
     private fun playChannelAt(index: Int) {
