@@ -58,7 +58,24 @@ class SettingsFragment : Fragment() {
             checkForErrors()
         }
 
+        updateFocusDebugButtonLabel()
+        binding.btnToggleFocusDebug.setOnClickListener {
+            val prefs = requireContext().getSharedPreferences("dazou_prefs", 0)
+            val newValue = !prefs.getBoolean("debug_focus_log_enabled", false)
+            prefs.edit().putBoolean("debug_focus_log_enabled", newValue).apply()
+            requireActivity().recreate()
+        }
+
         return binding.root
+    }
+
+    /** ✅ يحدّث نص الزر حسب حالة سجل تشخيص الفوكس الحالية (مفعّل/متوقف) */
+    private fun updateFocusDebugButtonLabel() {
+        val prefs = requireContext().getSharedPreferences("dazou_prefs", 0)
+        val enabled = prefs.getBoolean("debug_focus_log_enabled", false)
+        binding.btnToggleFocusDebug.text = getString(
+            if (enabled) R.string.settings_focus_debug_disable else R.string.settings_focus_debug_enable
+        )
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
