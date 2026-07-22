@@ -18,6 +18,8 @@
     <string name="theme_green">🟢 Dark Green</string>
     <string name="theme_red">🔴 Dark Red</string>
     <string name="btn_check_errors">🔍 Check App Errors</string>
+    <string name="settings_focus_debug_enable">🟢 Enable Focus Debug Log</string>
+    <string name="settings_focus_debug_disable">🔴 Disable Focus Debug Log</string>
     <string name="no_crash_logs">No errors logged ✅</string>
     <string name="crash_logs_found">%d error(s) found</string>
 
