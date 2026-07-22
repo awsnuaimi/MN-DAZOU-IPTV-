@@ -534,7 +534,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.channelList.adapter = ChannelAdapter(
             channels,
             (application as App).container.favoritesManager,
-            R.id.btn_play_pause,
+            R.id.btnFullscreenSmall,
             onRequestFocusLeft = { restoreFocusToCategory() }
         ) { channel ->
             val index = channels.indexOf(channel)
@@ -644,7 +644,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
         binding.channelList.adapter = CategoryAdapter(
             cleanedSubCategories,
-            R.id.btn_play_pause,
+            R.id.btnFullscreenSmall,
             onRequestFocusLeft = { restoreFocusToCategory() }
         ) { subCategory ->
             openRealCategory(subCategory)
