@@ -131,45 +131,49 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         startTopBarLogoAnimation()
 
         // ============================================================
-        // 🔧 أداة تشخيص مؤقتة — بتعرض بأعلى الشاشة سجل بآخر 8 حركات فوكس
-        // بالترتيب الزمني (الأقدم فوق، الأحدث تحت)، مع رقم تسلسلي وزمن
-        // كل حركة بالميلي ثانية من بداية التطبيق. هدفها نشوف بالضبط رحلة
-        // الفوكس الكاملة، مش بس آخر نتيجة. بنشيلها لما نلقى السبب الحقيقي.
+        // 🔧 سجل تشخيص الفوكس — أداة مطوّرين، يشتغل بس لو مفعّل من الإعدادات
+        // (Settings → تفعيل سجل تشخيص الفوكس). بيعرض بأعلى الشاشة سجل بآخر
+        // 8 حركات فوكس بالترتيب الزمني، مفيد جدًا لو صارت مشكلة تنقل بالريموت
+        // بالمستقبل وحبينا نشخصها بسرعة.
         // ============================================================
-        val debugFocusText = android.widget.TextView(this).apply {
-            setBackgroundColor(0xDD000000.toInt())
-            setTextColor(0xFF00FF00.toInt())
-            textSize = 11f
-            setPadding(14, 8, 14, 8)
-            text = "Focus log:\n-"
-            elevation = 9999f
-        }
-        val debugRootContent = findViewById<android.view.ViewGroup>(android.R.id.content)
-        val debugLp = android.widget.FrameLayout.LayoutParams(
-            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
-            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
-        ).apply {
-            gravity = android.view.Gravity.TOP or android.view.Gravity.START
-            topMargin = 24
-            leftMargin = 24
-        }
-        debugRootContent.addView(debugFocusText, debugLp)
-        val debugStartTime = System.currentTimeMillis()
-        val debugFocusLog = mutableListOf<String>()
-        var debugSeq = 0
-        window.decorView.viewTreeObserver.addOnGlobalFocusChangeListener { oldFocus, newFocus ->
-            fun nameOf(v: View?): String = try {
-                when {
-                    v == null -> "NULL"
-                    v.id != View.NO_ID -> resources.getResourceEntryName(v.id)
-                    else -> "no-id(${v.javaClass.simpleName})"
-                }
-            } catch (e: Exception) { "؟" }
-            debugSeq++
-            val t = System.currentTimeMillis() - debugStartTime
-            debugFocusLog.add("#$debugSeq [${t}ms] ${nameOf(oldFocus)} → ${nameOf(newFocus)}")
-            while (debugFocusLog.size > 8) debugFocusLog.removeAt(0)
-            debugFocusText.text = "Focus log:\n" + debugFocusLog.joinToString("\n")
+        val debugFocusEnabled = getSharedPreferences("dazou_prefs", MODE_PRIVATE)
+            .getBoolean("debug_focus_log_enabled", false)
+        if (debugFocusEnabled) {
+            val debugFocusText = android.widget.TextView(this).apply {
+                setBackgroundColor(0xDD000000.toInt())
+                setTextColor(0xFF00FF00.toInt())
+                textSize = 11f
+                setPadding(14, 8, 14, 8)
+                text = "Focus log:\n-"
+                elevation = 9999f
+            }
+            val debugRootContent = findViewById<android.view.ViewGroup>(android.R.id.content)
+            val debugLp = android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = android.view.Gravity.TOP or android.view.Gravity.START
+                topMargin = 24
+                leftMargin = 24
+            }
+            debugRootContent.addView(debugFocusText, debugLp)
+            val debugStartTime = System.currentTimeMillis()
+            val debugFocusLog = mutableListOf<String>()
+            var debugSeq = 0
+            window.decorView.viewTreeObserver.addOnGlobalFocusChangeListener { oldFocus, newFocus ->
+                fun nameOf(v: View?): String = try {
+                    when {
+                        v == null -> "NULL"
+                        v.id != View.NO_ID -> resources.getResourceEntryName(v.id)
+                        else -> "no-id(${v.javaClass.simpleName})"
+                    }
+                } catch (e: Exception) { "؟" }
+                debugSeq++
+                val t = System.currentTimeMillis() - debugStartTime
+                debugFocusLog.add("#$debugSeq [${t}ms] ${nameOf(oldFocus)} → ${nameOf(newFocus)}")
+                while (debugFocusLog.size > 8) debugFocusLog.removeAt(0)
+                debugFocusText.text = "Focus log:\n" + debugFocusLog.joinToString("\n")
+            }
         }
         // ============================================================
 
