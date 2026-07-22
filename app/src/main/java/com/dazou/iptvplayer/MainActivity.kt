@@ -48,6 +48,27 @@ import com.dazou.iptvplayer.utils.UpdateManager
 import com.dazou.iptvplayer.viewmodel.LiveViewModel
 import com.dazou.iptvplayer.viewmodel.ViewModelFactory
 
+/** ✅ الحل الجذري لمشكلة "الفوكس بيهرب للقائمة العلوية" — معروفة ومؤكدة بمصادر
+ * أندرويد TV متعددة: لما RecyclerView يفشل يلاقي العنصر التالي للفوكس داخليًا
+ * (onFocusSearchFailed)، الافتراضي بيخلي أندرويد يدور "برّا" القائمة، وغالبًا
+ * بينتهي عند أقرب عنصر تنقّل (زي القائمة العلوية). هالكلاس بيمنع هالهروب:
+ * لو فشل البحث الداخلي، منضل واقفين على نفس العنصر الحالي بدل ما نسيب النظام
+ * يدور براني ويوصل لمكان غير متوقع.
+ */
+class SafeLinearLayoutManager(context: android.content.Context) :
+    LinearLayoutManager(context) {
+    override fun onFocusSearchFailed(
+        focused: View,
+        focusDirection: Int,
+        recycler: RecyclerView.Recycler,
+        state: RecyclerView.State
+    ): View? {
+        val result = super.onFocusSearchFailed(focused, focusDirection, recycler, state)
+        if (result != null) return result
+        return focused
+    }
+}
+
 class MainActivity : AppCompatActivity(), PlayerCallback {
 
     private lateinit var binding: ActivityMainBinding
@@ -178,8 +199,8 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         liveViewModel = ViewModelProvider(this, ViewModelFactory(app.container.currentRepository))
             .get(LiveViewModel::class.java)
 
-        binding.categoryList.layoutManager = LinearLayoutManager(this)
-        binding.channelList.layoutManager = LinearLayoutManager(this)
+        binding.categoryList.layoutManager = SafeLinearLayoutManager(this)
+        binding.channelList.layoutManager = SafeLinearLayoutManager(this)
 
         liveViewModel.categories.observe(this) { categories ->
             lastCategories = categories
