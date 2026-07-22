@@ -60,6 +60,13 @@ object CategoryIconMapper {
 
     private fun flagUrl(isoCode: String) = "https://flagpedia.net/data/flags/w80/$isoCode.png"
 
+    // ✅ "الدول العربية" مش دولة وحدة إلها كود ISO — فبتضل تستخدم الصورة
+    // المحلية القديمة (flag_ar) بدل رابط علم من الإنترنت
+    private val codeToLocalIcon = mapOf(
+        "AR" to R.drawable.flag_ar,
+        "ARABIC" to R.drawable.flag_ar
+    )
+
     // مجلدات حقيقية (شعارات مش أعلام) — تضل صور محلية بالمشروع، مطابقة
     // "يحتوي على" بدل "يطابق بالضبط"، عشان تتحمّل أي بادئة أو رموز أو مسافات
     // زيادة بالاسم الأصلي بالسيرفر
@@ -80,6 +87,7 @@ object CategoryIconMapper {
         if (category.categoryId.startsWith("GROUP:")) {
             val code = category.categoryId.removePrefix("GROUP:")
             groupCodeToIsoCode[code]?.let { return CategoryIcon.Remote(flagUrl(it)) }
+            codeToLocalIcon[code]?.let { return CategoryIcon.Local(it) }
             return null
         }
 
@@ -91,6 +99,7 @@ object CategoryIconMapper {
         if (bracketMatch != null) {
             val code = bracketMatch.groupValues[1].uppercase()
             groupCodeToIsoCode[code]?.let { return CategoryIcon.Remote(flagUrl(it)) }
+            codeToLocalIcon[code]?.let { return CategoryIcon.Local(it) }
         }
 
         val lowerName = rawName.lowercase()
