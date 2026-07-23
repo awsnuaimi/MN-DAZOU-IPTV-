@@ -1058,6 +1058,18 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         // ✅ "الذكاء البسيط": نسجّل مشاهدة القناة، ولو وصلت لعدد مشاهدات معيّن
         // ومش مضافة للمفضلة أصلاً، نقترح على المستخدم يضيفها
         UsageTracker.recordView(this, "channel", channel.streamId)
+        // ✅ نسجّل القناة بسجل المشاهدة الفعلي (كان ناقص خالص من قبل — نظام
+        // السجل كان بيسجّل الأفلام والمسلسلات بس، مش القنوات المباشرة أبدًا)
+        (application as App).container.historyManager.addOrUpdateHistory(
+            HistoryItem(
+                type = "live",
+                id = channel.streamId,
+                name = channel.name,
+                timestamp = System.currentTimeMillis(),
+                icon = channel.streamIcon,
+                containerExtension = channel.containerExtension
+            )
+        )
         if (UsageTracker.shouldSuggestFavorite(this, "channel", channel.streamId)) {
             val alreadyFavorite = (application as App).container.favoritesManager
                 .isFavorite("live", channel.streamId)
