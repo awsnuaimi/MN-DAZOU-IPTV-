@@ -18,9 +18,7 @@
         android:id="@+id/flCategoryIconContainer"
         android:layout_width="32dp"
         android:layout_height="22dp"
-        android:layout_marginEnd="14dp"
-        android:background="@drawable/bg_category_icon_square"
-        android:clipToOutline="true">
+        android:layout_marginEnd="14dp">
 
         <TextView
             android:id="@+id/tvCategoryIcon"
@@ -37,6 +35,14 @@
             android:scaleType="centerCrop"
             android:visibility="gone"
             tools:visibility="visible" />
+
+        <!-- ✅ إطار مرسوم فوق الصورة مباشرة (طبقة منفصلة، مش قص) — مضمون
+        الظهور بغض النظر عن أي مشكلة برندَرة الصورة نفسها -->
+        <View
+            android:id="@+id/vCategoryIconBorder"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_category_icon_border_overlay" />
 
     </FrameLayout>
 

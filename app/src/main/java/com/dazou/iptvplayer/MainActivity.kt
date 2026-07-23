@@ -497,10 +497,17 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         startPlayback(url, name, type, 0L)
     }
 
+    /** ✅ يحدّث نص لوحة معلومات القناة (أخطاء/تحميل) ويظهّرها بس لما يكون
+     * فيه رسالة فعلية — بدل ما تضل خلفية فاضية ظاهرة بدون نص */
+    private fun setChannelInfo(text: String) {
+        binding.channelInfo.text = text
+        binding.channelInfo.visibility = if (text.isBlank()) View.GONE else View.VISIBLE
+    }
+
     private fun startPlayback(url: String, name: String, type: String, startPositionMs: Long) {
         currentChannelName = name
         playerManager.play(url, name, type, startPositionMs)
-        binding.channelInfo.text = ""
+        setChannelInfo("")
         controlsController.onMediaStarted(type)
     }
 
@@ -942,9 +949,9 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                     error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT ||
                     error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS
 
-                if (isNetworkError) {binding.channelInfo.text = getString(R.string.live_connection_lost)
+                if (isNetworkError) {setChannelInfo(getString(R.string.live_connection_lost))
                     playerManager.retryCurrent {
-                        binding.channelInfo.text = getString(R.string.live_connection_failed)
+                        setChannelInfo(getString(R.string.live_connection_failed))
                         // ✅ لما كل المحاولات التلقائية تفشل، نظهّر زر يدوي بدل ما يضل المستخدم عالق
                         controlsController.showManualRetry()
                     }
@@ -960,13 +967,13 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                     else ->
                         getString(R.string.live_playback_failed, error.errorCodeName)
                 }
-                binding.channelInfo.text = "⚠️ $message"
+                setChannelInfo("⚠️ $message")
             }
 
             override fun onPlaybackStateChanged(state: Int) {
                 when (state) {
                     Player.STATE_BUFFERING -> {
-                        binding.channelInfo.text = getString(R.string.common_loading)
+                        setChannelInfo(getString(R.string.common_loading))
                         binding.playerLoading.visibility = View.VISIBLE
                     }
                     Player.STATE_READY -> {
@@ -974,7 +981,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                         controlsController.hideManualRetry()
                         controlsController.updateQualityBadge()
                         binding.playerLoading.visibility = View.GONE
-                        binding.channelInfo.text = ""
+                        setChannelInfo("")
                     }
                     Player.STATE_ENDED -> {
                         binding.playerLoading.visibility = View.GONE
@@ -1376,7 +1383,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     override fun playStream(url:String, name:String, type:String){
         currentChannelName = name
         playerManager.play(url, name, type)
-        binding.channelInfo.text = ""
+        setChannelInfo("")
         controlsController.onMediaStarted(type)
     }
 

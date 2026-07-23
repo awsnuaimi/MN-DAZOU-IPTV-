@@ -7,6 +7,8 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.bitmap.CenterCrop
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.dazou.iptvplayer.R
 import com.dazou.iptvplayer.model.XtreamCategory
 import com.dazou.iptvplayer.utils.CategoryIcon
@@ -32,7 +34,7 @@ class CategoryAdapter(
         val iconView: TextView = view.findViewById(R.id.tvCategoryIcon)
         val imageIconView: ImageView = view.findViewById(R.id.ivCategoryIcon)
         val nameView: TextView = view.findViewById(R.id.tvCategoryName)
-        val iconContainer: android.widget.FrameLayout = view.findViewById(R.id.flCategoryIconContainer)
+        val borderOverlay: View = view.findViewById(R.id.vCategoryIconBorder)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -72,35 +74,43 @@ class CategoryAdapter(
         val category = categories[position]
         val (icon, name) = splitIconAndName(category.categoryName)
 
-        // ✅ نلوّن إطار الأيقونة بلون التيم المختار حاليًا بالتطبيق (بدل لون
-        // ثابت) — لازم .mutate() عشان كل عنصر ياخد نسخة مستقلة من الشكل ومنغيّرش
-        // على باقي العناصر يلي بتشارك نفس ملف الـdrawable الأصلي
+        // ✅ نلوّن الإطار المرسوم فوق الصورة بلون التيم المختار حاليًا —
+        // طبقة منفصلة عن الصورة نفسها، فمضمون الظهور دايمًا بغض النظر عن
+        // مصدر الصورة (رابط أو محلية) أو أي تعقيد بمستوى الـView clipping
         val theme = ThemeManager.getSavedTheme(holder.itemView.context)
         val strokeWidthPx = (1.5f * holder.itemView.resources.displayMetrics.density).toInt()
-        (holder.iconContainer.background?.mutate() as? android.graphics.drawable.GradientDrawable)
+        (holder.borderOverlay.background?.mutate() as? android.graphics.drawable.GradientDrawable)
             ?.setStroke(strokeWidthPx, theme.accent)
+
+        // ✅ نصف قطر التدوير بالبكسل — نفس القيمة المستخدمة بشكل الإطار (7dp)
+        val cornerRadiusPx = (7f * holder.itemView.resources.displayMetrics.density).toInt()
 
         val customIcon = CategoryIconMapper.iconFor(category)
         when (customIcon) {
             is CategoryIcon.Remote -> {
-                // ✅ علم رسمي مسطّح مستطيل من Flagpedia — نظيف بدون هوامش
-                // شفافة أو انحناءات، فما في داعي لأي زوم يدوي هون
+                // ✅ علم رسمي مسطّح مستطيل من Flagpedia — بندوّر زواياه فعليًا
+                // على مستوى البكسل عبر Glide (مضمون الظهور بأي جهاز). نظيف
+                // بدون هامش شفاف داخلي، فما في داعي لأي زوم إضافي هون
                 holder.imageIconView.scaleX = 1f
                 holder.imageIconView.scaleY = 1f
                 Glide.with(holder.imageIconView.context)
                     .load(customIcon.url)
-                    .centerCrop()
+                    .transform(CenterCrop(), RoundedCorners(cornerRadiusPx))
                     .into(holder.imageIconView)
                 holder.imageIconView.visibility = View.VISIBLE
                 holder.iconView.visibility = View.GONE
             }
             is CategoryIcon.Local -> {
-                holder.imageIconView.setImageResource(customIcon.resId)
-                // ✅ نكبّر الصورة بمقدار محسوب تلقائيًا عشان تاكل الهامش
-                // الشفاف حواليها وتملأ الشكل فعليًا (شعارات محلية بس، مش أعلام)
+                // ✅ شعارات محلية (Bein/كأس العالم/الدول العربية) فيها هامش
+                // شفاف داخلي، فلازم نكبّرها بمقدار محسوب تلقائيًا زي قبل،
+                // مع نفس أسلوب Glide لتدوير الزوايا بشكل مضمون
                 val zoom = FlagZoomCalculator.zoomFor(holder.imageIconView.context, customIcon.resId)
                 holder.imageIconView.scaleX = zoom
                 holder.imageIconView.scaleY = zoom
+                Glide.with(holder.imageIconView.context)
+                    .load(customIcon.resId)
+                    .transform(CenterCrop(), RoundedCorners(cornerRadiusPx))
+                    .into(holder.imageIconView)
                 holder.imageIconView.visibility = View.VISIBLE
                 holder.iconView.visibility = View.GONE
             }
