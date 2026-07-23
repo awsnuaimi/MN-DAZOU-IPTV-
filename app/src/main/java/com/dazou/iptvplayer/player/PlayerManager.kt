@@ -12,27 +12,36 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.TrackGroup
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.database.StandaloneDatabaseProvider
-import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
+import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.AdaptiveTrackSelection
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
+import okhttp3.OkHttpClient
 import java.io.File
+import java.util.concurrent.TimeUnit
 
 class PlayerManager(context: Context) {
 
     private val userAgent = "Mozilla/5.0 (Linux; Android 10; DAZOU-IPTV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
 
-    private val httpDataSourceFactory = DefaultHttpDataSource.Factory()
+    // ✅ عميل OkHttp مشترك — بيعيد استخدام نفس اتصالات TCP/TLS المفتوحة عبر
+    // كل طلبات التشغيل، بدل ما تفتح اتصال جديد بالكامل كل تبديل قناة (زي
+    // ما كانت الطبقة الأساسية المدمجة بأندرويد تسوي). هالشي بيسرّع تبديل
+    // القنوات ملموسًا، خصوصًا مع سيرفرات HTTPS يلي فيها كلفة "مصافحة" عالية.
+    private val okHttpClient = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
+        .build()
+
+    private val httpDataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
         .setUserAgent(userAgent)
-        .setConnectTimeoutMs(15000)
-        .setReadTimeoutMs(15000)
-        .setAllowCrossProtocolRedirects(true)
 
     // ✅ تخزين مؤقت محلي (بحد أقصى 300 ميجابايت) — يسرّع إعادة تشغيل نفس الفيلم/الحلقة
     // أو الرجوع لقناة اتفتحت قبل قليل، بدل ما يعيد التحميل من الصفر كل مرة.
@@ -52,12 +61,16 @@ class PlayerManager(context: Context) {
     private val mediaSourceFactory = DefaultMediaSourceFactory(context)
         .setDataSourceFactory(cacheDataSourceFactory)
 
+    // ✅ إعدادات Buffer مسرّعة (كانت 15000/50000/2500/5000) — قللناها عشان
+    // تبديل قنوات البث المباشر يحس أسرع وأخف، مع الحفاظ على قدر كافٍ من
+    // التخزين المؤقت يمنع التقطيع المتكرر. القيم الجديدة لسا آمنة للأفلام
+    // والمسلسلات (يلي أقل حساسية لسرعة البدء من البث المباشر).
     private val loadControl = DefaultLoadControl.Builder()
         .setBufferDurationsMs(
-            15_000,
-            50_000,
-            2_500,
-            5_000
+            8_000,
+            30_000,
+            1_500,
+            3_000
         )
         .build()
 
