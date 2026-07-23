@@ -649,12 +649,12 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     private fun applyChannelResults(channels: List<XtreamChannel>) {
         currentChannelList = channels
         binding.channelList.adapter = ChannelAdapter(
-    channels,
-    (application as App).container.favoritesManager,
-    R.id.btnFullscreenSmall,
-    onRequestFocusLeft = { restoreFocusToCategory() },
-    onRequestFullscreen = { if (!fullscreen) toggleFullscreen() }
-) { channel ->
+            channels,
+            (application as App).container.favoritesManager,
+            R.id.btnFullscreenSmall,
+            onRequestFocusLeft = { restoreFocusToCategoryProtected() },
+            onRequestFullscreen = { if (!fullscreen) toggleFullscreen() }
+        ) { channel ->
             val index = channels.indexOf(channel)
             if (index == currentChannelIndex && playerManager.isPlaying) {
                 toggleFullscreen()
@@ -765,7 +765,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.channelList.adapter = CategoryAdapter(
             cleanedSubCategories,
             R.id.btnFullscreenSmall,
-            onRequestFocusLeft = { restoreFocusToCategory() }
+            onRequestFocusLeft = { restoreFocusToCategoryProtected() }
         ) { subCategory ->
             openRealCategory(subCategory)
         }
@@ -785,6 +785,19 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
     private fun hideChannelsPanel() {
         binding.channelsPanel.visibility = View.GONE
+    }
+
+    /** ✅ نسخة محمية من restoreFocusToCategory — بتحجب القائمة العلوية مؤقتًا
+     * وقت البحث عن العنصر الصحيح، وإلا أندرويد بيهرب ويعطي فوكس افتراضي لأول
+     * عنصر بالقائمة العلوية (زر الحساب) لو أخذت العملية وقت أطول من المتوقع.
+     * نفس الحل المستخدم بالضبط لمشكلة الخروج من ملء الشاشة. */
+    private fun restoreFocusToCategoryProtected() {
+        binding.topBar.descendantFocusability = android.view.ViewGroup.FOCUS_BLOCK_DESCENDANTS
+        restoreFocusToCategory {
+            binding.topBar.postDelayed({
+                binding.topBar.descendantFocusability = android.view.ViewGroup.FOCUS_BEFORE_DESCENDANTS
+            }, 150)
+        }
     }
 
     /** ✅ يرجّع الفوكس بدقة لنفس مكان الفئة اللي كان المستخدم واقف عليها قبل ما
