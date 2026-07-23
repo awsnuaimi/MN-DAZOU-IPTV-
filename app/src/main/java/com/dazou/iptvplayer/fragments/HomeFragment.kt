@@ -18,6 +18,7 @@ import com.dazou.iptvplayer.databinding.FragmentHomeBinding
 import com.dazou.iptvplayer.model.FavoriteItem
 import com.dazou.iptvplayer.model.HistoryItem
 import com.dazou.iptvplayer.model.XtreamEpisode
+import com.dazou.iptvplayer.utils.UsageTracker
 
 class HomeFragment : Fragment() {
 
@@ -36,6 +37,8 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.rvHistory.layoutManager =
+            LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        binding.rvMostWatched.layoutManager =
             LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         binding.rvFavorites.layoutManager = GridLayoutManager(requireContext(), 4)
         loadContent()
@@ -58,6 +61,24 @@ class HomeFragment : Fragment() {
             binding.tvHistoryLabel.visibility = View.VISIBLE
             binding.rvHistory.visibility = View.VISIBLE
             binding.rvHistory.adapter = HistoryAdapter(history) { item -> playHistoryItem(item) }
+        }
+
+        // ✅ "الذكاء البسيط" — قسم منفصل بيبين القنوات الأكتر مشاهدة فعليًا
+        // (بس القنوات المباشرة يلي شفتها 2 مرات أو أكتر)، بدون ما نغيّر أي
+        // ترتيب أصلي بأي قائمة تانية بالتطبيق
+        val mostWatched = history
+            .filter { it.type == "live" }
+            .let { channels -> UsageTracker.sortByMostWatched(requireContext(), channels, "channel") { it.id } }
+            .filter { UsageTracker.getViewCount(requireContext(), "channel", it.id) >= 2 }
+            .take(8)
+
+        if (mostWatched.isEmpty()) {
+            binding.tvMostWatchedLabel.visibility = View.GONE
+            binding.rvMostWatched.visibility = View.GONE
+        } else {
+            binding.tvMostWatchedLabel.visibility = View.VISIBLE
+            binding.rvMostWatched.visibility = View.VISIBLE
+            binding.rvMostWatched.adapter = HistoryAdapter(mostWatched) { item -> playHistoryItem(item) }
         }
 
         val favorites = app.container.favoritesManager.getFavorites()

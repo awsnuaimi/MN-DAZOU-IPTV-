@@ -41,6 +41,31 @@
         android:nextFocusUp="@id/menu_home"
         android:visibility="gone" />
 
+    <!-- ✅ "الذكاء البسيط" — قسم منفصل بيبين القنوات الأكتر مشاهدة فعليًا،
+    بدون ما يغيّر ترتيب أي قائمة أصلية بالتطبيق -->
+    <TextView
+        android:id="@+id/tvMostWatchedLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/home_most_watched_label"
+        android:textColor="@color/text_white"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:paddingStart="12dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:visibility="gone" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvMostWatched"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:paddingStart="8dp"
+        android:clipToPadding="false"
+        android:descendantFocusability="afterDescendants"
+        android:nextFocusUp="@id/menu_home"
+        android:visibility="gone" />
+
     <TextView
         android:id="@+id/tvFavoritesLabel"
         android:layout_width="match_parent"

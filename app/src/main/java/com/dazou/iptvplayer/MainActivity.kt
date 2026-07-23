@@ -45,6 +45,8 @@ import com.dazou.iptvplayer.utils.CategoryGrouper
 import com.dazou.iptvplayer.utils.NetworkMonitor
 import com.dazou.iptvplayer.utils.ThemeManager
 import com.dazou.iptvplayer.utils.UpdateManager
+import com.dazou.iptvplayer.utils.UsageTracker
+import com.dazou.iptvplayer.model.FavoriteItem
 import com.dazou.iptvplayer.viewmodel.LiveViewModel
 import com.dazou.iptvplayer.viewmodel.ViewModelFactory
 
@@ -260,7 +262,14 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
         if (hasAccount) {
             showMainUi()
-            restoreLastSessionOrShowCategories()
+            // ✅ "الذكاء البسيط" — نفتح آخر قسم كان فيه المستخدم (رئيسية/مباشر/
+            // أفلام/مسلسلات) بدل ما نفتح البث المباشر دايمًا بشكل ثابت
+            when (getSharedPreferences("dazou_prefs", MODE_PRIVATE).getString("last_section", "live")) {
+                "home" -> loadFragment(HomeFragment())
+                "movies" -> loadFragment(MoviesFragment())
+                "series" -> loadFragment(SeriesFragment())
+                else -> restoreLastSessionOrShowCategories()
+            }
             binding.menuHome.requestFocus()
         } else {
             showLoginUi()
@@ -272,6 +281,26 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
 
         // ✅ لازم يكون آخر سطر بالدالة — حتى ما في أي كود تاني يقدر يكتب فوق ألوان التيم
         ThemeManager.applyToMainScreen(this, binding)
+    }
+
+    /** ✅ "الذكاء البسيط" — بعد ما المستخدم يشوف قناة معيّنة عدد كافي من
+     * المرات (وهي مش مضافة للمفضلة أصلاً)، منقترح عليه يضيفها. مرة وحدة بس
+     * لكل قناة (مش إزعاج متكرر) */
+    private fun showFavoriteSuggestionDialog(channel: XtreamChannel) {
+        AlertDialog.Builder(this)
+            .setTitle("⭐ ${channel.name}")
+            .setMessage("لاحظنا إنك بتتابع هالقناة كتير — بدك تضيفها للمفضلة عشان توصلها أسرع بالمرة الجاية؟")
+            .setPositiveButton(getString(R.string.common_yes)) { dialog, _ ->
+                val added = (application as App).container.favoritesManager.toggleFavorite(
+                    FavoriteItem("live", channel.streamId, channel.name, channel.streamIcon, channel.containerExtension)
+                )
+                if (added) {
+                    Toast.makeText(this, getString(R.string.favorite_added_channel), Toast.LENGTH_SHORT).show()
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton(getString(R.string.common_cancel)) { dialog, _ -> dialog.dismiss() }
+            .show()
     }
 
     /** ✅ يفتح قائمة اختيار مدة مؤقت النوم، أو إيقافه لو مفعّل حاليًا */
@@ -908,6 +937,17 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         updateNowPlayingPanel(channel)
         savePlaybackState(channel)
         controlsController.onChannelListChanged(currentChannelList, currentChannelIndex)
+
+        // ✅ "الذكاء البسيط": نسجّل مشاهدة القناة، ولو وصلت لعدد مشاهدات معيّن
+        // ومش مضافة للمفضلة أصلاً، نقترح على المستخدم يضيفها
+        UsageTracker.recordView(this, "channel", channel.streamId)
+        if (UsageTracker.shouldSuggestFavorite(this, "channel", channel.streamId)) {
+            val alreadyFavorite = (application as App).container.favoritesManager
+                .isFavorite("live", channel.streamId)
+            if (!alreadyFavorite) {
+                showFavoriteSuggestionDialog(channel)
+            }
+        }
     }
 
     fun goToHome() {
@@ -1178,14 +1218,21 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     }
 
     private fun setupMenu(){
-        binding.menuHome.setOnClickListener { loadFragment(HomeFragment()) }
-        binding.menuLive.setOnClickListener { showCategories() }
-        binding.menuMovies.setOnClickListener { loadFragment(MoviesFragment()) }
-        binding.menuSeries.setOnClickListener { loadFragment(SeriesFragment()) }
+        binding.menuHome.setOnClickListener { saveLastSection("home"); loadFragment(HomeFragment()) }
+        binding.menuLive.setOnClickListener { saveLastSection("live"); showCategories() }
+        binding.menuMovies.setOnClickListener { saveLastSection("movies"); loadFragment(MoviesFragment()) }
+        binding.menuSeries.setOnClickListener { saveLastSection("series"); loadFragment(SeriesFragment()) }
         binding.menuEpg.setOnClickListener { loadFragment(EpgFragment()) }
         binding.settings.setOnClickListener { loadFragment(SettingsFragment()) }
         binding.account.setOnClickListener { loadFragment(AccountsFragment()) }
-        binding.sidebarLiveButton.setOnClickListener { showCategories() }
+        binding.sidebarLiveButton.setOnClickListener { saveLastSection("live"); showCategories() }
+    }
+
+    /** ✅ "الذكاء البسيط" — يحفظ آخر قسم رئيسي فتحه المستخدم (رئيسية/مباشر/
+     * أفلام/مسلسلات) عشان نرجعله تلقائيًا لما يفتح التطبيق من جديد */
+    private fun saveLastSection(section: String) {
+        getSharedPreferences("dazou_prefs", MODE_PRIVATE)
+            .edit().putString("last_section", section).apply()
     }
 
     // ========== ✅ منطق البحث الشامل (قنوات + أفلام + مسلسلات) ==========
