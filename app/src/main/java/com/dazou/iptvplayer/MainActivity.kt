@@ -52,6 +52,7 @@ import android.widget.LinearLayout
 import android.widget.ImageView
 import android.view.Gravity
 import android.text.TextUtils
+import android.widget.TextView
 import com.dazou.iptvplayer.viewmodel.LiveViewModel
 import com.dazou.iptvplayer.viewmodel.ViewModelFactory
 

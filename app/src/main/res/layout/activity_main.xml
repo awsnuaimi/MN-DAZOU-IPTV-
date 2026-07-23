@@ -504,7 +504,8 @@
                 android:layout_marginTop="6dp"
                 android:text=""
                 android:textColor="@color/text_gray"
-                android:textSize="12sp"/>
+                android:textSize="12sp"
+                android:textDirection="ltr"/>
 
             <TextView
                 android:id="@+id/tvNowDescription"
@@ -525,7 +526,35 @@
                 android:layout_marginTop="10dp"
                 android:text=""
                 android:textColor="@color/text_gray"
-                android:textSize="13sp"/>
+                android:textSize="13sp"
+                android:textDirection="ltr"/>
+
+            <!-- ✅ "الذكاء البسيط" — شريط أفقي بيبين القنوات الأكتر مشاهدة
+            (3 قنوات ظاهرة بنفس الوقت، تتحرك بالأسهم يمين/يسار زي شريط
+            ملء الشاشة تمامًا)، تحت معلومات EPG مباشرة -->
+            <LinearLayout
+                android:id="@+id/mostWatchedStripContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="12dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/home_most_watched_label"
+                    android:textColor="@color/text_white"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp"/>
+
+                <LinearLayout
+                    android:id="@+id/mostWatchedStripTrack"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"/>
+            </LinearLayout>
         </LinearLayout>
 
         <FrameLayout
