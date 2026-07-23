@@ -47,6 +47,11 @@ import com.dazou.iptvplayer.utils.ThemeManager
 import com.dazou.iptvplayer.utils.UpdateManager
 import com.dazou.iptvplayer.utils.UsageTracker
 import com.dazou.iptvplayer.model.FavoriteItem
+import com.bumptech.glide.Glide
+import android.widget.LinearLayout
+import android.widget.ImageView
+import android.view.Gravity
+import android.text.TextUtils
 import com.dazou.iptvplayer.viewmodel.LiveViewModel
 import com.dazou.iptvplayer.viewmodel.ViewModelFactory
 
@@ -90,6 +95,9 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     // ✅ آخر موضع كان عليه الفوكس بقائمة الفئات الرئيسية — نستخدمه لنرجّع الفوكس
     // بدقة لنفس المكان لما المستخدم يرجع من قائمة القنوات أو المجلدات الفرعية
     private var lastFocusedCategoryPosition = 0
+    // ✅ "الذكاء البسيط" — نافذة تصفح شريط القنوات الأكتر مشاهدة (تحت EPG)
+    private var mostWatchedBrowseWindowStart = 0
+    private enum class MostWatchedFocusRequest { NONE, FIRST, LAST }
     private var currentCategoryName: String = ""
     private var pendingAutoPlayChannelId: Int? = null
     private var pendingGroupCode: String? = null
@@ -466,6 +474,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.videoPlayer.visibility = View.VISIBLE
         applyPlayerOverlayVisibility()
         binding.liveEpgPanel.visibility = View.VISIBLE
+        updateMostWatchedStrip()
         if (lastCategories.isEmpty()) {
             liveViewModel.loadCategories()
         }
@@ -584,6 +593,112 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         controlsController.showZapOverlay(channel.streamIcon, channel.name)
         updateNowPlayingPanel(channel)
         controlsController.onChannelListChanged(currentChannelList, currentChannelIndex)
+    }
+
+    private var mostWatchedBrowseStart = 0
+    private enum class StripFocusTarget { NONE, FIRST, LAST }
+
+    /** ✅ "الذكاء البسيط" — يبني شريط القنوات الأكتر مشاهدة (حسب تاريخ المشاهدة
+     * الفعلي، مش القائمة الحالية بس)، ويخفيه تلقائيًا لو ما في قنوات كافية
+     * إلها تاريخ مشاهدة حقيقي (أقل من مرتين) */
+    private fun updateMostWatchedStrip() {
+        val app = application as App
+        val candidates = app.container.historyManager.getHistory()
+            .filter { it.type == "live" }
+            .let { UsageTracker.sortByMostWatched(this, it, "channel") { item -> item.id } }
+            .filter { UsageTracker.getViewCount(this, "channel", it.id) >= 2 }
+
+        if (candidates.size < 2) {
+            binding.mostWatchedStripContainer.visibility = View.GONE
+            return
+        }
+        mostWatchedBrowseStart = mostWatchedBrowseStart.coerceIn(0, (candidates.size - 3).coerceAtLeast(0))
+        binding.mostWatchedStripContainer.visibility = View.VISIBLE
+        buildMostWatchedStripViews(candidates, StripFocusTarget.NONE)
+    }
+
+    /** ✅ نافذة عرض 3 قنوات بالضبط بنفس الوقت — تزحف عند الحواف بدل ما توقف،
+     * نفس أسلوب شريط القنوات المصغّر بملء الشاشة تمامًا */
+    private fun buildMostWatchedStripViews(items: List<HistoryItem>, focusRequest: StripFocusTarget) {
+        binding.mostWatchedStripTrack.removeAllViews()
+        val density = resources.displayMetrics.density
+        fun dp(v: Int) = (v * density).toInt()
+        val maxVisible = 3
+        val total = items.size
+        val windowStart = mostWatchedBrowseStart.coerceIn(0, (total - maxVisible).coerceAtLeast(0))
+        val windowEnd = (windowStart + maxVisible).coerceAtMost(total)
+        val displayList = items.subList(windowStart, windowEnd)
+        val cells = mutableListOf<LinearLayout>()
+
+        displayList.forEach { item ->
+            val cell = LinearLayout(this)
+            cell.id = View.generateViewId()
+            cell.orientation = LinearLayout.HORIZONTAL
+            cell.gravity = Gravity.CENTER_VERTICAL
+            val lp = LinearLayout.LayoutParams(0, dp(48), 1f)
+            lp.marginStart = dp(4)
+            lp.marginEnd = dp(4)
+            cell.layoutParams = lp
+            cell.setPadding(dp(8), dp(4), dp(8), dp(4))
+            cell.setBackgroundResource(R.drawable.tv_button_selector)
+            cell.isFocusable = true
+            cell.isFocusableInTouchMode = true
+            cell.isClickable = true
+            cell.setOnClickListener { playMostWatchedItem(item) }
+
+            val logo = ImageView(this)
+            logo.layoutParams = LinearLayout.LayoutParams(dp(30), dp(30)).apply { marginEnd = dp(6) }
+            logo.scaleType = ImageView.ScaleType.CENTER_INSIDE
+            Glide.with(this).load(item.icon)
+                .placeholder(R.drawable.ic_live_tv).error(R.drawable.ic_live_tv).into(logo)
+
+            val nameText = TextView(this)
+            nameText.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            nameText.text = item.name
+            nameText.textSize = 11f
+            nameText.maxLines = 1
+            nameText.ellipsize = TextUtils.TruncateAt.END
+            nameText.setTextColor(getColor(R.color.text_white))
+
+            cell.addView(logo)
+            cell.addView(nameText)
+            binding.mostWatchedStripTrack.addView(cell)
+            cells.add(cell)
+        }
+
+        // ✅ زحف النافذة عند الحواف بدل ما تتوقف عند حدود الـ3 قنوات
+        if (cells.isNotEmpty()) {
+            cells.first().setOnKeyListener { _, keyCode, event ->
+                if (event.action == android.view.KeyEvent.ACTION_DOWN &&
+                    keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT && windowStart > 0
+                ) {
+                    mostWatchedBrowseStart = windowStart - 1
+                    buildMostWatchedStripViews(items, StripFocusTarget.FIRST)
+                    true
+                } else false
+            }
+            cells.last().setOnKeyListener { _, keyCode, event ->
+                if (event.action == android.view.KeyEvent.ACTION_DOWN &&
+                    keyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT && windowStart + maxVisible < total
+                ) {
+                    mostWatchedBrowseStart = windowStart + 1
+                    buildMostWatchedStripViews(items, StripFocusTarget.LAST)
+                    true
+                } else false
+            }
+        }
+
+        when (focusRequest) {
+            StripFocusTarget.FIRST -> cells.firstOrNull()?.requestFocus()
+            StripFocusTarget.LAST -> cells.lastOrNull()?.requestFocus()
+            StripFocusTarget.NONE -> {}
+        }
+    }
+
+    private fun playMostWatchedItem(item: HistoryItem) {
+        val server = liveViewModel.getServer() ?: return
+        val url = XtreamAPI.getStreamUrl(server, item.id, item.containerExtension, "live")
+        playExternalMedia(url, item.name, "live", item.id)
     }
 
     private fun updateNowPlayingPanel(channel: XtreamChannel) {
@@ -766,6 +881,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
         binding.videoPlayer.visibility = View.VISIBLE
         applyPlayerOverlayVisibility()
         binding.liveEpgPanel.visibility = View.VISIBLE
+        updateMostWatchedStrip()
         if (lastCategories.isEmpty()) {
             liveViewModel.loadCategories()
         }
@@ -948,6 +1064,7 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
                 showFavoriteSuggestionDialog(channel)
             }
         }
+        updateMostWatchedStrip()
     }
 
     fun goToHome() {
