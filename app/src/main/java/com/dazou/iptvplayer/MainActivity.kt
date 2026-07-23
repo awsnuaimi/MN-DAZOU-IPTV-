@@ -649,11 +649,12 @@ class MainActivity : AppCompatActivity(), PlayerCallback {
     private fun applyChannelResults(channels: List<XtreamChannel>) {
         currentChannelList = channels
         binding.channelList.adapter = ChannelAdapter(
-            channels,
-            (application as App).container.favoritesManager,
-            R.id.btnFullscreenSmall,
-            onRequestFocusLeft = { restoreFocusToCategory() }
-        ) { channel ->
+    channels,
+    (application as App).container.favoritesManager,
+    R.id.btnFullscreenSmall,
+    onRequestFocusLeft = { restoreFocusToCategory() },
+    onRequestFullscreen = { if (!fullscreen) toggleFullscreen() }
+) { channel ->
             val index = channels.indexOf(channel)
             if (index == currentChannelIndex && playerManager.isPlaying) {
                 toggleFullscreen()
